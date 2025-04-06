@@ -3940,7 +3940,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             H(target);
 
             const real1_f xpt = Prob(target);
-            // If the CNOT control is the most polarized,
+            // If the CNOT control (when acted second) is the most polarized,
             // act a phase correction on the less-polarized target state.
             // Otherwise, act the CNOT first if its control is more polarized.
             didNegate = ((pc > pt) && (pc > xpt)) ? (pt >= xpt) : (xpt >= pt);
