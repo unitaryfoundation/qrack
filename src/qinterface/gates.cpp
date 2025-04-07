@@ -492,13 +492,13 @@ void QInterface::DepolarizingChannelWeak1Qb(bitLenInt qubit, real1_f lambda)
 
     const real1_f thirdLambda = lambda / 3;
     if (Rand() < thirdLambda) {
-        X(qb);
+        X(qubit);
     }
     if (Rand() < thirdLambda) {
-        Y(qb);
+        Y(qubit);
     }
     if (Rand() < thirdLambda) {
-        Z(qb);
+        Z(qubit);
     }
 }
 
