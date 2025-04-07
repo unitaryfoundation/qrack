@@ -490,36 +490,16 @@ void QInterface::DepolarizingChannelWeak1Qb(bitLenInt qubit, real1_f lambda)
         return;
     }
 
-    // Original qubit, Z->X basis
-    H(qubit);
-
-    // Allocate an ancilla
-    const bitLenInt ancilla = Allocate(1U);
-    // Partially entangle with the ancilla
-    CRY(2 * asin(std::pow((real1_s)lambda, (real1_s)(1.0f / 4.0f))), qubit, ancilla);
-    // Partially collapse the original state
-    M(ancilla);
-    // The ancilla is fully separable, after measurement.
-    Dispose(ancilla, 1U);
-
-    // Uncompute
-    H(qubit);
-}
-
-bitLenInt QInterface::DepolarizingChannelStrong1Qb(bitLenInt qubit, real1_f lambda)
-{
-    // Original qubit, Z->X basis
-    H(qubit);
-
-    // Allocate an ancilla
-    const bitLenInt ancilla = Allocate(1U);
-    // Partially entangle with the ancilla
-    CRY(2 * asin(std::pow((real1_s)lambda, (real1_s)(1.0f / 4.0f))), qubit, ancilla);
-
-    // Uncompute
-    H(qubit);
-
-    return ancilla;
+    const real1_f thirdLambda = lambda / 3;
+    if (Rand() < thirdLambda) {
+        X(qubit);
+    }
+    if (Rand() < thirdLambda) {
+        Y(qubit);
+    }
+    if (Rand() < thirdLambda) {
+        Z(qubit);
+    }
 }
 
 } // namespace Qrack

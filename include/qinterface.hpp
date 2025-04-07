@@ -3047,19 +3047,6 @@ public:
      */
     virtual void DepolarizingChannelWeak1Qb(bitLenInt qubit, real1_f lambda);
 
-    /**
-     *  Simulate a local qubit depolarizing noise channel, under a "strong simulation condition." "Strong" condition
-     * supports measurement sampling and direct queries of state, but the expression of state is in terms of one
-     * retained ancillary qubit per applied noise channel. condition, sampling and exact state queries are not accurate,
-     * but sampling can be achieved via repeated full execution of a noisy circuit, for each hardware-realistic
-     * measurement sample.
-     *
-     * This method returns a newly-allocated qubit ancilla index which must be retained to maintain "strong" simulation.
-     * Note that "strong" ancilla can be measured at any time and discarded, but this makes the simulation condition
-     * "weak".
-     */
-    virtual bitLenInt DepolarizingChannelStrong1Qb(bitLenInt qubit, real1_f lambda);
-
     /** @} */
 };
 } // namespace Qrack
