@@ -41,8 +41,9 @@ protected:
         if (n <= ZERO_R1_F) {
             return;
         }
-        std::cout << "noise" << std::endl;
+
         engine->DepolarizingChannelWeak1Qb(qb, n);
+
         if ((n + FP_NORM_EPSILON) >= ONE_R1_F) {
             logFidelity = -1 * std::numeric_limits<float>::infinity();
         } else {
