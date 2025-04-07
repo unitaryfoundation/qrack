@@ -3943,7 +3943,11 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             // If the CNOT control (when acted second) is the most polarized,
             // act a phase correction on the less-polarized target state.
             // Otherwise, act the CNOT first if its control is more polarized.
-            didNegate = ((pc > pt) && (pc > xpt)) ? (pt >= xpt) : (xpt >= pt);
+            QRACK_CONST real1_f oneHalf = ONE_R1_F / 2;
+            const real1_f pcHi = (pc > oneHalf) ? pc : (ONE_R1_F - pc);
+            const real1_f ptHi = (pt > oneHalf) ? pt : (ONE_R1_F - pt);
+            const real1_f xptHi = (xpt > oneHalf) ? xpt : (ONE_R1_F - xpt);
+            didNegate = ((pcHi > ptHi) && (pcHi > xptHi)) ? (ptHi >= xptHi) : (xptHi >= ptHi);
 
             if (didNegate) {
                 // Commuting CNOT to the other side of phase reverses these.
