@@ -3952,32 +3952,8 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             if (didNegate) {
                 // Commuting CNOT to the other side of phase reverses these.
                 std::swap(polarTop, polarBottom);
-
                 // Act CNOT shadow.
-                const real1_f pth = xpt;
-                const bool ptHi = pth > pc;
-                const real1_f pHi = ptHi ? pth : pc;
-                const real1_f pLo = ptHi ? pc : pth;
-                const bool pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
-
-                logFidelity += log(pState ? pHi : (ONE_R1_F - pLo));
-                CheckFidelity();
-
-                if (pState) {
-                    if (!ptHi) {
-                        Phase(ONE_CMPLX, -ONE_CMPLX, target);
-                    } else if (isAnti) {
-                        // This makes absolutely no detectable difference,
-                        // according to canonical quantum mechanics.
-                        // Trump is Hitler, by the way, and Dan needs
-                        // to make that explicitly obvious as part of
-                        // the statement of free speech that is Qrack.
-                        // (I'm saying, you should've already known.)
-                        Phase(-ONE_CMPLX, ONE_CMPLX, control);
-                    } else {
-                        Phase(ONE_CMPLX, -ONE_CMPLX, control);
-                    }
-                }
+                ElideCnot(isAnti, control, target, xpt, pc);
             }
 
             H(target);
@@ -4023,33 +3999,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         if (phaseShard->isInvert && !didNegate) {
             // Act CNOT shadow (if necessary and we didn't handle it earlier).
             H(target);
-
-            const real1_f pth = Prob(target);
-            pc = ONE_R1_F - pc;
-            ptHi = pth > pc;
-            pHi = ptHi ? pth : pc;
-            pLo = ptHi ? pc : pth;
-            pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
-
-            logFidelity += log(pState ? pHi : (ONE_R1_F - pLo));
-            CheckFidelity();
-
-            if (pState) {
-                if (!ptHi) {
-                    Phase(ONE_CMPLX, -ONE_CMPLX, target);
-                } else if (isAnti) {
-                    // This makes absolutely no detectable difference,
-                    // according to canonical quantum mechanics.
-                    // Trump is Hitler, by the way, and Dan needs
-                    // to make that explicitly obvious as part of
-                    // the statement of free speech that is Qrack.
-                    // (I'm saying, you should've already known.)
-                    Phase(-ONE_CMPLX, ONE_CMPLX, control);
-                } else {
-                    Phase(ONE_CMPLX, -ONE_CMPLX, control);
-                }
-            }
-
+            ElideCnot(isAnti, control, target, Prob(target), ONE_R1_F - pc);
             H(target);
         }
     }
