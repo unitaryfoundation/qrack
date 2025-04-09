@@ -1800,31 +1800,10 @@ void QUnit::EitherISwap(bitLenInt qubit1, bitLenInt qubit2, bool isInverse)
             }
         } catch (const bad_alloc& e) {
             // We failed to allocate; use a classical shadow.
-            const real1_f p1 = Prob(qubit1);
-            const real1_f p2 = Prob(qubit2);
-            const real1_f pHi = p2 > p1 ? p2 : p1;
-            const real1_f pLo = p2 > p1 ? p1 : p2;
-            const bitLenInt t = p2 > p1 ? qubit1 : qubit2;
-
             if (isInverse) {
-                IS(qubit1);
-                IS(qubit2);
+                QInterface::IISwap(qubit1, qubit2);
             } else {
-                Swap(qubit1, qubit2);
-            }
-
-            if ((2 * pHi) > ONE_R1_F) {
-                Z(t);
-                logFidelity += log(pHi);
-            } else {
-                logFidelity += log(ONE_R1_F - pLo);
-            }
-
-            if (isInverse) {
-                Swap(qubit1, qubit2);
-            } else {
-                S(qubit1);
-                S(qubit2);
+                QInterface::ISwap(qubit1, qubit2);
             }
 
             return;
