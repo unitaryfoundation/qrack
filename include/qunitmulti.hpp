@@ -74,6 +74,7 @@ protected:
 
     QInterfacePtr MakeEngine(bitLenInt length, const bitCapInt& perm);
 
+    using QUnit::Copy;
     virtual void Copy(QInterfacePtr orig) { Copy(std::dynamic_pointer_cast<QUnitMulti>(orig)); }
     virtual void Copy(QUnitMultiPtr orig)
     {
