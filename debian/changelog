@@ -1,3 +1,27 @@
+libqrack (9.17.3) bionic; urgency=medium
+
+  * 256-qubit addressing (4/4)
+
+ -- Dan Strano <dan@unitary.foundation>  Mon, 21 Apr 2025 16:59:29 -0400
+
+libqrack (9.17.2) focal; urgency=medium
+
+  * 256-qubit addressing (Focal 3/4)
+
+ -- Dan Strano <dan@unitary.foundation>  Mon, 21 Apr 2025 16:57:29 -0400
+
+libqrack (9.17.1) jammy; urgency=medium
+
+  * 256-qubit addressing (Jammy 2/4)
+
+ -- Dan Strano <dan@unitary.foundation>  Mon, 21 Apr 2025 16:54:18 -0400
+
+libqrack (9.17.0) noble; urgency=medium
+
+  * 256-qubit addressing (Noble 1/4)
+
+ -- Dan Strano <dan@unitary.foundation>  Mon, 21 Apr 2025 16:51:03 -0400
+
 libqrack (9.16.5) bionic; urgency=medium
 
   * Optimal ISwap ACE decomposition (Bionic 4/4)
