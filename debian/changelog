@@ -1,3 +1,27 @@
+libqrack (9.16.5) bionic; urgency=medium
+
+  * Optimal ISwap ACE decomposition (Bionic 4/4)
+
+ -- Dan Strano <dan@unitary.foundation>  Sat, 12 Apr 2025 09:12:22 -0400
+
+libqrack (9.16.4) focal; urgency=medium
+
+  * Optimal ISwap ACE decomposition (Focal 3/4)
+
+ -- Dan Strano <dan@unitary.foundation>  Sat, 12 Apr 2025 09:09:25 -0400
+
+libqrack (9.16.3) jammy; urgency=medium
+
+  * Optimal ISwap ACE decomposition (Jammy 2/4)
+
+ -- Dan Strano <dan@unitary.foundation>  Sat, 12 Apr 2025 09:06:59 -0400
+
+libqrack (9.16.2) noble; urgency=medium
+
+  * Optimal ISwap ACE decomposition (Noble 1/4)
+
+ -- Dan Strano <dan@unitary.foundation>  Sat, 12 Apr 2025 09:01:47 -0400
+
 libqrack (9.15.7) bionic; urgency=medium
 
   * Don't use ENABLE_RDRAND build option (Bionic 4/4)

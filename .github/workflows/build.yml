@@ -29,7 +29,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=7 -DCPP_STD=14 ..
+          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=8 -DCPP_STD=14 ..
           make all
           sudo cpack
 
@@ -61,7 +61,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=7 -DCPP_STD=14 ..
+          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=8 -DCPP_STD=14 ..
           make all
           sudo cpack
 
@@ -93,7 +93,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=7 -DCPP_STD=14 ..
+          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=8 -DCPP_STD=14 ..
           make all
           sudo cpack
 
@@ -126,7 +126,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=7 -DCPP_STD=14 ..
+          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=8 -DCPP_STD=14 ..
           make qrack_pinvoke benchmarks
           sudo cpack
 
@@ -159,7 +159,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=7 -DCPP_STD=14 ..
+          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=8 -DCPP_STD=14 ..
           make qrack_pinvoke benchmarks
           sudo cpack
 
@@ -192,7 +192,7 @@ jobs:
           cd build
           powershell -c "Invoke-WebRequest -Uri 'https://github.com/ckormanyos/xxd/releases/download/v1.1/xxd-win64-msvc.zip' -OutFile 'xxd-win64-msvc.zip'"
           powershell -c "Expand-Archive -Path xxd-win64-msvc.zip -DestinationPath ."
-          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=7 -DCPP_STD=14
+          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=8 -DCPP_STD=14
           cmake --build . --config Release --target PACKAGE benchmarks
 
       - name: Upload Artifacts
