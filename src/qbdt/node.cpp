@@ -21,9 +21,36 @@
 #include <thread>
 #endif
 
+#if defined(_WIN32)
+#include <psapi.h>
+#include <windows.h>
+#else
+#include <sys/resource.h>
+#endif
+
 #define IS_NODE_0(c) (norm(c) <= _qrack_qbdt_sep_thresh)
 
 namespace Qrack {
+
+// This function was contributed by Elara (OpenAI custom GPT)
+size_t getMemoryUsageBytes()
+{
+#if defined(_WIN32)
+    PROCESS_MEMORY_COUNTERS memInfo;
+    GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
+    return memInfo.WorkingSetSize;
+#elif defined(__APPLE__) || defined(__linux__)
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+#if defined(__APPLE__)
+    return usage.ru_maxrss; // bytes
+#else
+    return usage.ru_maxrss * 1024U; // convert KB to bytes
+#endif
+#else
+    return 0; // Unknown platform
+#endif
+}
 
 #if ENABLE_QBDT_CPU_PARALLEL && ENABLE_PTHREAD
 const unsigned numThreads = std::thread::hardware_concurrency() << 1U;
@@ -234,6 +261,11 @@ void QBdtNode::Branch(bitLenInt depth)
         try {
             branches[0U] = std::make_shared<QBdtNode>(SQRT1_2_R1);
             branches[1U] = std::make_shared<QBdtNode>(SQRT1_2_R1);
+
+            const size_t usedBytes = getMemoryUsageBytes();
+            if (usedBytes > QRACK_QBDT_MAX_ALLOC_BYTES_DEFAULT) {
+                throw std::bad_alloc();
+            }
         } catch (const std::bad_alloc& e) {
             branches[0U] = nullptr;
             branches[1U] = nullptr;
