@@ -289,6 +289,10 @@ void QBdtNode::Branch(bitLenInt depth)
         branches[0U] = branches[0U]->ShallowClone();
         branches[1U] = branches[1U]->ShallowClone();
 #endif
+        const size_t usedBytes = getMemoryUsageBytes();
+        if (usedBytes > QRACK_QBDT_MAX_ALLOC_BYTES_DEFAULT) {
+            throw std::bad_alloc();
+        }
     }
 
     --depth;
