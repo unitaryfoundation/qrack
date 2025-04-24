@@ -22,8 +22,8 @@
 #endif
 
 #if defined(_WIN32)
+#include <Windows.h>
 #include <psapi.h>
-#include <windows.h>
 #else
 #include <sys/resource.h>
 #endif
