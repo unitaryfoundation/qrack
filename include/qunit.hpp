@@ -87,7 +87,9 @@ protected:
 #else
         if (logFidelity <= FIDELITY_MIN) {
 #endif
-            throw std::runtime_error("QUnit fidelity is effectively 0!");
+            throw std::runtime_error("QUnit fidelity estimate is effectively 0! (This DOES NOT mean your fidelity is "
+                                     "necessarily close to 0! Please read the Qrack README, and then, afterward, "
+                                     "consider setting environment variable QRACK_DISABLE_QUNIT_FIDELITY_GUARD=1.)");
         }
     }
 
