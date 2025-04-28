@@ -100,7 +100,7 @@ protected:
         const real1_f pLo = ptHi ? pc : pth;
         const bool pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
 
-        logFidelity += log(pState ? pHi : (ONE_R1_F - pLo));
+        logFidelity += (double)log(pState ? pHi : (ONE_R1_F - pLo));
         CheckFidelity();
 
         if (pState) {

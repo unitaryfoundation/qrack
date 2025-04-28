@@ -147,7 +147,7 @@ void QUnit::SetQuantumState(const complex* inputState)
 {
     Dump();
 
-    logFidelity = ZERO_R1;
+    logFidelity = 0.0;
 
     if (qubitCount == 1U) {
         QEngineShard& shard = shards[0U];
@@ -2705,9 +2705,9 @@ void QUnit::ApplyEitherControlled(
         // Act the classical shadow of the gate payload.
         if ((2 * p) > ONE_R1_F) {
             cfn(unit, {});
-            logFidelity += log(p);
+            logFidelity += (double)log(p);
         } else {
-            logFidelity += log(ONE_R1_F - p);
+            logFidelity += (double)log(ONE_R1_F - p);
         }
 
         return CheckFidelity();
@@ -3943,7 +3943,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         real1_f pLo = ptHi ? pc : pt;
         bool pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
 
-        logFidelity += angleFrac(polarBottom) * log((double)(pState ? pHi : (ONE_R1_F - pLo)));
+        logFidelity += (double)(angleFrac(polarBottom) * log(pState ? pHi : (ONE_R1_F - pLo)));
         CheckFidelity();
 
         if (pState) {
@@ -3962,7 +3962,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         pLo = ptHi ? pc : pt;
         pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
 
-        logFidelity += angleFrac(polarTop) * log((double)(pState ? pHi : (ONE_R1_F - pLo)));
+        logFidelity += (double)(angleFrac(polarTop) * log(pState ? pHi : (ONE_R1_F - pLo)));
         CheckFidelity();
 
         if (!pState) {

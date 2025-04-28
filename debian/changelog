@@ -1,3 +1,27 @@
+libqrack (9.18.4) bionic; urgency=medium
+
+  * QBDD ACE (Bionic 4/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Fri, 25 Apr 2025 13:02:38 -0400
+
+libqrack (9.18.3) focal; urgency=medium
+
+  * QBDD ACE (Focal 3/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Fri, 25 Apr 2025 13:00:29 -0400
+
+libqrack (9.18.2) jammy; urgency=medium
+
+  * QBDD ACE (Jammy 2/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Fri, 25 Apr 2025 12:58:13 -0400
+
+libqrack (9.18.1) noble; urgency=medium
+
+  * QBDD ACE (Noble 1/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Fri, 25 Apr 2025 12:53:28 -0400
+
 libqrack (9.17.3) bionic; urgency=medium
 
   * 256-qubit addressing (4/4)
