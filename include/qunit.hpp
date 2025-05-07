@@ -758,6 +758,10 @@ protected:
 
     void ClampShard(bitLenInt qubit)
     {
+        if (qubit >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::ClampShard!");
+        }
+
         QEngineShard& shard = shards[qubit];
         if (!shard.ClampAmps() || !shard.unit) {
             return;
@@ -816,6 +820,10 @@ protected:
 
     void RevertBasisX(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::RevertBasisX!");
+        }
+
         QEngineShard& shard = shards[i];
         if (shard.pauliBasis != PauliX) {
             // Recursive call that should be blocked,
@@ -828,6 +836,10 @@ protected:
 
     void RevertBasisY(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::RevertBasisY!");
+        }
+
         QEngineShard& shard = shards[i];
 
         if (shard.pauliBasis != PauliY) {
@@ -861,7 +873,7 @@ protected:
     void RevertBasis1Qb(bitLenInt i)
     {
         if (i >= qubitCount) {
-            throw std::invalid_argument("Qubit index out of range in RevertBasis1Qb!");
+            throw std::invalid_argument("Qubit index out of range in QUnit::RevertBasis1Qb!");
         }
 
         QEngineShard& shard = shards[i];
@@ -875,6 +887,10 @@ protected:
 
     void RevertBasisToX1Qb(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::RevertBasisToX1Qb!");
+        }
+
         QEngineShard& shard = shards[i];
         if (shard.pauliBasis == PauliZ) {
             ConvertZToX(i);
@@ -885,6 +901,10 @@ protected:
 
     void RevertBasisToY1Qb(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::RevertBasisToY1Qb!");
+        }
+
         QEngineShard& shard = shards[i];
         if (shard.pauliBasis == PauliZ) {
             ConvertZToY(i);
@@ -895,6 +915,10 @@ protected:
 
     void ConvertZToX(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::ConvertZToX!");
+        }
+
         QEngineShard& shard = shards[i];
 
         // WARNING: Might be called when shard is in either Z or X basis
@@ -916,6 +940,10 @@ protected:
     }
     void ConvertXToY(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::ConvertXToY!");
+        }
+
         QEngineShard& shard = shards[i];
 
         shard.pauliBasis = PauliY;
@@ -941,6 +969,10 @@ protected:
     }
     void ConvertYToZ(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::ConvertYToZ!");
+        }
+
         QEngineShard& shard = shards[i];
 
         shard.pauliBasis = PauliZ;
@@ -965,6 +997,10 @@ protected:
     }
     void ConvertZToY(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::ConvertZToY!");
+        }
+
         QEngineShard& shard = shards[i];
 
         shard.pauliBasis = PauliY;
@@ -989,6 +1025,10 @@ protected:
     }
     void ShardAI(bitLenInt qubit, real1_f azimuth, real1_f inclination)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::ShardAI!");
+        }
+
         real1 cosineA = (real1)cos(azimuth);
         real1 sineA = (real1)sin(azimuth);
         real1 cosineI = (real1)cos(inclination / 2);
