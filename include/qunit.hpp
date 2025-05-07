@@ -860,6 +860,9 @@ protected:
 
     void RevertBasis1Qb(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in RevertBasis1Qb!");
+        }
         QEngineShard& shard = shards[i];
 
         if (shard.pauliBasis == PauliY) {

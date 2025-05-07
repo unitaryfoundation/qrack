@@ -4052,6 +4052,10 @@ void QUnit::RevertBasis2Qb(bitLenInt i, RevertExclusivity exclusivity, RevertCon
     RevertAnti antiExclusivity, const std::set<bitLenInt>& exceptControlling,
     const std::set<bitLenInt>& exceptTargetedBy, bool dumpSkipped, bool skipOptimize)
 {
+    if (i >= qubitCount) {
+        throw std::invalid_argument("Qubit index out of range in RevertBasis2Qb!");
+    }
+
     QEngineShard& shard = shards[i];
 
     if (freezeBasis2Qb || !QUEUED_PHASE(shard)) {
