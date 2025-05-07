@@ -171,6 +171,10 @@ public:
 
     virtual real1_f ProbRdm(bitLenInt qubit)
     {
+        if (qubit >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::ProbRdm!");
+        }
+
         const QEngineShard& shard = shards[qubit];
         if (!shard.unit) {
             return Prob(qubit);
@@ -202,6 +206,10 @@ public:
     virtual complex GetAmplitude(const bitCapInt& perm);
     virtual void SetAmplitude(const bitCapInt& perm, const complex& amp)
     {
+        if (!qubitCount) {
+            throw std::domain_error("QUnit::SetAmplitude called for 0 qubits!");
+        }
+
         if (bi_compare(perm, maxQPower) >= 0) {
             throw std::invalid_argument("QUnit::SetAmplitude argument out-of-bounds!");
         }
@@ -484,6 +492,10 @@ public:
     virtual real1_f ProbAll(const bitCapInt& perm) { return clampProb((real1_f)norm(GetAmplitudeOrProb(perm, true))); }
     virtual real1_f ProbAllRdm(bool roundRz, const bitCapInt& perm)
     {
+        if (!qubitCount) {
+            throw std::domain_error("QUnit::ProbAllRdm called for 0 qubits!");
+        }
+
         if (shards[0U].unit && (shards[0U].unit->GetQubitCount() == qubitCount)) {
             OrderContiguous(shards[0U].unit);
             return shards[0U].unit->ProbAllRdm(roundRz, perm);
@@ -537,7 +549,13 @@ public:
         }
     }
     using QInterface::isClifford;
-    virtual bool isClifford(bitLenInt qubit) { return shards[qubit].isClifford(); };
+    virtual bool isClifford(bitLenInt qubit) {
+        if (qubit >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::isClifford!");
+        }
+
+        return shards[qubit].isClifford();
+    };
 
     using QInterface::TrySeparate;
     virtual bool TrySeparate(bitLenInt qubit);
@@ -674,6 +692,10 @@ protected:
     real1_f ExpVarFactorized(bool isExp, bool isRdm, bool isFloat, const std::vector<bitLenInt>& bits,
         const std::vector<bitCapInt>& perms, const std::vector<real1_f>& weights, const bitCapInt& offset, bool roundRz)
     {
+        if (!qubitCount) {
+            throw std::domain_error("QUnit::ProbAllRdm called for 0 qubits!");
+        }
+
         if ((isFloat && (weights.size() < bits.size())) || (!isFloat && (perms.size() < bits.size()))) {
             throw std::invalid_argument("QUnit::ExpectationFactorized() must supply at least as many weights as bits!");
         }
@@ -1060,6 +1082,10 @@ protected:
 
     void Flush0Eigenstate(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::Flush0Eigenstate!");
+        }
+
         QEngineShard& shard = shards[i];
         shard.DumpControlOf();
         if (randGlobalPhase) {
@@ -1069,6 +1095,10 @@ protected:
     }
     void Flush1Eigenstate(bitLenInt i)
     {
+        if (i >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::Flush1Eigenstate!");
+        }
+
         QEngineShard& shard = shards[i];
         shard.DumpAntiControlOf();
         if (randGlobalPhase) {
@@ -1119,6 +1149,10 @@ protected:
 
     void DirtyShardRange(bitLenInt start, bitLenInt length)
     {
+        if ((start + length) > qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::DirtyShardRange!");
+        }
+
         for (bitLenInt i = 0U; i < length; ++i) {
             shards[start + i].MakeDirty();
         }
@@ -1126,6 +1160,10 @@ protected:
 
     void DirtyShardRangePhase(bitLenInt start, bitLenInt length)
     {
+        if ((start + length) > qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::DirtyShardRangePhase!");
+        }
+
         for (bitLenInt i = 0U; i < length; ++i) {
             shards[start + i].isPhaseDirty = true;
         }
@@ -1134,12 +1172,20 @@ protected:
     void DirtyShardIndexVector(std::vector<bitLenInt> bitIndices)
     {
         for (const bitLenInt& bitIndex : bitIndices) {
+            if (bitIndex >= qubitCount) {
+                throw std::invalid_argument("Qubit index out of range in QUnit::DirtyShardRangePhase!");
+            }
+
             shards[bitIndex].MakeDirty();
         }
     }
 
     void EndEmulation(bitLenInt target)
     {
+        if (target >= qubitCount) {
+            throw std::invalid_argument("Qubit index out of range in QUnit::EndEmulation!");
+        }
+
         QEngineShard& shard = shards[target];
         if (shard.unit) {
             return;
