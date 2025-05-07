@@ -3988,6 +3988,10 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
 void QUnit::ApplyBufferMap(bitLenInt bitIndex, ShardToPhaseMap bufferMap, RevertExclusivity exclusivity, bool isControl,
     bool isAnti, const std::set<bitLenInt>& exceptPartners, bool dumpSkipped)
 {
+    if (bitIndex >= qubitCount) {
+        throw std::invalid_argument("Qubit index out of range in QUnit::ApplyBufferMap!");
+    }
+
     QEngineShard& shard = shards[bitIndex];
 
     ShardToPhaseMap::iterator phaseShard;

@@ -549,7 +549,8 @@ public:
         }
     }
     using QInterface::isClifford;
-    virtual bool isClifford(bitLenInt qubit) {
+    virtual bool isClifford(bitLenInt qubit)
+    {
         if (qubit >= qubitCount) {
             throw std::invalid_argument("Qubit index out of range in QUnit::isClifford!");
         }

@@ -335,7 +335,14 @@ public:
 
     typedef std::vector<QEngineShard>::iterator iterator;
 
-    QEngineShard& operator[](const bitLenInt& i) { return shards[swapMap[i]]; }
+    QEngineShard& operator[](const bitLenInt& i)
+    {
+        if (i >= swapMap.size()) {
+            throw std::invalid_argument("Qubit index out of range in QEngineShardMap::operator[]!");
+        }
+
+        return shards[swapMap[i]];
+    }
 
     iterator begin() { return shards.begin(); }
 
