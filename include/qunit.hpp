@@ -1025,7 +1025,7 @@ protected:
     }
     void ShardAI(bitLenInt qubit, real1_f azimuth, real1_f inclination)
     {
-        if (i >= qubitCount) {
+        if (qubit >= qubitCount) {
             throw std::invalid_argument("Qubit index out of range in QUnit::ShardAI!");
         }
 
