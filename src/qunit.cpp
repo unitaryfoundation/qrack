@@ -1801,15 +1801,15 @@ void QUnit::EitherISwap(bitLenInt qubit1, bitLenInt qubit2, bool isInverse)
         } catch (const bad_alloc& e) {
             // We failed to allocate; use a classical shadow.
             if (isInverse) {
-                S(q2);
-                S(q1);
-                ElideCz(false, q1, q2, Prob(target), Prob(control));
-                Swap(q1, q2);
+                S(qubit2);
+                S(qubit1);
+                ElideCz(false, qubit1, qubit2, Prob(target), Prob(qubit1));
+                Swap(qubit1, qubit2);
             } else {
-                Swap(q1, q2);
-                ElideCz(false, q1, q2, Prob(target), Prob(control));
-                S(q1);
-                S(q2);
+                Swap(qubit1, qubit2);
+                ElideCz(false, qubit1, qubit2, Prob(qubit2), Prob(qubit1));
+                S(qubit1);
+                S(qubit2);
             }
 
             return;
