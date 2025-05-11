@@ -1803,7 +1803,7 @@ void QUnit::EitherISwap(bitLenInt qubit1, bitLenInt qubit2, bool isInverse)
             if (isInverse) {
                 S(qubit2);
                 S(qubit1);
-                ElideCz(false, qubit1, qubit2, Prob(target), Prob(qubit1));
+                ElideCz(false, qubit1, qubit2, Prob(qubit2), Prob(qubit1));
                 Swap(qubit1, qubit2);
             } else {
                 Swap(qubit1, qubit2);
