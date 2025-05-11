@@ -3938,7 +3938,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
                 // Commuting CNOT to the other side of phase reverses these.
                 std::swap(polarTop, polarBottom);
                 // Act CNOT shadow.
-                ElideCnot(isAnti, control, target, xpt, pc);
+                ElideCz(isAnti, control, target, xpt, pc);
             }
 
             H(target);
