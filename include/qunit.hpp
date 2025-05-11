@@ -93,7 +93,7 @@ protected:
         }
     }
 
-    void ElideCnot(
+    void ElideCz(
         const bool& isAnti, const bitLenInt& control, const bitLenInt& target, const real1_f& pth, const real1_f& pc)
     {
         // Act CNOT shadow.
@@ -911,7 +911,8 @@ protected:
     void RevertBasisToX1Qb(bitLenInt i)
     {
         if (i >= qubitCount) {
-            throw std::invalid_argument("Qubit index " + std::to_string(i) + " out of range in QUnit::RevertBasisToX1Qb!");
+            throw std::invalid_argument(
+                "Qubit index " + std::to_string(i) + " out of range in QUnit::RevertBasisToX1Qb!");
         }
 
         QEngineShard& shard = shards[i];
@@ -925,7 +926,8 @@ protected:
     void RevertBasisToY1Qb(bitLenInt i)
     {
         if (i >= qubitCount) {
-            throw std::invalid_argument("Qubit index " + std::to_string(i) + " out of range in QUnit::RevertBasisToY1Qb!");
+            throw std::invalid_argument(
+                "Qubit index " + std::to_string(i) + " out of range in QUnit::RevertBasisToY1Qb!");
         }
 
         QEngineShard& shard = shards[i];
@@ -1084,7 +1086,8 @@ protected:
     void Flush0Eigenstate(bitLenInt i)
     {
         if (i >= qubitCount) {
-            throw std::invalid_argument("Qubit index " + std::to_string(i) + " out of range in QUnit::Flush0Eigenstate!");
+            throw std::invalid_argument(
+                "Qubit index " + std::to_string(i) + " out of range in QUnit::Flush0Eigenstate!");
         }
 
         QEngineShard& shard = shards[i];
@@ -1097,7 +1100,8 @@ protected:
     void Flush1Eigenstate(bitLenInt i)
     {
         if (i >= qubitCount) {
-            throw std::invalid_argument("Qubit index " + std::to_string(i) + " out of range in QUnit::Flush1Eigenstate!");
+            throw std::invalid_argument(
+                "Qubit index " + std::to_string(i) + " out of range in QUnit::Flush1Eigenstate!");
         }
 
         QEngineShard& shard = shards[i];
@@ -1151,7 +1155,8 @@ protected:
     void DirtyShardRange(bitLenInt start, bitLenInt length)
     {
         if ((start + length) > qubitCount) {
-            throw std::invalid_argument("Qubit index " + std::to_string(start + length) + " out of range in QUnit::DirtyShardRange!");
+            throw std::invalid_argument(
+                "Qubit index " + std::to_string(start + length) + " out of range in QUnit::DirtyShardRange!");
         }
 
         for (bitLenInt i = 0U; i < length; ++i) {
@@ -1162,7 +1167,8 @@ protected:
     void DirtyShardRangePhase(bitLenInt start, bitLenInt length)
     {
         if ((start + length) > qubitCount) {
-            throw std::invalid_argument("Qubit index " + std::to_string(start + length) + " out of range in QUnit::DirtyShardRangePhase!");
+            throw std::invalid_argument(
+                "Qubit index " + std::to_string(start + length) + " out of range in QUnit::DirtyShardRangePhase!");
         }
 
         for (bitLenInt i = 0U; i < length; ++i) {
@@ -1174,7 +1180,8 @@ protected:
     {
         for (const bitLenInt& bitIndex : bitIndices) {
             if (bitIndex >= qubitCount) {
-                throw std::invalid_argument("Qubit index " + std::to_string(bitIndex) + " out of range in QUnit::DirtyShardRangePhase!");
+                throw std::invalid_argument(
+                    "Qubit index " + std::to_string(bitIndex) + " out of range in QUnit::DirtyShardRangePhase!");
             }
 
             shards[bitIndex].MakeDirty();
@@ -1184,7 +1191,8 @@ protected:
     void EndEmulation(bitLenInt target)
     {
         if (target >= qubitCount) {
-            throw std::invalid_argument("Qubit index " + std::to_string(target) + " out of range in QUnit::EndEmulation!");
+            throw std::invalid_argument(
+                "Qubit index " + std::to_string(target) + " out of range in QUnit::EndEmulation!");
         }
 
         QEngineShard& shard = shards[target];

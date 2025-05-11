@@ -1801,9 +1801,15 @@ void QUnit::EitherISwap(bitLenInt qubit1, bitLenInt qubit2, bool isInverse)
         } catch (const bad_alloc& e) {
             // We failed to allocate; use a classical shadow.
             if (isInverse) {
-                QInterface::IISwap(qubit1, qubit2);
+                S(q2);
+                S(q1);
+                ElideCz(false, q1, q2, Prob(target), Prob(control));
+                Swap(q1, q2);
             } else {
-                QInterface::ISwap(qubit1, qubit2);
+                Swap(q1, q2);
+                ElideCz(false, q1, q2, Prob(target), Prob(control));
+                S(q1);
+                S(q2);
             }
 
             return;
@@ -3978,7 +3984,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         if (phaseShard->isInvert && !didNegate) {
             // Act CNOT shadow (if necessary and we didn't handle it earlier).
             H(target);
-            ElideCnot(isAnti, control, target, Prob(target), ONE_R1_F - pc);
+            ElideCz(isAnti, control, target, Prob(target), ONE_R1_F - pc);
             H(target);
         }
     }

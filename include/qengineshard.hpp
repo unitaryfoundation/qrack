@@ -338,7 +338,8 @@ public:
     QEngineShard& operator[](const bitLenInt& i)
     {
         if (i >= swapMap.size()) {
-            throw std::invalid_argument("Qubit index " + std::to_string(i) + " out of range in QEngineShardMap::operator[]!");
+            throw std::invalid_argument(
+                "Qubit index " + std::to_string(i) + " out of range in QEngineShardMap::operator[]!");
         }
 
         return shards[swapMap[i]];
