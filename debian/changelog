@@ -1,3 +1,27 @@
+libqrack (9.18.10) bionic; urgency=medium
+
+  * ISwap ACE edge case (Bionic 4/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Sun, 11 May 2025 21:55:01 -0400
+
+libqrack (9.18.9) focal; urgency=medium
+
+  * ISwap ACE edge case (Focal 3/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Sun, 11 May 2025 21:53:15 -0400
+
+libqrack (9.18.8) jammy; urgency=medium
+
+  * ISwap ACE edge case (Jammy 2/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Sun, 11 May 2025 21:51:28 -0400
+
+libqrack (9.18.7) noble; urgency=medium
+
+  * ISwap ACE edge case (Noble 1/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Sun, 11 May 2025 21:47:06 -0400
+
 libqrack (9.18.4) bionic; urgency=medium
 
   * QBDD ACE (Bionic 4/4)
