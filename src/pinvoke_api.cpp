@@ -845,6 +845,60 @@ MICROSOFT_QUANTUM_DECL uintq init_count_pager(_In_ uintq q, _In_ bool hp)
 }
 
 /**
+ * (External API) Initialize a simulator ID with "q" qubits as purely a stabilizer simulator.
+ */
+MICROSOFT_QUANTUM_DECL uintq init_count_stabilizer(_In_ uintq q)
+{
+    META_LOCK_GUARD()
+
+    uintq sid = (uintq)simulators.size();
+
+    for (uintq i = 0U; i < simulators.size(); ++i) {
+        if (simulatorReservations[i] == false) {
+            sid = i;
+            simulatorReservations[i] = true;
+            break;
+        }
+    }
+
+    const std::vector<QInterfaceEngine> simulatorType{ QINTERFACE_STABILIZER };
+
+    bool isSuccess = true;
+    QInterfacePtr simulator{ nullptr };
+    if (q) {
+        try {
+            simulator =
+                CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, false);
+        } catch (const std::exception& ex) {
+            std::cout << ex.what() << std::endl;
+            isSuccess = false;
+        }
+    }
+
+    if (sid == simulators.size()) {
+        simulatorReservations.push_back(true);
+        simulators.push_back(simulator);
+        simulatorTypes.push_back(simulatorType);
+        simulatorHostPointer.push_back(false);
+        simulatorErrors.push_back(isSuccess ? 0 : 1);
+    } else {
+        simulatorReservations[sid] = true;
+        simulators[sid] = simulator;
+        simulatorTypes[sid] = simulatorType;
+        simulatorHostPointer[sid] = false;
+        simulatorErrors[sid] = isSuccess ? 0 : 1;
+    }
+
+    if (!q) {
+        return sid;
+    }
+
+    FillSimShards(simulator);
+
+    return sid;
+}
+
+/**
  * (External API) Initialize a simulator ID that clones simulator ID "sid"
  */
 MICROSOFT_QUANTUM_DECL uintq init_clone(_In_ uintq sid)

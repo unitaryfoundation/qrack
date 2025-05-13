@@ -166,6 +166,11 @@ quid init_count_type(
 quid init_count(bitLenInt q, bool dm);
 
 /**
+ * Initialize a simulator ID with "q" qubits as purely a stabilizer simulator.
+ */
+quid init_count_stabilizer(bitLenInt q);
+
+/**
  * "Quasi-default constructor" (for an empty simulator)
  */
 quid init();

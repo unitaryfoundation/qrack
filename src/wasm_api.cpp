@@ -679,6 +679,51 @@ quid init_count(bitLenInt q, bool hp)
 }
 
 /**
+ * (External API) Initialize a simulator ID with "q" qubits as purely a stabilizer simulator.
+ */
+quid init_count_stabilizer(bitLenInt q)
+{
+    META_LOCK_GUARD()
+
+    quid sid = (quid)simulators.size();
+
+    for (size_t i = 0U; i < simulators.size(); ++i) {
+        if (simulatorReservations[i] == false) {
+            sid = i;
+            simulatorReservations[i] = true;
+            break;
+        }
+    }
+
+    const std::vector<QInterfaceEngine> simulatorType{ QINTERFACE_STABILIZER };
+
+    QInterfacePtr simulator{ nullptr };
+    if (q) {
+        simulator = CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, false);
+    }
+
+    if (sid == simulators.size()) {
+        simulatorReservations.push_back(true);
+        simulators.push_back(simulator);
+        simulatorTypes.push_back(simulatorType);
+        simulatorHostPointer.push_back(false);
+    } else {
+        simulatorReservations[sid] = true;
+        simulators[sid] = simulator;
+        simulatorTypes[sid] = simulatorType;
+        simulatorHostPointer[sid] = false;
+    }
+
+    if (!q) {
+        return sid;
+    }
+
+    FillSimShards(simulator);
+
+    return sid;
+}
+
+/**
  * (External API) Initialize a simulator ID that clones simulator ID "sid"
  */
 quid init_clone(quid sid)
