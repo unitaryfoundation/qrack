@@ -383,6 +383,7 @@ QInterfacePtr QStabilizerHybrid::CloneBody(bool isCopy)
     c->shards.resize(shards.size());
     c->ancillaCount = ancillaCount;
     c->deadAncillaCount = deadAncillaCount;
+    c->roundingThreshold = roundingThreshold;
     for (size_t i = 0U; i < shards.size(); ++i) {
         if (shards[i]) {
             c->shards[i] = shards[i]->Clone();
