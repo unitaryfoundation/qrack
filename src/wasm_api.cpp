@@ -699,7 +699,8 @@ quid init_count_stabilizer(bitLenInt q)
 
     QInterfacePtr simulator{ nullptr };
     if (q) {
-        simulator = CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, false);
+        simulator =
+            CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, false);
     }
 
     if (sid == simulators.size()) {

@@ -89,6 +89,9 @@ public:
         engine = o->engine->Clone();
     }
 
+    void SetSdrp(real1_f sdrp) { engine->SetSdrp(sdrp); }
+    void SetReactiveSeparate(bool isAggSep) { engine->SetReactiveSeparate(isAggSep); }
+
     void SetNoiseParameter(real1_f lambda) { noiseParam = lambda; }
     real1_f GetNoiseParameter() { return noiseParam; }
 
@@ -114,6 +117,7 @@ public:
         return engine->ProbReg(start, length, permutation);
     }
 
+    using QInterface::Allocate;
     bitLenInt Allocate(bitLenInt start, bitLenInt length)
     {
         SetQubitCount(qubitCount + length);
