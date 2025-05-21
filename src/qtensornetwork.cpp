@@ -197,7 +197,7 @@ void QTensorNetwork::MakeLayerStack(std::set<bitLenInt> qubits)
     const size_t offset = circuit.size() - c.size();
     for (size_t i = 0U; i < c.size(); ++i) {
         c[i]->Run(layerStack);
-        if (measurements.size() && (measurements.size() > (offset + i))) {
+        if (measurements.size() > (offset + i)) {
             RunMeasurmentLayer(offset + i);
         }
     }
