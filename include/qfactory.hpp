@@ -246,7 +246,10 @@ template <typename... Ts> QInterfacePtr CreateQuantumInterface(std::vector<QInte
     case QINTERFACE_CPU:
         return std::make_shared<QEngineCPU>(args...);
     case QINTERFACE_NOISY:
-        return std::make_shared<QInterfaceNoisy>(engines, args...);
+        if (engines.size()) {
+            return std::make_shared<QInterfaceNoisy>(engines, args...);
+        }
+        return std::make_shared<QInterfaceNoisy>(args...);
     default:
         throw std::invalid_argument("CreateQuantumInterface received a request to create a nonexistent type instance!");
     }
