@@ -115,19 +115,22 @@ protected:
     {
         if (qubits.empty()) {
             MakeLayerStack();
+
             return fn(layerStack);
         }
 
         const bitLenInt maxQb = GetThresholdQb();
         if (qubitCount <= maxQb) {
             MakeLayerStack();
+
             return fn(layerStack);
-        } else {
-            MakeLayerStack(qubits);
-            QInterfacePtr ls = layerStack;
-            layerStack = nullptr;
-            return fn(ls);
         }
+
+        MakeLayerStack(qubits);
+        QInterfacePtr ls = layerStack;
+        layerStack = nullptr;
+
+        return fn(ls);
     }
 
     void Copy(QInterfacePtr orig)
