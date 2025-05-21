@@ -98,12 +98,6 @@ public:
     double GetUnitaryFidelity() { return (double)exp(logFidelity); }
     void ResetUnitaryFidelity() { logFidelity = 0.0; }
 
-    void SetQubitCount(bitLenInt qb)
-    {
-        QInterface::SetQubitCount(qb);
-        engine->SetQubitCount(qb);
-    }
-
     bool isOpenCL() { return engine->isOpenCL(); }
 
     void SetConcurrency(uint32_t threadCount)
