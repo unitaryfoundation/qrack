@@ -316,7 +316,10 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         const std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
         for (const auto& b : m) {
             const auto it = mMin1.find(b.first);
-            if ((it == mMin1.end()) || (b.second == it->second)) {
+            if (it == mMin1.end()) {
+                throw std::runtime_error("This case of QTensorNetwork is bugged! (Please file an issue on the Qrack repository, with an example to recreate this warning.)");
+            }
+            if (b.second == it->second) {
                 continue;
             }
             circuit[layerIdMin1]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
