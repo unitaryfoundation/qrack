@@ -167,8 +167,9 @@ void QTensorNetwork::MakeLayerStack(std::set<bitLenInt> qubits)
     layerStack->SetReactiveSeparate(isReactiveSeparate);
     layerStack->SetTInjection(useTGadget);
 
+    const bitLenInt maxQb = GetThresholdQb();
     std::vector<QCircuitPtr> c;
-    if (qubits.size()) {
+    if (qubits.size() && (qubitCount > maxQb)) {
         for (size_t i = 0U; i < circuit.size(); ++i) {
             const size_t j = circuit.size() - (i + 1U);
             if (j < measurements.size()) {
@@ -231,6 +232,11 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     bool toRet;
     RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->ForceM(qubit, result, doForce, doApply); }, { qubit });
 
+    const bitLenInt maxQb = GetThresholdQb();
+    if (maxQb > qubitCount) {
+        layerStack = nullptr;
+    }
+
     if (!doApply) {
         return toRet;
     }
@@ -291,7 +297,8 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
         const QCircuitPtr& c = circuit[layerId];
         for (const bitLenInt& q : nonMeasuredQubits) {
-            if (c->IsNonPhaseTarget(q) || (layerId && (measurements[layerId - 1U].find(q) == measurements[layerId - 1U].end()))) {
+            if (c->IsNonPhaseTarget(q) ||
+                (layerId && (measurements[layerId - 1U].find(q) == measurements[layerId - 1U].end()))) {
                 // Nothing more to do; tell the user the result.
                 return toRet;
             }
@@ -317,7 +324,8 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         for (const auto& b : m) {
             const auto it = mMin1.find(b.first);
             if (it == mMin1.end()) {
-                throw std::runtime_error("This case of QTensorNetwork is bugged! (Please file an issue on the Qrack repository, with an example to recreate this warning.)");
+                throw std::runtime_error("This case of QTensorNetwork is bugged! (Please file an issue on the Qrack "
+                                         "repository, with an example to recreate this warning.)");
             }
             if (b.second == it->second) {
                 continue;
