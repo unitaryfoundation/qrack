@@ -245,58 +245,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     // Insert terminal measurement.
     measurements[layerId][qubit] = toRet;
 
-    // If no qubit in this layer is target of a non-phase gate, it can be completely telescoped into classical state
-    // preparation.
-    while (true) {
-        std::vector<bitLenInt> nonMeasuredQubits;
-        nonMeasuredQubits.reserve(qubitCount);
-        for (size_t i = 0U; i < qubitCount; ++i) {
-            nonMeasuredQubits.push_back(i);
-        }
-        std::map<bitLenInt, bool>& m = measurements[layerId];
-        for (const auto& b : m) {
-            nonMeasuredQubits.erase(std::find(nonMeasuredQubits.begin(), nonMeasuredQubits.end(), b.first));
-        }
-
-        const QCircuitPtr& c = circuit[layerId];
-        for (const bitLenInt& q : nonMeasuredQubits) {
-            if (c->IsNonPhaseTarget(q)) {
-                // Nothing more to do; tell the user the result.
-                return toRet;
-            }
-        }
-
-        // If we did not return, this circuit layer is fully collapsed.
-        QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
-
-        if (!layerId) {
-            circuit[0U] = std::make_shared<QCircuit>();
-            for (const auto& b : m) {
-                if (b.second) {
-                    circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
-                }
-            }
-
-            return toRet;
-        }
-        circuit.erase(circuit.begin() + layerId);
-
-        const size_t layerIdMin1 = layerId - 1U;
-        const std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
-        for (const auto& b : m) {
-            const auto it = mMin1.find(b.first);
-            if ((it == mMin1.end()) || (b.second == it->second)) {
-                continue;
-            }
-            circuit[layerIdMin1]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
-        }
-        m.insert(mMin1.begin(), mMin1.end());
-        measurements.erase(measurements.begin() + (layerId - 1U));
-
-        // ...Repeat until we reach the terminal layer.
-        --layerId;
-    }
-
     // Tell the user the result.
     return toRet;
 }
