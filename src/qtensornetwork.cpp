@@ -299,14 +299,21 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         }
 
         // If we did not return, this circuit layer is fully collapsed.
-        circuit[layerId] = std::make_shared<QCircuit>();
-
         QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
-        for (const auto& b : m) {
-            if (b.second) {
-                circuit[layerId]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
+
+        if (!layerId) {
+            circuit[0U] = std::make_shared<QCircuit>();
+            for (const auto& b : m) {
+                if (b.second) {
+                    // Insert a single X gate to agree with measurement.
+                    circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
+                }
             }
+
+            return toRet;
         }
+
+        circuit.erase(circuit.begin() + layerId);
 
         const size_t layerIdMin1 = layerId - 1U;
         const std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
@@ -314,14 +321,16 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         for (const auto& b : m) {
             const auto it = mMin1.find(b.first);
             if ((it != mMin1.end()) && (b.second != it->second)) {
-                isSameMeasure = false;
-                break;
+                // If the last measurement and this measurement do not agree, insert an X gate before the last measurement.
+                circuit[layerIdMin1]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
             }
+            // Collapse the measurements into the previous layer.
+            it->second = b.second;
         }
-        if (isSameMeasure) {
-            circuit.erase(circuit.begin() + layerId)
-            measurements.erase(measurements.begin() + layerId);
-        }
+
+        // The circuit and measurement layer are effectively empty.
+        circuit.erase(circuit.begin() + layerId)
+        measurements.erase(measurements.begin() + layerId);
 
         // ...Repeat until we reach the terminal layer.
         --layerId;
