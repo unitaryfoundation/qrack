@@ -291,16 +291,16 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
         const QCircuitPtr& c = circuit[layerId];
         for (const bitLenInt& q : nonMeasuredQubits) {
-            if (c->IsNonPhaseTarget(q)) {
+            if (c->IsNonPhaseTarget(q) || (layerId && (measurements[layerId - 1U].find(q) == measurements[layerId - 1U].end()))) {
                 // Nothing more to do; tell the user the result.
                 return toRet;
             }
         }
 
         // If we did not return, this circuit layer is fully collapsed.
-        QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
-
         circuit.erase(circuit.begin() + layerId);
+
+        QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
         if (!layerId) {
             circuit.push_back(std::make_shared<QCircuit>());
             for (const auto& b : m) {
