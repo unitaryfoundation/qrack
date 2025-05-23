@@ -236,6 +236,37 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     }
 
     size_t layerId = circuit.size() - 1U;
+    // Starting from latest circuit layer, if measurement commutes...
+    while (layerId && !(circuit[layerId]->IsNonPhaseTarget(qubit))) {
+        const QCircuitPtr& c = circuit[layerId];
+        c->DeletePhaseTarget(qubit, toRet);
+
+        if (measurements.size() <= layerId) {
+            // ...Fill an earlier layer.
+            --layerId;
+            continue;
+        }
+
+        // We will insert a terminal measurement on this qubit, again.
+        // This other measurement commutes, as it is in the same basis.
+        // So, erase any redundant later measurement.
+        std::map<bitLenInt, bool>& m = measurements[layerId];
+        m.erase(qubit);
+
+        // If the measurement layer is empty, telescope the layers.
+        if (m.empty()) {
+            measurements.erase(measurements.begin() + layerId);
+            const size_t prevLayerId = layerId + 1U;
+            if (prevLayerId < circuit.size()) {
+                c->Combine(circuit[prevLayerId]);
+                circuit.erase(circuit.begin() + prevLayerId);
+            }
+        }
+
+        // ...Fill an earlier layer.
+        --layerId;
+    }
+
     // Identify whether we need a totally new measurement layer.
     if (layerId >= measurements.size()) {
         // Insert the required measurement layer.
