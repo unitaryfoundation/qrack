@@ -299,18 +299,13 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         }
 
         // If we did not return, this circuit layer is fully collapsed.
-        circuit.erase(circuit.begin() + layerId);
+        circuit[layerId] = std::make_shared<QCircuit>();
 
         QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
-        if (!layerId) {
-            circuit.push_back(std::make_shared<QCircuit>());
-            for (const auto& b : m) {
-                if (b.second) {
-                    circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
-                }
+        for (const auto& b : m) {
+            if (b.second) {
+                circuit[layerId]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
             }
-
-            return toRet;
         }
 
         const size_t layerIdMin1 = layerId - 1U;
@@ -318,15 +313,14 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         bool isSameMeasure = true;
         for (const auto& b : m) {
             const auto it = mMin1.find(b.first);
-            if ((it == mMin1.end()) || (b.second == it->second)) {
-                continue;
+            if ((it != mMin1.end()) && (b.second != it->second)) {
+                isSameMeasure = false;
+                break;
             }
-            isSameMeasure = false;
-            circuit[layerIdMin1]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
         }
         if (isSameMeasure) {
-            m.insert(mMin1.begin(), mMin1.end());
-            measurements.erase(measurements.begin() + (layerId - 1U));
+            circuit.erase(circuit.begin() + layerId)
+            measurements.erase(measurements.begin() + layerId);
         }
 
         // ...Repeat until we reach the terminal layer.
