@@ -316,9 +316,9 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         circuit.erase(circuit.begin() + layerId);
 
         const size_t layerIdMin1 = layerId - 1U;
-        const std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
+        std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
         for (const auto& b : m) {
-            const auto it = mMin1.find(b.first);
+            auto it = mMin1.find(b.first);
             if ((it != mMin1.end()) && (b.second != it->second)) {
                 // If the last measurement and this measurement do not agree, insert an X gate before the last measurement.
                 circuit[layerIdMin1]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
@@ -328,7 +328,7 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         }
 
         // The circuit and measurement layer are effectively empty.
-        circuit.erase(circuit.begin() + layerId)
+        circuit.erase(circuit.begin() + layerId);
         measurements.erase(measurements.begin() + layerId);
 
         // ...Repeat until we reach the terminal layer.
