@@ -300,8 +300,9 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         // If we did not return, this circuit layer is fully collapsed.
         QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
 
+        circuit.erase(circuit.begin() + layerId);
         if (!layerId) {
-            circuit[0U] = std::make_shared<QCircuit>();
+            circuit.push_back(std::make_shared<QCircuit>());
             for (const auto& b : m) {
                 if (b.second) {
                     circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
@@ -310,7 +311,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
             return toRet;
         }
-        circuit.erase(circuit.begin() + layerId);
 
         const size_t layerIdMin1 = layerId - 1U;
         const std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
