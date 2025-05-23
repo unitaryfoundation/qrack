@@ -232,11 +232,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     bool toRet;
     RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->ForceM(qubit, result, doForce, doApply); }, { qubit });
 
-    const bitLenInt maxQb = GetThresholdQb();
-    if (maxQb > qubitCount) {
-        layerStack = nullptr;
-    }
-
     if (!doApply) {
         return toRet;
     }
@@ -297,8 +292,7 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
         const QCircuitPtr& c = circuit[layerId];
         for (const bitLenInt& q : nonMeasuredQubits) {
-            if (c->IsNonPhaseTarget(q) ||
-                (layerId && (measurements[layerId - 1U].find(q) == measurements[layerId - 1U].end()))) {
+            if (c->IsNonPhaseTarget(q)) {
                 // Nothing more to do; tell the user the result.
                 return toRet;
             }
@@ -321,19 +315,19 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
         const size_t layerIdMin1 = layerId - 1U;
         const std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
+        bool isSameMeasure = true;
         for (const auto& b : m) {
             const auto it = mMin1.find(b.first);
-            if (it == mMin1.end()) {
-                throw std::runtime_error("This case of QTensorNetwork is bugged! (Please file an issue on the Qrack "
-                                         "repository, with an example to recreate this warning.)");
-            }
-            if (b.second == it->second) {
+            if ((it == mMin1.end()) || (b.second == it->second)) {
                 continue;
             }
+            isSameMeasure = false;
             circuit[layerIdMin1]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
         }
-        m.insert(mMin1.begin(), mMin1.end());
-        measurements.erase(measurements.begin() + (layerId - 1U));
+        if (isSameMeasure) {
+            m.insert(mMin1.begin(), mMin1.end());
+            measurements.erase(measurements.begin() + (layerId - 1U));
+        }
 
         // ...Repeat until we reach the terminal layer.
         --layerId;
