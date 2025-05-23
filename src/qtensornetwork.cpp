@@ -317,7 +317,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
         const size_t layerIdMin1 = layerId - 1U;
         const std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
-        bool isSameMeasure = true;
         for (const auto& b : m) {
             const auto it = mMin1.find(b.first);
             if ((it != mMin1.end()) && (b.second != it->second)) {
