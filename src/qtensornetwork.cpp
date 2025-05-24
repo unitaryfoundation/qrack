@@ -242,7 +242,8 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         const QCircuitPtr& c = circuit[layerId];
         c->DeletePhaseTarget(qubit, toRet);
 
-        if (measurements.size() <= layerId) {
+        std::map<bitLenInt, bool>& m = measurements[layerId];
+        if (m.find(qubit) == m.end()) {
             // ...Fill an earlier layer.
             --layerId;
             continue;
@@ -251,7 +252,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         // We will insert a terminal measurement on this qubit, again.
         // This other measurement commutes, as it is in the same basis.
         // So, erase any redundant later measurement.
-        std::map<bitLenInt, bool>& m = measurements[layerId];
         m.erase(qubit);
 
         // If the measurement layer is empty, telescope the layers.
@@ -303,20 +303,22 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
         if (!layerId) {
             circuit[0U] = std::make_shared<QCircuit>();
+            bitCapInt perm = 0U;
             for (const auto& b : m) {
                 if (b.second) {
-                    // Insert a single X gate to agree with measurement.
-                    circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
+                    bi_or_ip(&perm, pow2(b.first));
                 }
             }
+
+            // The simulator is a computational basis eigenstate.
+            SetPermutation(perm);
 
             return toRet;
         }
 
-        circuit.erase(circuit.begin() + layerId);
-
         const size_t layerIdMin1 = layerId - 1U;
         std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
+
         for (const auto& b : m) {
             auto it = mMin1.find(b.first);
             if ((it != mMin1.end()) && (b.second != it->second)) {
@@ -327,8 +329,11 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
             it->second = b.second;
         }
 
-        // The circuit and measurement layer are effectively empty.
+        // Combine any remaining gates into the previous layer
+        circuit[layerIdMin1]->Combine(circuit[layerId]);
+        // The circuit layer is effectively empty.
         circuit.erase(circuit.begin() + layerId);
+        // The measurement layer is effectively empty.
         measurements.erase(measurements.begin() + layerId);
 
         // ...Repeat until we reach the terminal layer.
