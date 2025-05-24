@@ -238,9 +238,14 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
     size_t layerId = circuit.size() - 1U;
     // Starting from latest circuit layer, if measurement commutes...
-    while (layerId && !(circuit[layerId]->IsNonPhaseTarget(qubit))) {
+    while (!(circuit[layerId]->IsNonPhaseTarget(qubit))) {
         const QCircuitPtr& c = circuit[layerId];
         c->DeletePhaseTarget(qubit, toRet);
+
+        if (!layerId) {
+            // The qubit has been simplified to |0> with no gates.
+            break;
+        }
 
         // We will insert a terminal measurement on this qubit, again.
         // This other measurement commutes, as it is in the same basis.
