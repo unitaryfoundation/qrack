@@ -236,11 +236,12 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         return toRet;
     }
 
+    bool eigen = toRet;
     size_t layerId = circuit.size() - 1U;
     // Starting from latest circuit layer, if measurement commutes...
-    while (!(circuit[layerId]->IsNonPhaseTarget(qubit))) {
+    while (!(circuit[layerId]->IsNonClassicalTarget(qubit))) {
         const QCircuitPtr& c = circuit[layerId];
-        c->DeletePhaseTarget(qubit, toRet);
+        eigen = c->DeleteClassicalTarget(qubit, eigen);
 
         if (!layerId) {
             // The qubit has been simplified to |0> with no gates.
@@ -274,7 +275,7 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     }
 
     // Insert terminal measurement.
-    measurements[layerId][qubit] = toRet;
+    measurements[layerId][qubit] = eigen;
 
     // If no qubit in this layer is unmeasured, we can completely telescope into classical state preparation.
     std::vector<bitLenInt> nonMeasuredQubits;
@@ -282,17 +283,22 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     for (size_t i = 0U; i < qubitCount; ++i) {
         nonMeasuredQubits.push_back(i);
     }
+    std::map<bitLenInt, bool> m = measurements[layerId];
     for (const bitLenInt& q : nonMeasuredQubits) {
         size_t layer = layerId;
+        eigen = false;
         while (true) {
-            if (measurements[layer].find(q) != measurements[layer].end()) {
+            std::map<bitLenInt, bool>& ml = measurements[layer];
+            if (ml.find(q) != ml.end()) {
+                m[q] = ml[q] ^ eigen;
                 break;
             }
-            if (circuit[layer]->IsNonPhaseTarget(q)) {
+            if (circuit[layer]->IsNonClassicalTarget(q, &eigen)) {
                 // Nothing more to do; tell the user the result.
                 return toRet;
             }
             if (!layer) {
+                m[q] = eigen;
                 break;
             }
             --layer;
@@ -302,7 +308,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
     // All bits have been measured in this layer.
     // None of the previous layers matter.
-    const std::map<bitLenInt, bool>& m = measurements[layerId];
 
     // Erase all of the previous layers.
     for (size_t i = 0U; i < layerId; ++i) {

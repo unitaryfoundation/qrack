@@ -735,12 +735,18 @@ public:
     void Run(QInterfacePtr qsim);
 
     /**
-     * Check if an index is any target qubit of this circuit.
+     * Check if an index is any target qubit of a nonclassical gate in this circuit.
      */
-    bool IsNonPhaseTarget(bitLenInt qubit)
+    bool IsNonClassicalTarget(bitLenInt qubit)
     {
         for (const QCircuitGatePtr& gate : gates) {
-            if ((gate->target == qubit) && !(gate->IsPhase())) {
+            if (gate->target != qubit) {
+                continue;
+            }
+            if (gate->IsInvert() && gate->controls.empty()) {
+                continue;
+            }
+            if (!(gate->IsPhase())) {
                 return true;
             }
         }
@@ -749,14 +755,40 @@ public:
     }
 
     /**
-     * (If the qubit is not a target of a non-phase gate...) Delete this qubits' controls and phase targets.
+     * Check if an index is any target qubit of a nonclassical gate in this circuit.
      */
-    void DeletePhaseTarget(bitLenInt qubit, bool eigen)
+    bool IsNonClassicalTarget(bitLenInt qubit, bool* eigen)
+    {
+        for (const QCircuitGatePtr& gate : gates) {
+            if (gate->target != qubit) {
+                continue;
+            }
+            if (gate->IsInvert() && gate->controls.empty()) {
+                *eigen = !*eigen;
+                continue;
+            }
+            if (!(gate->IsPhase())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * (If the qubit is not a target of a non-classical gate...) Delete this qubits' controls and phase targets.
+     */
+    bool DeleteClassicalTarget(bitLenInt qubit, bool eigen)
     {
         std::list<QCircuitGatePtr> nGates;
         gates.reverse();
         for (const QCircuitGatePtr& gate : gates) {
             if (gate->target == qubit) {
+                if (gate->IsInvert()) {
+                    eigen = !eigen;
+                    QCircuitGatePtr nGate = gate->Clone();
+                    nGates.insert(nGates.begin(), nGate);
+                }
                 continue;
             }
             QCircuitGatePtr nGate = gate->Clone();
@@ -764,6 +796,7 @@ public:
             nGates.insert(nGates.begin(), nGate);
         }
         gates = nGates;
+        return eigen;
     }
 
     /**
