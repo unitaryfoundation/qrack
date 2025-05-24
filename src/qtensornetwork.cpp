@@ -282,10 +282,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     for (size_t i = 0U; i < qubitCount; ++i) {
         nonMeasuredQubits.push_back(i);
     }
-    const std::map<bitLenInt, bool>& m = measurements[layerId];
-    for (const auto& b : m) {
-        nonMeasuredQubits.erase(std::find(nonMeasuredQubits.begin(), nonMeasuredQubits.end(), b.first));
-    }
     for (const bitLenInt& q : nonMeasuredQubits) {
         size_t layer = layerId;
         while (layer) {
@@ -303,6 +299,7 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
     // All bits have been measured in this layer.
     // None of the previous layers matter.
+    const std::map<bitLenInt, bool>& m = measurements[layerId];
 
     // Erase all of the previous layers.
     for (size_t i = 0U; i < layerId; ++i) {
