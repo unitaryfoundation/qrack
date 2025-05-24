@@ -276,8 +276,32 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     // Insert terminal measurement.
     measurements[layerId][qubit] = toRet;
 
+    std::vector<bitLenInt> nonMeasuredQubits;
+    nonMeasuredQubits.reserve(qubitCount);
+    for (size_t i = 0U; i < qubitCount; ++i) {
+        nonMeasuredQubits.push_back(i);
+    }
+    std::map<bitLenInt, bool>& m = measurements[layerId];
+    for (const auto& b : m) {
+        nonMeasuredQubits.erase(std::find(nonMeasuredQubits.begin(), nonMeasuredQubits.end(), b.first));
+    }
+    for (const bitLenInt& q : nonMeasuredQubits) {
+        size_t layer = layerId;
+        while (layer) {
+            if (measurements[layer].find(q) != measurements[layer].end()) {
+                nonMeasuredQubits.erase(std::find(nonMeasuredQubits.begin(), nonMeasuredQubits.end(), q));
+                break;
+            }
+            if (circuit[layer]->IsNonPhaseTarget(q)) {
+                // Nothing more to do; tell the user the result.
+                return toRet;
+            }
+            --layer;
+        }
+    }
+
     // If no qubit in this layer is unmeasured, we can completely telescope into classical state preparation.
-    if (measurements[layerId].size() >= qubitCount) {
+    if (nonMeasuredQubits.empty()) {
         // All bits have been measured in this layer.
         // None of the previous layers matter.
 
