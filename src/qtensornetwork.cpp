@@ -289,7 +289,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         size_t layer = layerId;
         while (layer) {
             if (measurements[layer].find(q) != measurements[layer].end()) {
-                nonMeasuredQubits.erase(std::find(nonMeasuredQubits.begin(), nonMeasuredQubits.end(), q));
                 break;
             }
             if (circuit[layer]->IsNonPhaseTarget(q)) {
@@ -298,6 +297,7 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
             }
             --layer;
         }
+        nonMeasuredQubits.erase(std::find(nonMeasuredQubits.begin(), nonMeasuredQubits.end(), q));
     }
 
     // If no qubit in this layer is unmeasured, we can completely telescope into classical state preparation.
