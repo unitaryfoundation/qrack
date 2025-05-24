@@ -293,9 +293,10 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
         // Erase all of the previous layers.
         std::map<bitLenInt, bool> m = measurements[layerId];
-        for (size_t i = 1U; i < layerId; ++i) {
-            circuit.erase(circuit.begin() + layerId - 1U);
-            measurements.erase(measurements.begin() + layerId - 1U);
+        const size_t lidMin1 = layerId - 1U;
+        for (size_t i = 0U; i < lidMin1; ++i) {
+            circuit.erase(circuit.begin() + layerId - i);
+            measurements.erase(measurements.begin() + layerId - i);
         }
         circuit[0U] = std::make_shared<QCircuit>();
         measurements[0U] = m;
