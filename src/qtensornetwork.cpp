@@ -279,7 +279,7 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
     // If no qubit in this layer is target of a non-phase gate, it can be completely telescoped into classical state
     // preparation.
-    while (true) {
+    while (layerId) {
         std::vector<bitLenInt> nonMeasuredQubits;
         nonMeasuredQubits.reserve(qubitCount);
         for (size_t i = 0U; i < qubitCount; ++i) {
@@ -300,14 +300,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
         // If we did not return, this circuit layer is fully collapsed.
         QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
-
-        if (!layerId) {
-            if (toRet) {
-                circuit[layerId]->AppendGate(std::make_shared<QCircuitGate>(qubit, pauliX));
-            }
-
-            return toRet;
-        }
 
         const size_t layerIdMin1 = layerId - 1U;
         std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
