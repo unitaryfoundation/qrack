@@ -284,13 +284,16 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     }
     for (const bitLenInt& q : nonMeasuredQubits) {
         size_t layer = layerId;
-        while (layer) {
+        while (true) {
             if (measurements[layer].find(q) != measurements[layer].end()) {
                 break;
             }
             if (circuit[layer]->IsNonPhaseTarget(q)) {
                 // Nothing more to do; tell the user the result.
                 return toRet;
+            }
+            if (!layer) {
+                break;
             }
             --layer;
         }
