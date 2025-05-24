@@ -299,22 +299,16 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         }
 
         // If we did not return, this circuit layer is fully collapsed.
+        QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
 
-        if (!layerId || !nonMeasuredQubits.size()) {
-            bitCapInt perm = 0U;
-            for (const auto& b : m) {
-                if (b.second) {
-                    bi_or_ip(&perm, pow2(b.first));
-                }
+        if (!layerId) {
+            if (toRet) {
+                circuit[layerId]->AppendGate(std::make_shared<QCircuitGate>(qubit, pauliX));
             }
-
-            // The simulator is in a computational basis eigenstate.
-            SetPermutation(perm);
 
             return toRet;
         }
 
-        QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
         const size_t layerIdMin1 = layerId - 1U;
         std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
         for (const auto& b : m) {
