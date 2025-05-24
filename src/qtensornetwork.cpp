@@ -301,7 +301,7 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         measurements[0U] = m;
 
         // Sync layer 0U as state preparation for deterministic measurement.
-        std::map<bitLenInt, bool> m0 = measurements[0U];
+        const std::map<bitLenInt, bool>& m0 = measurements[0U];
         QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
         for (const auto& b : m0) {
             if (b.second) {
