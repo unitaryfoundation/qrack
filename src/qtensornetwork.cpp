@@ -276,12 +276,13 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
     // Insert terminal measurement.
     measurements[layerId][qubit] = toRet;
 
+    // If no qubit in this layer is unmeasured, we can completely telescope into classical state preparation.
     std::vector<bitLenInt> nonMeasuredQubits;
     nonMeasuredQubits.reserve(qubitCount);
     for (size_t i = 0U; i < qubitCount; ++i) {
         nonMeasuredQubits.push_back(i);
     }
-    std::map<bitLenInt, bool>& m = measurements[layerId];
+    const std::map<bitLenInt, bool>& m = measurements[layerId];
     for (const auto& b : m) {
         nonMeasuredQubits.erase(std::find(nonMeasuredQubits.begin(), nonMeasuredQubits.end(), b.first));
     }
@@ -300,27 +301,23 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         nonMeasuredQubits.erase(std::find(nonMeasuredQubits.begin(), nonMeasuredQubits.end(), q));
     }
 
-    // If no qubit in this layer is unmeasured, we can completely telescope into classical state preparation.
-    if (nonMeasuredQubits.empty()) {
-        // All bits have been measured in this layer.
-        // None of the previous layers matter.
+    // All bits have been measured in this layer.
+    // None of the previous layers matter.
 
-        // Erase all of the previous layers.
-        std::map<bitLenInt, bool> m = measurements[layerId];
-        for (size_t i = 0U; i < layerId; ++i) {
-            circuit.erase(circuit.begin() + layerId - i);
-            measurements.erase(measurements.begin() + layerId - i);
-        }
-        circuit[0U] = std::make_shared<QCircuit>();
-        measurements[0U] = m;
+    // Erase all of the previous layers.
+    for (size_t i = 0U; i < layerId; ++i) {
+        circuit.erase(circuit.begin() + layerId - i);
+        measurements.erase(measurements.begin() + layerId - i);
+    }
+    circuit[0U] = std::make_shared<QCircuit>();
+    measurements[0U] = m;
 
-        // Sync layer 0U as state preparation for deterministic measurement.
-        const std::map<bitLenInt, bool>& m0 = measurements[0U];
-        QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
-        for (const auto& b : m0) {
-            if (b.second) {
-                circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
-            }
+    // Sync layer 0U as state preparation for deterministic measurement.
+    const std::map<bitLenInt, bool>& m0 = measurements[0U];
+    QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
+    for (const auto& b : m0) {
+        if (b.second) {
+            circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
         }
     }
 
