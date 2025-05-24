@@ -303,13 +303,13 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         const size_t layerIdMin1 = layerId - 1U;
         std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
         for (const auto& b : m) {
-            auto it = mMin1.find(b.first);
+            const auto it = mMin1.find(b.first);
             if ((it != mMin1.end()) && (it->second != b.second)) {
                 // If the last measurement and this measurement do not agree, insert an X gate between.
                 circuit[layerIdMin1]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
             }
             // Collapse the measurements into the previous layer.
-            it->second = b.second;
+            mMin1[b.first] = b.second;
         }
         // Combine any remaining gates into the previous layer
         circuit[layerIdMin1]->Combine(circuit[layerId]);
