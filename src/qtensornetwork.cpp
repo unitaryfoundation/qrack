@@ -242,16 +242,10 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         const QCircuitPtr& c = circuit[layerId];
         c->DeletePhaseTarget(qubit, toRet);
 
-        std::map<bitLenInt, bool>& m = measurements[layerId];
-        if (m.find(qubit) == m.end()) {
-            // ...Fill an earlier layer.
-            --layerId;
-            continue;
-        }
-
         // We will insert a terminal measurement on this qubit, again.
         // This other measurement commutes, as it is in the same basis.
         // So, erase any redundant later measurement.
+        std::map<bitLenInt, bool>& m = measurements[layerId];
         m.erase(qubit);
 
         // If the measurement layer is empty, telescope the layers.
@@ -305,8 +299,8 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         std::map<bitLenInt, bool>& mMin1 = measurements[layerIdMin1];
         for (const auto& b : m) {
             auto it = mMin1.find(b.first);
-            if ((it != mMin1.end()) && (b.second != it->second)) {
-                // If the last measurement and this measurement do not agree, insert an X gate before the last measurement.
+            if ((it != mMin1.end()) && (it->second != b.second)) {
+                // If the last measurement and this measurement do not agree, insert an X gate between.
                 circuit[layerIdMin1]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
             }
             // Collapse the measurements into the previous layer.
