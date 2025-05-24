@@ -275,6 +275,10 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
 
     // Insert terminal measurement.
     measurements[layerId][qubit] = toRet;
+    
+    if (!layerId) {
+        return toRet;
+    }
 
     // If no qubit in this layer is unmeasured, we can completely telescope into classical state preparation.
     std::vector<bitLenInt> nonMeasuredQubits;
