@@ -284,7 +284,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         nonMeasuredQubits.push_back(i);
     }
     std::map<bitLenInt, bool> m = measurements[layerId];
-    std::vector<bool> eigens(qubitCount, false);
     for (const bitLenInt& q : nonMeasuredQubits) {
         size_t layer = layerId;
         eigen = false;
@@ -292,7 +291,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
             std::map<bitLenInt, bool>& ml = measurements[layer];
             if (ml.find(q) != ml.end()) {
                 m[q] = ml[q] ^ eigen;
-                eigens[q] = eigen;
                 break;
             }
             if (circuit[layer]->IsNonClassicalTarget(q, &eigen)) {
@@ -301,7 +299,6 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
             }
             if (!layer) {
                 m[q] = eigen;
-                eigens[q] = eigen;
                 break;
             }
             --layer;
@@ -318,23 +315,13 @@ bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doA
         measurements.erase(measurements.begin() + layerId - i);
     }
     circuit[0U] = std::make_shared<QCircuit>();
-    measurements[0U] = m;
+    measurements.erase(measurements.begin());
 
     // Sync layer 0U as state preparation for deterministic measurement.
     QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
     for (const auto& b : m) {
         if (b.second) {
             circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
-        }
-        if (b.second != eigens[b.first]) {
-            if (!b.second) {
-                circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
-                continue;
-            }
-            if (circuit.size() < 2U) {
-                circuit.emplace_back();
-            }
-            circuit[1U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
         }
     }
 
