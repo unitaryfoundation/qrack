@@ -1539,7 +1539,6 @@ std::map<bitCapInt, int> QUnit::MultiShotMeasureMask(const std::vector<bitCapInt
     std::map<bitLenInt, bitCapInt> iQPowers;
     for (size_t i = 0U; i < qPowers.size(); ++i) {
         bitLenInt index = log2(qPowers[i]);
-        std::cout << (int)index << std::endl;
         qIndices[i] = index;
         iQPowers[index] = pow2(i);
     }
