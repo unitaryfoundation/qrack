@@ -1535,24 +1535,24 @@ std::map<bitCapInt, int> QUnit::MultiShotMeasureMask(const std::vector<bitCapInt
         ToPermBasisProb();
     }
 
-    bitLenInt index;
     std::vector<bitLenInt> qIndices(qPowers.size());
     std::map<bitLenInt, bitCapInt> iQPowers;
     for (size_t i = 0U; i < qPowers.size(); ++i) {
-        index = log2(qPowers[i]);
+        bitLenInt index = log2(qPowers[i]);
+        std::cout << (int)index << std::endl;
         qIndices[i] = index;
         iQPowers[index] = pow2(i);
     }
 
     ThrowIfQbIdArrayIsBad(qIndices, qubitCount,
-        "QInterface::MultiShotMeasureMask parameter qPowers array values must be within allocated qubit bounds!");
+        "QUnit::MultiShotMeasureMask parameter qPowers array values must be within allocated qubit bounds!");
 
     std::map<QInterfacePtr, std::vector<bitCapInt>> subQPowers;
     std::map<QInterfacePtr, std::vector<bitCapInt>> subIQPowers;
     std::vector<bitLenInt> singleBits;
 
     for (size_t i = 0U; i < qPowers.size(); ++i) {
-        index = qIndices[i];
+        bitLenInt index = qIndices[i];
         QEngineShard& shard = shards[index];
 
         if (!shard.unit) {
@@ -1640,7 +1640,7 @@ std::map<bitCapInt, int> QUnit::MultiShotMeasureMask(const std::vector<bitCapInt
     }
 
     for (const bitLenInt& bit : singleBits) {
-        index = bit;
+        bitLenInt index = bit;
 
         real1_f prob = clampProb(norm(shards[index].amp1));
         if (prob == ZERO_R1) {
@@ -1706,43 +1706,6 @@ void QUnit::MultiShotMeasureMask(const std::vector<bitCapInt>& qPowers, unsigned
 {
     if (!shots) {
         return;
-    }
-
-    if (qPowers.size() != shards.size()) {
-        ToPermBasisProb();
-
-        QInterfacePtr unit = shards[log2(qPowers[0U])].unit;
-        if (unit) {
-            std::vector<bitCapInt> mappedIndices(qPowers.size());
-            for (bitLenInt j = 0U; j < qubitCount; ++j) {
-                if (qPowers[0U] >= pow2(j)) {
-                    mappedIndices[0U] = pow2(shards[j].mapped);
-                    break;
-                }
-            }
-            for (size_t i = 1U; i < qPowers.size(); ++i) {
-                const size_t qubit = log2(qPowers[i]);
-                if (qubit >= qubitCount) {
-                    throw std::invalid_argument(
-                        "QUnit::MultiShotMeasureMask parameter qPowers array values must be within "
-                        "allocated qubit bounds!");
-                }
-                if (unit != shards[qubit].unit) {
-                    unit = nullptr;
-                    break;
-                }
-                for (bitLenInt j = 0U; j < qubitCount; ++j) {
-                    if (qPowers[i] >= pow2(j)) {
-                        mappedIndices[i] = pow2(shards[j].mapped);
-                        break;
-                    }
-                }
-            }
-
-            if (unit) {
-                return unit->MultiShotMeasureMask(mappedIndices, shots, shotsArray);
-            }
-        }
     }
 
     std::map<bitCapInt, int> results = MultiShotMeasureMask(qPowers, shots);
