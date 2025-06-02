@@ -1049,6 +1049,20 @@ MICROSOFT_QUANTUM_DECL void set_concurrency(_In_ uintq sid, _In_ uintq p)
     }
 }
 
+/**
+ * (External API) Set GPU device ID on the simulator.
+ */
+MICROSOFT_QUANTUM_DECL void set_device(_In_ uintq sid, _In_ uintq did)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        simulators[sid]->SetDevice((int64_t)did);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
 MICROSOFT_QUANTUM_DECL void qstabilizer_out_to_file(_In_ uintq sid, _In_ char* f)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)

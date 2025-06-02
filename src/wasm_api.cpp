@@ -885,6 +885,15 @@ void set_concurrency(quid sid, unsigned p)
     simulators[sid]->SetConcurrency(p);
 }
 
+/**
+ * (External API) Set GPU device ID on the simulator.
+ */
+void set_device(quid sid, int64_t did)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    simulators[sid]->SetDevice(did);
+}
+
 void qstabilizer_out_to_file(quid sid, std::string f)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)

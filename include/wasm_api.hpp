@@ -201,6 +201,11 @@ void seed(quid sid, unsigned s);
 void set_concurrency(quid sid, unsigned p);
 
 /**
+ * Set GPU device ID on the simulator (if the simulator is GPU-accelerated)
+ */
+void set_device(quid sid, int64_t did);
+
+/**
  * Allocate new qubit with ID
  */
 void allocateQubit(quid sid, bitLenInt qid);
