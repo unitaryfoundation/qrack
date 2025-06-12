@@ -1052,7 +1052,7 @@ MICROSOFT_QUANTUM_DECL void set_concurrency(_In_ uintq sid, _In_ uintq p)
 /**
  * (External API) Set GPU device ID on the simulator.
  */
-MICROSOFT_QUANTUM_DECL void set_device(_In_ uintq sid, _In_ uintq did)
+MICROSOFT_QUANTUM_DECL void set_device(_In_ uintq sid, _In_ intq did)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)
     try {
@@ -1066,7 +1066,7 @@ MICROSOFT_QUANTUM_DECL void set_device(_In_ uintq sid, _In_ uintq did)
 /**
  * (External API) Set GPU device IDs on the simulator.
  */
-MICROSOFT_QUANTUM_DECL void set_device_list(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* dids)
+MICROSOFT_QUANTUM_DECL void set_device_list(_In_ uintq sid, _In_ uintq n, _In_reads_(n) intq* dids)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)
     std::vector<int64_t> dVec(dids, dids + n);
