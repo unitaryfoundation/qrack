@@ -124,8 +124,6 @@ public:
         }
     }
 
-    void SetDevice(int64_t dID) {}
-
     bool Rand()
     {
         if (!!hardware_rand_generator) {

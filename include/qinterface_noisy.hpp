@@ -388,8 +388,9 @@ public:
     QInterfacePtr Clone() { return std::make_shared<QInterfaceNoisy>(this); }
 
     void SetDevice(int64_t dID) { engine->SetDevice(dID); }
-
+    void SetDeviceList(std::vector<int64_t> dIDs) { engine->SetDeviceList(dIDs); }
     int64_t GetDevice() { return engine->GetDevice(); }
+    std::vector<int64_t> GetDeviceList() { return engine->GetDeviceList(); }
 
     bitCapIntOcl GetMaxSize() { return engine->GetMaxSize(); };
 };

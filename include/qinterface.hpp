@@ -3013,12 +3013,21 @@ public:
     /**
      *  Set the device index, if more than one device is available.
      */
-    virtual void SetDevice(int64_t dID) = 0;
+    virtual void SetDevice(int64_t dID){};
 
     /**
      *  Get the device index. ("-1" is default).
      */
     virtual int64_t GetDevice() { return -1; }
+    /**
+     *  Set the device index list, if more than one device is available.
+     */
+    virtual void SetDeviceList(std::vector<int64_t> dIDs){};
+
+    /**
+     *  Get the device index.
+     */
+    virtual std::vector<int64_t> GetDeviceList() { return std::vector<int64_t>(); }
 
     /**
      *  Get maximum number of amplitudes that can be allocated on current device.

@@ -481,11 +481,16 @@ public:
 
     void SetDevice(int64_t dID)
     {
-        deviceIDs.clear();
-        deviceIDs.push_back(dID);
+        devID = dID;
+        SetDeviceList(std::vector<int64_t>{ dID });
+    }
 
-        for (QEnginePtr& qPage : qPages) {
-            qPage->SetDevice(dID);
+    void SetDeviceList(std::vector<int64_t> dIDs)
+    {
+        deviceIDs = dIDs;
+
+        for (size_t i = 0U; i < qPages.size(); ++i) {
+            qPages[i]->SetDevice(deviceIDs[i % deviceIDs.size()]);
         }
 
 #if ENABLE_OPENCL || ENABLE_CUDA
@@ -512,7 +517,8 @@ public:
 #endif
     }
 
-    int64_t GetDevice() { return qPages[0U]->GetDevice(); }
+    int64_t GetDevice() { return devID; }
+    std::vector<int64_t> GetDeviceList() { return deviceIDs; }
 
     bitCapIntOcl GetMaxSize() { return qPages[0U]->GetMaxSize(); };
 

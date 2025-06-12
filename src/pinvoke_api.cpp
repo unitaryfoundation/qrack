@@ -1063,6 +1063,21 @@ MICROSOFT_QUANTUM_DECL void set_device(_In_ uintq sid, _In_ uintq did)
     }
 }
 
+/**
+ * (External API) Set GPU device IDs on the simulator.
+ */
+MICROSOFT_QUANTUM_DECL void set_device_list(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* dids)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    std::vector<int64_t> dVec(dids, dids + n);
+    try {
+        simulators[sid]->SetDeviceList(dVec);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
 MICROSOFT_QUANTUM_DECL void qstabilizer_out_to_file(_In_ uintq sid, _In_ char* f)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)

@@ -979,7 +979,18 @@ public:
         }
     }
 
+    void SetDeviceList(std::vector<int64_t> dIDs)
+    {
+        deviceIDs = dIDs;
+        if (qbdt) {
+            qbdt->SetDeviceList(dIDs);
+        } else {
+            engine->SetDeviceList(dIDs);
+        }
+    }
+
     int64_t GetDevice() { return devID; }
+    std::vector<int64_t> GetDeviceList() { return deviceIDs; }
 
     bitCapIntOcl GetMaxSize()
     {

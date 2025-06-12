@@ -206,8 +206,6 @@ public:
 
     bitCapInt GetMaxQPower() { return pow2(qubitCount); }
 
-    void SetDevice(int64_t dID) {}
-
     void SetRandGlobalPhase(bool isRand)
     {
         for (CliffordShard& shard : shards) {

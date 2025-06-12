@@ -522,6 +522,15 @@ void QEngineOCL::DispatchQueue()
     }
 }
 
+void QEngineOCL::SetDeviceList(std::vector<int64_t> dIDs)
+{
+    if (dIDs.size() > 1U) {
+        throw std::runtime_error(
+            "QEngineOCL::SetDeviceList(): Can't assign more than one device. (You likely want QPager or QHybrid.)");
+    }
+    SetDevice(dIDs[0U]);
+}
+
 void QEngineOCL::SetDevice(int64_t dID)
 {
     const size_t deviceCount = OCLEngine::Instance().GetDeviceCount();

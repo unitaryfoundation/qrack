@@ -44,6 +44,7 @@ MICROSOFT_QUANTUM_DECL void destroy(_In_ uintq sid);
 MICROSOFT_QUANTUM_DECL void seed(_In_ uintq sid, _In_ uintq s);
 MICROSOFT_QUANTUM_DECL void set_concurrency(_In_ uintq sid, _In_ uintq p);
 MICROSOFT_QUANTUM_DECL void set_device(_In_ uintq sid, _In_ uintq did);
+MICROSOFT_QUANTUM_DECL void set_device_list(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* dids);
 MICROSOFT_QUANTUM_DECL void qstabilizer_out_to_file(_In_ uintq sid, _In_ char* f);
 MICROSOFT_QUANTUM_DECL void qstabilizer_in_from_file(_In_ uintq sid, _In_ char* f);
 

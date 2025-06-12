@@ -424,6 +424,8 @@ public:
 
     void SetDevice(int64_t dID);
     int64_t GetDevice() { return deviceID; }
+    void SetDeviceList(std::vector<int64_t> dIDs);
+    std::vector<int64_t> GetDeviceList() { return std::vector<int64_t>{ deviceID }; }
 
     void SetQuantumState(const complex* inputState);
     void GetQuantumState(complex* outputState);

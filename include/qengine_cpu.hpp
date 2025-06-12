@@ -80,8 +80,6 @@ public:
 #endif
     }
 
-    void SetDevice(int64_t dID) {}
-
     real1_f FirstNonzeroPhase()
     {
         if (!stateVec) {

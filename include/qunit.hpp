@@ -145,7 +145,8 @@ public:
     {
         QInterface::SetConcurrency(threadsPerEngine);
         ParallelUnitApply(
-            [](QInterfacePtr unit, real1_f unused1, real1_f unused2, real1_f unused3, int64_t threadsPerEngine) {
+            [](QInterfacePtr unit, real1_f unused1, real1_f unused2, real1_f unused3, int64_t threadsPerEngine,
+                std::vector<int64_t> unused4) {
                 unit->SetConcurrency((uint32_t)threadsPerEngine);
                 return true;
             },
@@ -156,7 +157,8 @@ public:
     {
         useTGadget = useGadget;
         ParallelUnitApply(
-            [](QInterfacePtr unit, real1_f unused1, real1_f unused2, real1_f unused3, int64_t useGadget) {
+            [](QInterfacePtr unit, real1_f unused1, real1_f unused2, real1_f unused3, int64_t useGadget,
+                std::vector<int64_t> unused4) {
                 unit->SetTInjection((bool)useGadget);
                 return true;
             },
@@ -167,7 +169,9 @@ public:
     virtual bool GetReactiveSeparate() { return isReactiveSeparate; }
 
     virtual void SetDevice(int64_t dID);
+    virtual void SetDeviceList(std::vector<int64_t> dIDs);
     virtual int64_t GetDevice() { return devID; }
+    virtual std::vector<int64_t> GetDeviceList() { return deviceIDs; }
 
     virtual real1_f ProbRdm(bitLenInt qubit)
     {
@@ -593,7 +597,8 @@ public:
     {
         roundingThreshold = ncrp;
         ParallelUnitApply(
-            [](QInterfacePtr unit, real1_f rp, real1_f unused, real1_f unused2, int64_t unused3) {
+            [](QInterfacePtr unit, real1_f rp, real1_f unused, real1_f unused2, int64_t unused3,
+                std::vector<int64_t> unused4) {
                 unit->SetNcrp(rp);
                 return true;
             },
@@ -754,9 +759,10 @@ protected:
     virtual QInterfacePtr EntangleInCurrentBasis(
         std::vector<bitLenInt*>::iterator first, std::vector<bitLenInt*>::iterator last);
 
-    typedef bool (*ParallelUnitFn)(QInterfacePtr unit, real1_f param1, real1_f param2, real1_f param3, int64_t param4);
+    typedef bool (*ParallelUnitFn)(QInterfacePtr unit, real1_f param1, real1_f param2, real1_f param3, int64_t param4,
+        std::vector<int64_t> param5);
     bool ParallelUnitApply(ParallelUnitFn fn, real1_f param1 = ZERO_R1_F, real1_f param2 = ZERO_R1_F,
-        real1_f param3 = ZERO_R1_F, int64_t param4 = 0);
+        real1_f param3 = ZERO_R1_F, int64_t param4 = 0, std::vector<int64_t> param5 = {});
 
     virtual bool SeparateBit(bool value, bitLenInt qubit);
 

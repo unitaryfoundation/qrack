@@ -894,6 +894,15 @@ void set_device(quid sid, int64_t did)
     simulators[sid]->SetDevice(did);
 }
 
+/**
+ * (External API) Set GPU device IDs on the simulator.
+ */
+void set_device_list(quid sid, std::vector<int64_t> dids)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    simulators[sid]->SetDeviceList(dids);
+}
+
 void qstabilizer_out_to_file(quid sid, std::string f)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)
