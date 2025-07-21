@@ -355,14 +355,14 @@ def main():
             # Notice that the expected symmetries are respected under reversal of signs of J and/or h.
             p = (
                 (
-                    (2 ** abs(J / h))
+                    (2 ** (abs(J / h) - 1))
                     * (
                         1
                         + sin_delta_theta
                         * math.cos(J * omega * t + theta)
                         / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
                     )
-                    - 1
+                    - 1 / 2
                 )
                 if t2 > 0
                 else 2 ** abs(J / h)
