@@ -223,7 +223,7 @@ def main():
     n_qubits = 8
     depth = 20
     t1 = 0
-    t2 = 2
+    t2 = 1
     omega = 1.5
 
     # Quantinuum settings

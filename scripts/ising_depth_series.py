@@ -86,7 +86,7 @@ def main():
     depth = 20
     shots = 32768
     t1 = 0
-    t2 = 2
+    t2 = 1
     omega = 1.5
 
     # Quantinuum settings
