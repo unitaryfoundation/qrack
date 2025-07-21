@@ -179,14 +179,14 @@ def main():
                     sin_delta_theta = math.sin(delta_theta)
                     p = (
                         (
-                            (2 ** (abs(J / h) - 1))
+                            (2 ** abs(J / h))
                             * (
                                 1
                                 + sin_delta_theta
                                 * math.cos(J * omega * t + theta)
                                 / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
                             )
-                            - 1 / 2
+                            - 1
                         )
                         if t2 > 0
                         else 2 ** abs(J / h)
