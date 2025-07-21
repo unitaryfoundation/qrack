@@ -189,7 +189,7 @@ def main():
                             - 1 / 2
                         )
                         if t2 > 0
-                        else 2 ** abs(J / h)
+                        else (2 ** abs(J / h))
                     )
                     if p >= 1024:
                         d_magnetization = 1
