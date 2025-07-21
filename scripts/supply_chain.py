@@ -11,17 +11,13 @@ def simulate_tfim(
     J_func,
     h_func,
     n_qubits=64,
-    lrr=3,
-    lrc=3,
     n_steps=20,
     delta_t=0.1,
     theta=2 * math.pi / 9,
     delta_theta=math.pi / 18,
     t2=1.0,
     omega=3 * math.pi / 2,
-    shots=1024,
 ):
-    qubits = list(range(n_qubits))
     magnetizations = []
 
     for step in range(n_steps):
@@ -29,35 +25,29 @@ def simulate_tfim(
         J_t = J_func(t)
         h_t = h_func(t)
 
-        # compute effective ratio |J/h| for this step from local fields
-        # aggregate all nonzero couplings
-        J_vals = []
-        for i in range(n_qubits):
-            for j in range(i + 1, n_qubits):
-                if J_t[i, j] != 0.0:
-                    J_vals.append(abs(J_t[i, j]))
-        h_vals = [abs(hv) for hv in h_t if abs(hv) > 1e-12]
+        # compute magnetization per qubit, then average
+        mag_per_qubit = []
 
-        if J_vals and h_vals:
+        for q in range(n_qubits):
+            # gather local couplings for qubit q
+            J_vals = [abs(J_t[q, j]) for j in range(n_qubits) if j != q and J_t[q, j] != 0.0]
+            h_val = abs(h_t[q]) if abs(h_t[q]) > 1e-12 else None
+
+            if not J_vals or h_val is None:
+                # trivial cases
+                if h_val is None:
+                    mag_per_qubit.append(1.0)  # effectively pinned in Z
+                else:
+                    mag_per_qubit.append(0.0)  # no coupling
+                continue
+
             J_eff = np.mean(J_vals)
-            h_eff = np.mean(h_vals)
-        else:
-            J_eff = 0.0
-            h_eff = 0.0
+            h_eff = h_val
 
-        d_magnetization = 0
-        d_sqr_magnetization = 0
-        if np.isclose(h_eff, 0):
-            d_magnetization = 1
-            d_sqr_magnetization = 1
-        elif np.isclose(J_eff, 0):
-            d_magnetization = 0
-            d_sqr_magnetization = 0
-        else:
-            # ChatGPT o3 suggested this cos_theta correction.
+            # compute p_i using your same formula
             sin_delta_theta = math.sin(delta_theta)
-            p = (
-                (
+            if t2 > 0.0:
+                p_i = (
                     (2 ** (abs(J_eff / h_eff) - 1))
                     * (
                         1
@@ -65,33 +55,41 @@ def simulate_tfim(
                         * math.cos(J_eff * omega * t + theta)
                         / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
                     )
-                    - 1 / 2
+                    - 0.5
                 )
-                if t2 > 0
-                else (2 ** abs(J_eff / h_eff))
-            )
-            if p >= 1024:
-                d_magnetization = 1
-                d_sqr_magnetization = 1
             else:
-                tot_n = 0
-                for q in range(n_qubits + 1):
-                    n = 1 / (n_qubits * (2 ** (p * q)))
-                    if n == float("inf"):
-                        d_magnetization = 1
-                        d_sqr_magnetization = 1
-                        tot_n = 1
-                        break
-                    m = (n_qubits - (q << 1)) / n_qubits
-                    d_magnetization += n * m
-                    d_sqr_magnetization += n * m * m
-                    tot_n += n
-                d_magnetization /= tot_n
-                d_sqr_magnetization /= tot_n
-        if J_eff > 0:
-            d_magnetization = -d_magnetization
+                p_i = 2 ** abs(J_eff / h_eff)
 
-        magnetizations.append(d_magnetization)
+            # compute d_magnetization for this qubit
+            if p_i >= 1024:
+                m_i = 1.0
+            else:
+                tot_n = 0.0
+                m_sum = 0.0
+                for k in range(n_qubits + 1):
+                    if (p_i * k) >= 1024:
+                        m_i = 1.0
+                        tot_n = 1.0
+                        break
+                    n_val = 1.0 / (n_qubits * (2 ** (p_i * k)))
+                    if n_val == float("inf"):
+                        m_i = 1.0
+                        tot_n = 1.0
+                        break
+                    m = (n_qubits - (k << 1)) / n_qubits
+                    m_sum += n_val * m
+                    tot_n += n_val
+                m_i = m_sum / tot_n if tot_n > 0 else 0.0
+
+            # adjust for sign of local J_eff (antiferromagnetism)
+            if J_eff > 0:
+                m_i = -m_i
+
+            mag_per_qubit.append(m_i)
+
+        # combine per-qubit magnetizations (e.g., average)
+        step_mag = float(np.mean(mag_per_qubit))
+        magnetizations.append(step_mag)
 
     return magnetizations
 
@@ -138,19 +136,16 @@ def generate_ht(n_nodes, t):
 if __name__ == "__main__":
     # Example usage
     n_qubits = 64
-    lrr = 3
-    lrc = 3
     n_steps = 40
     delta_t = 0.1
     theta = math.pi / 18
     delta_theta = 2 * math.pi / 9
     omega = 3 * math.pi / 2
-    shots = 1024
     J_func = lambda t: generate_Jt(n_qubits, t)
     h_func = lambda t: generate_ht(n_qubits, t)
 
     mag = simulate_tfim(
-        J_func, h_func, n_qubits, lrr, lrc, n_steps, delta_t, theta, delta_theta, omega, shots
+        J_func, h_func, n_qubits, n_steps, delta_t, theta, delta_theta, omega
     )
     ylim = ((min(mag) * 100) // 10) / 10
     plt.figure(figsize=(14, 14))
