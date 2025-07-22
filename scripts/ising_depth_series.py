@@ -159,58 +159,72 @@ def main():
 
         experiment.run_qiskit_circuit(qc)
         for d in depths:
+            bias = []
+            t = d * dt
+            # Determine how to weight closed-form vs. conventional simulation contributions:
+            model = (1 - 1 / math.exp(t / t1)) if (t1 > 0) else 1
             d_magnetization = 0
             d_sqr_magnetization = 0
-            model = 0
-            if d > 0:
-                if t1 > 0:
-                    experiment.run_qiskit_circuit(step)
-
-                t = d * dt
-                model = (1 - 1 / math.exp(t / t1)) if (t1 > 0) else (0 if d == 0 else 1)
-                if np.isclose(h, 0):
+            if np.isclose(h, 0):
+                # This agrees with small perturbations away from h = 0.
+                d_magnetization = 1
+                d_sqr_magnetization = 1
+                bias.append(1)
+                bias += n_qubits * [0]
+            elif np.isclose(J, 0):
+                # This agrees with small perturbations away from J = 0.
+                d_magnetization = 0
+                d_sqr_magnetization = 0
+                bias = (n_qubits + 1) * [1 / (n_qubits + 1)]
+            else:
+                # ChatGPT o3 suggested this cos_theta correction.
+                sin_delta_theta = math.sin(delta_theta)
+                # "p" is the exponent of the geometric series weighting, for (n+1) dimensions of Hamming weight.
+                # Notice that the expected symmetries are respected under reversal of signs of J and/or h.
+                p = (
+                    (
+                        (2 ** (abs(J / h) - 1))
+                        * (
+                            1
+                            + sin_delta_theta
+                            * math.cos(J * omega * t + theta)
+                            / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
+                        )
+                        - 1 / 2
+                    )
+                    if t2 > 0
+                    else (2 ** abs(J / h))
+                )
+                if p >= 1024:
+                    # This is approaching J / h -> infinity.
                     d_magnetization = 1
                     d_sqr_magnetization = 1
-                elif np.isclose(J, 0):
-                    d_magnetization = 0
-                    d_sqr_magnetization = 0
+                    bias.append(1)
+                    bias += n_qubits * [0]
                 else:
-                    # ChatGPT o3 suggested this cos_theta correction.
-                    sin_delta_theta = math.sin(delta_theta)
-                    p = (
-                        (
-                            (2 ** (abs(J / h) - 1))
-                            * (
-                                1
-                                + sin_delta_theta
-                                * math.cos(J * omega * t + theta)
-                                / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
-                            )
-                            - 1 / 2
-                        )
-                        if t2 > 0
-                        else (2 ** abs(J / h))
-                    )
-                    if p >= 1024:
-                        d_magnetization = 1
-                        d_sqr_magnetization = 1
-                    else:
-                        tot_n = 0
-                        for q in range(n_qubits + 1):
-                            n = 1 / (n_qubits * (2 ** (p * q)))
-                            if n == float("inf"):
-                                d_magnetization = 1
-                                d_sqr_magnetization = 1
-                                tot_n = 1
-                                break
-                            m = (n_qubits - (q << 1)) / n_qubits
-                            d_magnetization += n * m
-                            d_sqr_magnetization += n * m * m
-                            tot_n += n
-                        d_magnetization /= tot_n
-                        d_sqr_magnetization /= tot_n
-                if J > 0:
-                    d_magnetization = -d_magnetization
+                    # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
+                    tot_n = 0
+                    for q in range(n_qubits + 1):
+                        n = 1 / (n_qubits * (2 ** (p * q)))
+                        if n == float("inf"):
+                            tot_n = 1
+                            bias.append(1)
+                            bias += n_qubits * [0]
+                            break
+                        bias.append(n)
+                        tot_n += n
+                    # Normalize the results for 1.0 total marginal probability.
+                    for q in range(n_qubits + 1):
+                        bias[q] /= tot_n
+                    for q in range(n_qubits + 1):
+                        n = bias[q]
+                        m = (n_qubits - (q << 1)) / n_qubits
+                        d_magnetization += n * m
+                        d_sqr_magnetization += n * m * m
+            if J > 0:
+                # This is antiferromagnetism.
+                bias.reverse()
+                d_magnetization = -d_magnetization
 
             if (d == 0) or (model < 0.99):
                 experiment_samples = experiment.measure_shots(qubits, shots)

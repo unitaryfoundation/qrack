@@ -379,22 +379,20 @@ def main():
                 for q in range(n_qubits + 1):
                     n = 1 / (n_qubits * (2 ** (p * q)))
                     if n == float("inf"):
-                        d_magnetization = 1
-                        d_sqr_magnetization = 1
                         tot_n = 1
                         bias.append(1)
                         bias += n_qubits * [0]
                         break
-                    m = (n_qubits - (q << 1)) / n_qubits
-                    d_magnetization += n * m
-                    d_sqr_magnetization += n * m * m
                     bias.append(n)
                     tot_n += n
                 # Normalize the results for 1.0 total marginal probability.
-                d_magnetization /= tot_n
-                d_sqr_magnetization /= tot_n
                 for q in range(n_qubits + 1):
                     bias[q] /= tot_n
+                for q in range(n_qubits + 1):
+                    n = bias[q]
+                    m = (n_qubits - (q << 1)) / n_qubits
+                    d_magnetization += n * m
+                    d_sqr_magnetization += n * m * m
         if J > 0:
             # This is antiferromagnetism.
             bias.reverse()
