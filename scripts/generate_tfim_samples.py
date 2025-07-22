@@ -202,6 +202,7 @@ def main():
     seconds = time.perf_counter() - start
 
     print(samples)
+    print("Seconds: " + str(seconds))
 
 
 if __name__ == "__main__":
