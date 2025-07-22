@@ -3,7 +3,6 @@
 
 import math
 import numpy as np
-from pyqrack import Pauli
 import matplotlib.pyplot as plt
 
 
