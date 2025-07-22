@@ -121,6 +121,7 @@ def closeness_like_bits(perm, n_rows, n_cols):
     return normalized_closeness
 
 
+# By Elara (OpenAI custom GPT)
 def closeness_like_bits_arbitrary(bitstring, adjacency):
     """
     Compute closeness metric for a given bitstring on an arbitrary graph.
@@ -165,6 +166,7 @@ def expected_closeness_weight(n_rows, n_cols, hamming_weight):
     return 2 * mu_k - 1  # normalized closeness in [-1,1]
 
 
+# By Elara (OpenAI custom GPT)
 def expected_closeness_weight_arbitrary(n, adjacency, hamming_weight, samples=5000):
     """
     Approximate expected closeness over all n-bit states with given Hamming weight.
