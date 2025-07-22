@@ -208,6 +208,7 @@ def main():
                         n = 1 / (n_qubits * (2 ** (p * q)))
                         if n == float("inf"):
                             tot_n = 1
+                            bias = []
                             bias.append(1)
                             bias += n_qubits * [0]
                             break
@@ -216,7 +217,6 @@ def main():
                     # Normalize the results for 1.0 total marginal probability.
                     for q in range(n_qubits + 1):
                         bias[q] /= tot_n
-                    for q in range(n_qubits + 1):
                         n = bias[q]
                         m = (n_qubits - (q << 1)) / n_qubits
                         d_magnetization += n * m
