@@ -30,14 +30,15 @@ def simulate_tfim(
 
         for q in range(n_qubits):
             # gather local couplings for qubit q
-            J_vals = [abs(J_t[q, j]) for j in range(n_qubits) if j != q and J_t[q, j] != 0.0]
-            h_val = abs(h_t[q]) if abs(h_t[q]) > 1e-12 else None
+            J_vals = [J_t[q, j] for j in range(n_qubits) if (j != q) and (abs(J_t[q, j]) > 1e-12)]
+            h_val = h_t[q] if abs(h_t[q]) > 1e-12 else None
 
             if not J_vals or h_val is None:
                 # trivial cases
                 if h_val is None:
                     mag_per_qubit.append(1.0)  # effectively pinned in Z
                 else:
+                    # J_vals is None
                     mag_per_qubit.append(0.0)  # no coupling
                 continue
 
@@ -55,10 +56,10 @@ def simulate_tfim(
                         * math.cos(J_eff * omega * t + theta)
                         / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
                     )
-                    - 0.5
+                    - 1 / 2
                 )
             else:
-                p_i = 2 ** abs(J_eff / h_eff)
+                p_i = (2 ** (abs(J_eff / h_eff) - 1)) - 1 / 2
 
             # compute d_magnetization for this qubit
             if p_i >= 1024:
