@@ -141,8 +141,8 @@ def simulate_tfim(
     n_qubits=64,
     n_steps=20,
     delta_t=0.1,
-    theta=2 * math.pi / 9,
-    delta_theta=math.pi / 18,
+    theta=[],
+    delta_theta=[],
     t2=1.0,
     omega=3 * math.pi / 2,
 ):
@@ -174,14 +174,14 @@ def simulate_tfim(
             h_eff = h_val
 
             # compute p_i using your same formula
-            sin_delta_theta = math.sin(delta_theta)
+            sin_delta_theta = math.sin(delta_theta[q])
             if t2 > 0.0:
                 p_i = (
                     (2 ** (abs(J_eff / h_eff) - 1))
                     * (
                         1
                         + sin_delta_theta
-                        * math.cos(J_eff * omega * t + theta)
+                        * math.cos(J_eff * omega * t + theta[q])
                         / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
                     )
                     - 1 / 2
@@ -267,8 +267,8 @@ if __name__ == "__main__":
     n_qubits = 64
     n_steps = 40
     delta_t = 0.1
-    theta = math.pi / 18
-    delta_theta = 2 * math.pi / 9
+    theta = [math.pi / 18] * n_qubits
+    delta_theta = [2 * math.pi / 9] * n_qubits
     omega = 3 * math.pi / 2
     J_func = lambda t: generate_Jt(n_qubits, t)
     h_func = lambda t: generate_ht(n_qubits, t)
