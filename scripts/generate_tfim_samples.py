@@ -18,57 +18,6 @@ def factor_width(width, is_transpose=False):
     return (col_len, row_len) if is_transpose else (row_len, col_len)
 
 
-def trotter_step(circ, qubits, lattice_shape, J, h, dt):
-    n_rows, n_cols = lattice_shape
-
-    # First half of transverse field term
-    for q in qubits:
-        circ.rx(h * dt, q)
-
-    # Layered RZZ interactions (simulate 2D nearest-neighbor coupling)
-    def add_rzz_pairs(pairs):
-        for q1, q2 in pairs:
-            circ.append(RZZGate(2 * J * dt), [q1, q2])
-
-    # Layer 1: horizontal pairs (even rows)
-    horiz_pairs = [
-        (r * n_cols + c, r * n_cols + (c + 1) % n_cols)
-        for r in range(n_rows)
-        for c in range(0, n_cols, 2)
-    ]
-    add_rzz_pairs(horiz_pairs)
-
-    # Layer 2: horizontal pairs (odd rows)
-    horiz_pairs = [
-        (r * n_cols + c, r * n_cols + (c + 1) % n_cols)
-        for r in range(n_rows)
-        for c in range(1, n_cols, 2)
-    ]
-    add_rzz_pairs(horiz_pairs)
-
-    # Layer 3: vertical pairs (even columns)
-    vert_pairs = [
-        (r * n_cols + c, ((r + 1) % n_rows) * n_cols + c)
-        for r in range(1, n_rows, 2)
-        for c in range(n_cols)
-    ]
-    add_rzz_pairs(vert_pairs)
-
-    # Layer 4: vertical pairs (odd columns)
-    vert_pairs = [
-        (r * n_cols + c, ((r + 1) % n_rows) * n_cols + c)
-        for r in range(0, n_rows, 2)
-        for c in range(n_cols)
-    ]
-    add_rzz_pairs(vert_pairs)
-
-    # Second half of transverse field term
-    for q in qubits:
-        circ.rx(h * dt, q)
-
-    return circ
-
-
 # By Gemini (Google Search AI)
 def int_to_bitstring(integer, length):
     return bin(integer)[2:].zfill(length)
