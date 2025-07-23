@@ -210,6 +210,7 @@ def simulate_tfim(
     theta=[],
     t2=1.0,
     omega=3 * math.pi / 2,
+    z=2,
 ):
     magnetizations = []
 
@@ -346,7 +347,7 @@ if __name__ == "__main__":
     # Number of nearest neighbors:
     z = 2
 
-    mag = simulate_tfim(J_func, h_func, n_qubits, n_steps, delta_t, theta, omega)
+    mag = simulate_tfim(J_func, h_func, n_qubits, n_steps, delta_t, theta, omega, z)
     ylim = ((min(mag) * 100) // 10) / 10
     plt.figure(figsize=(14, 14))
     plt.plot(list(range(1, n_steps + 1)), mag, marker="o", linestyle="-")
