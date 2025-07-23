@@ -245,7 +245,7 @@ def simulate_tfim(
                 continue
             h_eff = h_val
             if np.isclose(h_eff, 0):
-                mag_per_qubit.append(1)
+                mag_per_qubit.append(1 if J_eff < 0 else -1)
                 continue
             delta_theta = theta[q] - math.asin(h_eff / (z * J_eff))
 
