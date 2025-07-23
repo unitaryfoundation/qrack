@@ -194,7 +194,6 @@ def expected_closeness_weight_arbitrary(n, adjacency, hamming_weight, samples=50
     return total / samples
 
 
-
 # By Elara (OpenAI custom GPT)
 def hamming_distance(s1, s2, n):
     return sum(
@@ -209,7 +208,6 @@ def simulate_tfim(
     n_steps=20,
     delta_t=0.1,
     theta=[],
-    delta_theta=[],
     t2=1.0,
     omega=3 * math.pi / 2,
 ):
@@ -225,7 +223,11 @@ def simulate_tfim(
 
         for q in range(n_qubits):
             # gather local couplings for qubit q
-            J_vals = [J_t[q, j] for j in range(n_qubits) if (j != q) and (abs(J_t[q, j]) > 1e-12)]
+            J_vals = [
+                J_t[q, j]
+                for j in range(n_qubits)
+                if (j != q) and (abs(J_t[q, j]) > 1e-12)
+            ]
             h_val = h_t[q] if abs(h_t[q]) > 1e-12 else None
 
             if not J_vals or h_val is None:
@@ -238,21 +240,24 @@ def simulate_tfim(
                 continue
 
             J_eff = np.mean(J_vals)
+            if np.isclose(J_eff, 0):
+                mag_per_qubit.append(0)
+                continue
             h_eff = h_val
+            if np.isclose(h_eff, 0):
+                mag_per_qubit.append(1)
+                continue
+            delta_theta = theta[q] - math.asin(h_eff / (z * J_eff))
 
             # compute p_i using your same formula
-            sin_delta_theta = math.sin(delta_theta[q])
+            sin_delta_theta = math.sin(delta_theta)
             if t2 > 0.0:
-                p_i = (
-                    (2 ** (abs(J_eff / h_eff) - 1))
-                    * (
-                        1
-                        + sin_delta_theta
-                        * math.cos(J_eff * omega * t + theta[q])
-                        / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
-                    )
-                    - 1 / 2
-                )
+                p_i = (2 ** (abs(J_eff / h_eff) - 1)) * (
+                    1
+                    + sin_delta_theta
+                    * math.cos(J_eff * omega * t + theta[q])
+                    / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
+                ) - 1 / 2
             else:
                 p_i = (2 ** (abs(J_eff / h_eff) - 1)) - 1 / 2
 
@@ -303,13 +308,13 @@ def generate_Jt(n_nodes, t):
     if t >= 0.5 and t < 1.0:
         # "Port 3" temporarily fails → remove its coupling
         J[2, 3] = J[3, 2] = 1e-10
+        J[3, 4] = J[4, 3] = 1e-10
     if t >= 1.0 and t < 1.5:
         # Alternate weak link opens between 1 and 4
         J[1, 4] = J[4, 1] = -0.3
-
+        J[2, 3] = J[3, 2] = 0
+        J[3, 4] = J[4, 3] = 0
     # Restoration: after step 15, port 3 recovers
-    if t >= 1.5:
-        J[2, 3] = J[3, 2] = -1.0
 
     return J
 
@@ -335,16 +340,13 @@ if __name__ == "__main__":
     n_steps = 40
     delta_t = 0.1
     theta = [math.pi / 18] * n_qubits
-    # Number of nearest neighbors:
-    z = 2
-    delta_theta = [(t - math.asin(h / (z * J))) for t in theta]
     omega = 3 * math.pi / 2
     J_func = lambda t: generate_Jt(n_qubits, t)
     h_func = lambda t: generate_ht(n_qubits, t)
+    # Number of nearest neighbors:
+    z = 2
 
-    mag = simulate_tfim(
-        J_func, h_func, n_qubits, n_steps, delta_t, theta, delta_theta, omega
-    )
+    mag = simulate_tfim(J_func, h_func, n_qubits, n_steps, delta_t, theta, omega)
     ylim = ((min(mag) * 100) // 10) / 10
     plt.figure(figsize=(14, 14))
     plt.plot(list(range(1, n_steps + 1)), mag, marker="o", linestyle="-")
