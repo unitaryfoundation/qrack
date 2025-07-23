@@ -208,10 +208,11 @@ def simulate_tfim(
     n_steps=20,
     delta_t=0.1,
     theta=[],
-    t2=1.0,
-    omega=3 * math.pi / 2,
-    z=2,
+    z=[],
 ):
+    t2 = 1
+    omega = 3 * math.pi / 2
+
     magnetizations = []
 
     for step in range(n_steps):
@@ -224,33 +225,18 @@ def simulate_tfim(
 
         for q in range(n_qubits):
             # gather local couplings for qubit q
-            J_vals = [
-                J_t[q, j]
-                for j in range(n_qubits)
-                if (j != q) and (abs(J_t[q, j]) > 1e-12)
-            ]
-            h_val = h_t[q] if abs(h_t[q]) > 1e-12 else None
-
-            if not J_vals or h_val is None:
-                # trivial cases
-                if h_val is None:
-                    mag_per_qubit.append(1.0)  # effectively pinned in Z
-                else:
-                    # J_vals is None
-                    mag_per_qubit.append(0.0)  # no coupling
-                continue
-
-            J_eff = np.mean(J_vals)
+            J_eff = sum(J_t[q, j] for j in range(n_qubits) if (j != q)) / z[q]
+            h_eff = h_t[q]
+                
             if np.isclose(J_eff, 0):
                 mag_per_qubit.append(0)
                 continue
-            h_eff = h_val
             if np.isclose(h_eff, 0):
                 mag_per_qubit.append(1 if J_eff < 0 else -1)
                 continue
-            delta_theta = theta[q] - math.asin(h_eff / (z * J_eff))
 
-            # compute p_i using your same formula
+            # compute p_i using formula for globally uniform J, h, and theta
+            delta_theta = theta[q] - math.asin(h_eff / (z[q] * J_eff))
             sin_delta_theta = math.sin(delta_theta)
             if t2 > 0.0:
                 p_i = (2 ** (abs(J_eff / h_eff) - 1)) * (
@@ -337,17 +323,21 @@ def generate_ht(n_nodes, t):
 
 if __name__ == "__main__":
     # Example usage
+
+    # Qubit count
     n_qubits = 64
+    # Trotter step count
     n_steps = 40
+    # Simulated time per Trotter step
     delta_t = 0.1
+    # Initial temperatures (per qubit)
     theta = [math.pi / 18] * n_qubits
-    omega = 3 * math.pi / 2
+    # Number of nearest neighbors:
+    z = [2] * n_qubits
     J_func = lambda t: generate_Jt(n_qubits, t)
     h_func = lambda t: generate_ht(n_qubits, t)
-    # Number of nearest neighbors:
-    z = 2
 
-    mag = simulate_tfim(J_func, h_func, n_qubits, n_steps, delta_t, theta, omega, z)
+    mag = simulate_tfim(J_func, h_func, n_qubits, n_steps, delta_t, theta, z)
     ylim = ((min(mag) * 100) // 10) / 10
     plt.figure(figsize=(14, 14))
     plt.plot(list(range(1, n_steps + 1)), mag, marker="o", linestyle="-")
