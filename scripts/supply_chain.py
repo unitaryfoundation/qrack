@@ -249,6 +249,7 @@ def simulate_tfim(
                 p_i = (2 ** (abs(J_eff / h_eff) - 1)) - 1 / 2
 
             # compute d_magnetization for this qubit
+            m_i = 0.0
             if p_i >= 1024:
                 m_i = 1.0
             else:
