@@ -256,13 +256,11 @@ def simulate_tfim(
                 m_sum = 0.0
                 for k in range(n_qubits + 1):
                     if (p_i * k) >= 1024:
-                        m_i = 1.0
                         m_sum = 1.0
                         tot_n = 1.0
                         break
                     n_val = 1.0 / (n_qubits * (2 ** (p_i * k)))
                     if n_val == float("inf"):
-                        m_i = 1.0
                         m_sum = 1.0
                         tot_n = 1.0
                         break
