@@ -292,15 +292,13 @@ def generate_Jt(n_nodes, t):
         J[(i + 1) % n_nodes, i] = -1.0
 
     # Simulate disruption:
-    if t >= 0.5 and t < 1.0:
+    if t >= 0.5 and t < 1.5:
         # "Port 3" temporarily fails → remove its coupling
-        J[2, 3] = J[3, 2] = 1e-10
-        J[3, 4] = J[4, 3] = 1e-10
+        J[2, 3] = J[3, 2] = 0
+        J[3, 4] = J[4, 3] = 0
     if t >= 1.0 and t < 1.5:
         # Alternate weak link opens between 1 and 4
         J[1, 4] = J[4, 1] = -0.3
-        J[2, 3] = J[3, 2] = 0
-        J[3, 4] = J[4, 3] = 0
     # Restoration: after step 15, port 3 recovers
 
     return J
