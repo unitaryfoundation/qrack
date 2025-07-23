@@ -82,22 +82,18 @@ def main():
     # Quantinuum settings
     J, h, dt = -1.0, 2.0, 0.25
     theta = math.pi / 18
-    delta_theta = 2 * math.pi / 9
 
     # Pure ferromagnetic
     # J, h, dt = -1.0, 0.0, 0.25
     # theta = 0
-    # delta_theta = 0
 
     # Pure transverse field
     # J, h, dt = 0.0, 2.0, 0.25
     # theta = -math.pi / 2
-    # delta_theta = 0
 
     # Critical point (symmetry breaking)
     # J, h, dt = -1.0, 1.0, 0.25
     # theta = -math.pi / 4
-    # delta_theta = math.pi / 4
 
     if len(sys.argv) > 1:
         n_qubits = int(sys.argv[1])
@@ -114,8 +110,14 @@ def main():
     omega *= math.pi
     n_rows, n_cols = factor_width(n_qubits, False)
     qubits = list(range(n_qubits))
-
     depths = list(range(0, depth + 1))
+
+    # Coordination number for a square lattice:
+    z = 4
+    # Mean-field critical angle (in radians)
+    theta_c = math.asin(h / (z * J))  # handles signs
+    # Set theta relative to that:
+    delta_theta = theta - theta_c
 
     start = time.perf_counter()
 

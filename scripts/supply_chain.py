@@ -335,7 +335,9 @@ if __name__ == "__main__":
     n_steps = 40
     delta_t = 0.1
     theta = [math.pi / 18] * n_qubits
-    delta_theta = [2 * math.pi / 9] * n_qubits
+    # Number of nearest neighbors:
+    z = 2
+    delta_theta = [(t - math.asin(h / (z * J))) for t in theta]
     omega = 3 * math.pi / 2
     J_func = lambda t: generate_Jt(n_qubits, t)
     h_func = lambda t: generate_ht(n_qubits, t)
