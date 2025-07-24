@@ -80,27 +80,26 @@ def main():
     omega = 1.5
 
     # Quantinuum settings
-    J, h, dt = -1.0, 2.0, 0.25
+    J, h = -1.0, 2.0
     theta = math.pi / 18
 
     # Pure ferromagnetic
-    # J, h, dt = -1.0, 0.0, 0.25
+    # J, h = -1.0, 0.0
     # theta = 0
 
     # Pure transverse field
-    # J, h, dt = 0.0, 2.0, 0.25
+    # J, h = 0.0, 2.0
     # theta = -math.pi / 2
 
     # Critical point (symmetry breaking)
-    # J, h, dt = -1.0, 1.0, 0.25
+    # J, h = -1.0, 1.0
     # theta = -math.pi / 4
 
+    t = 5
     if len(sys.argv) > 1:
         n_qubits = int(sys.argv[1])
     if len(sys.argv) > 2:
-        depth = int(sys.argv[2])
-    if len(sys.argv) > 3:
-        dt = float(sys.argv[3])
+        t = float(sys.argv[2])
     if len(sys.argv) > 4:
         shots = int(sys.argv[4])
 
@@ -122,7 +121,6 @@ def main():
     start = time.perf_counter()
 
     bias = []
-    t = depth * dt
     if np.isclose(h, 0):
         # This agrees with small perturbations away from h = 0.
         bias.append(1)
