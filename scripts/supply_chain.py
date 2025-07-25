@@ -260,7 +260,7 @@ def simulate_tfim(
                         m_sum = 1.0
                         tot_n = 1.0
                         break
-                    n_val = 1.0 / (n_qubits * (2 ** (p_i * k)))
+                    n_val = 1.0 / ((n_qubits + 1) * (2 ** (p_i * k)))
                     if n_val == float("inf"):
                         m_sum = 1.0
                         tot_n = 1.0

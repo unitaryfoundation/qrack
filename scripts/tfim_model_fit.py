@@ -380,7 +380,7 @@ def main():
                 # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
                 tot_n = 0
                 for q in range(n_qubits + 1):
-                    n = 1 / (n_qubits * (2 ** (p * q)))
+                    n = 1 / ((n_qubits + 1) * (2 ** (p * q)))
                     if n == float("inf"):
                         tot_n = 1
                         bias = []
