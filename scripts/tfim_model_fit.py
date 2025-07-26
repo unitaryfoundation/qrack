@@ -381,12 +381,6 @@ def main():
                 tot_n = 0
                 for q in range(n_qubits + 1):
                     n = 1 / ((n_qubits + 1) * (2 ** (p * q)))
-                    if n == float("inf"):
-                        tot_n = 1
-                        bias = []
-                        bias.append(1)
-                        bias = n_qubits * [0]
-                        break
                     bias.append(n)
                     tot_n += n
                 # Normalize the results for 1.0 total marginal probability.
