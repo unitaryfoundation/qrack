@@ -90,9 +90,8 @@ typedef struct BigInteger {
 #ifdef __SIZEOF_INT128__
     inline explicit operator unsigned __int128() const { return (unsigned __int128)bits[0U]; }
 #endif
-    inline explicit operator uint64_t() const { return (uint64_t)bits[0U]; }
+    inline explicit operator uint64_t() const { return (unsigned long long)bits[0U]; }
     inline explicit operator uint32_t() const { return (uint32_t)bits[0U]; }
-    inline explicit operator unsigned long long() const { return (unsigned long long)bits[0U]; }
 } BigInteger;
 
 inline void bi_set_0(BigInteger* p)

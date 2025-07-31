@@ -2189,7 +2189,7 @@ MICROSOFT_QUANTUM_DECL uintq MAll(_In_ uintq sid)
 {
     SIMULATOR_LOCK_GUARD_INT(sid)
     try {
-        return (uintq)simulators[sid]->MAll();
+        return (bitCapIntOcl)simulators[sid]->MAll();
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;
@@ -2207,11 +2207,11 @@ MICROSOFT_QUANTUM_DECL void MAllLong(_In_ uintq sid, uintq* r)
     SIMULATOR_LOCK_GUARD_VOID(sid)
     try {
         bitCapInt _r = simulator->MAll();
-        constexpr bitLenInt bitsPerWord = (bitLenInt)(sizeof(uintq) << 3U);
+        constexpr bitLenInt bitsPerWord = (bitLenInt)(sizeof(bitCapIntOcl) << 3U);
         const bitLenInt maxWords = (simulator->GetQubitCount() + bitsPerWord - 1) / bitsPerWord;
         const bitCapInt mask = pow2(bitsPerWord) - 1U;
         for (bitLenInt w = 0U; w < maxWords; ++w) {
-            r[w] = (uintq)(mask & _r);
+            r[w] = (bitCapIntOcl)(mask & _r);
             _r = _r >> bitsPerWord;
         }
     } catch (const std::exception& ex) {
