@@ -453,7 +453,7 @@ def validate_tfim(n_qubits=8, depth=20, shots=65536, J=-1.0, h=2.0, dt=0.25, the
     # Coordination number for a square lattice:
     z = 4
     # Mean-field critical angle (in radians)
-    theta_c = math.asin(max(min(1, h / (z * J)) if np.isclose(z * J, 0) else (1 if J > 0 else -1), -1))
+    theta_c = math.asin(max(min(1, abs(h) / (z * J)) if np.isclose(z * J, 0) else (1 if J > 0 else -1), -1))
     # Set theta relative to that:
     delta_theta = theta - theta_c
 

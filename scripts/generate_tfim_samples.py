@@ -114,7 +114,7 @@ def main():
     # Coordination number for a square lattice:
     z = 4
     # Mean-field critical angle (in radians)
-    theta_c = math.asin(max(min(1, h / (z * J)) if np.isclose(z * J, 0) else (1 if J > 0 else -1), -1))
+    theta_c = math.asin(max(min(1, abs(h) / (z * J)) if np.isclose(z * J, 0) else (1 if J > 0 else -1), -1))
     # Set theta relative to that:
     delta_theta = theta - theta_c
 
