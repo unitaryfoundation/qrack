@@ -107,6 +107,15 @@ protected:
         return toRet;
     }
 
+    template <typename Fn> bool BoolAsStateVector(Fn operation)
+    {
+        QInterfacePtr qReg = MakeQEngine(qubitCount);
+        GetQuantumState(qReg);
+        const bool toRet = operation(qReg);
+        SetQuantumState(qReg);
+        return toRet;
+    }
+
     void par_for_qbdt(const bitCapInt& end, bitLenInt maxQubit, BdtFunc fn, bool branch = true);
     void _par_for(const bitCapInt& end, ParallelFuncBdt fn);
 
@@ -344,7 +353,10 @@ public:
     real1_f Prob(bitLenInt qubitIndex);
     real1_f ProbAll(const bitCapInt& fullRegister);
 
-    bool ForceM(bitLenInt qubit, bool result, bool doForce = true, bool doApply = true);
+    bool ForceM(bitLenInt qubit, bool result, bool doForce = true, bool doApply = true)
+    {
+        return BoolAsStateVector([&](QInterfacePtr eng) { return eng->ForceM(qubit, result, doForce, doApply); });
+    }
     bitCapInt MAll() { return MAllOptionalCollapse(true); }
 
     void Mtrx(const complex* mtrx, bitLenInt target);
