@@ -194,10 +194,6 @@ void QUnit::SetQuantumState(const complex* inputState)
 
 void QUnit::GetQuantumStateOrProbs(complex* outputState, real1* outputProbs)
 {
-    if (isBdt) {
-        throw std::domain_error("QUnit::GetQuantumStateOrProbs() behavior would be undefined with an underlying QBdt layer!");
-    }
-
     if (outputState) {
         ToPermBasisAll();
     } else {
