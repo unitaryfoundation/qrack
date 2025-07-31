@@ -154,7 +154,8 @@ jobs:
 
       - name: Prepare Build Environment (MacOS)
         run: |
-          brew install cmake
+          brew upgrade rustup
+          brew install cmake opencl-clhpp-headers
 
       - name: Build Qrack MacOS
         run: |
