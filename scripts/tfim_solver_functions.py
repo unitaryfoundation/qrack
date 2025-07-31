@@ -116,7 +116,7 @@ def tfim_magnetization(J=-1.0, h=2.0, z=4, theta=math.pi/18, t=5, n_qubits=16):
     omega *= math.pi
 
     # Mean-field critical angle (in radians)
-    theta_c = math.asin(h / (z * J))  # handles signs
+    theta_c = math.asin(max(min(1, h / (z * J)) if np.isclose(z * J, 0) else (1 if J > 0 else -1), -1))
     # Set theta relative to that:
     delta_theta = theta - theta_c
 
@@ -208,7 +208,7 @@ def generate_samples(J=-1.0, h=2.0, z=4, theta=math.pi/18, t=5, n_qubits=16, sho
     qubits = list(range(n_qubits))
 
     # Mean-field critical angle (in radians)
-    theta_c = math.asin(h / (z * J))  # handles signs
+    theta_c = math.asin(max(min(1, h / (z * J)) if np.isclose(z * J, 0) else (1 if J > 0 else -1), -1))
     # Set theta relative to that:
     delta_theta = theta - theta_c
 
