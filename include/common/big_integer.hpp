@@ -92,6 +92,7 @@ typedef struct BigInteger {
 #endif
     inline explicit operator uint64_t() const { return (uint64_t)bits[0U]; }
     inline explicit operator uint32_t() const { return (uint32_t)bits[0U]; }
+    inline explicit operator unsigned long long() const { return (unsigned long long)bits[0U]; }
 } BigInteger;
 
 inline void bi_set_0(BigInteger* p)
