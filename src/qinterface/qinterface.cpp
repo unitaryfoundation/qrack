@@ -648,7 +648,7 @@ real1_f QInterface::VarianceFloatsFactorized(const std::vector<bitLenInt>& bits,
         for (size_t p = 0U; p < bits.size(); ++p) {
             weight *= (bi_compare_0(lcv & bitPowers[p]) == 0) ? weights[p << 1U] : weights[(p << 1U) | 1U];
         }
-        expectation += weight * ProbAll(lcv);
+        expectation += (weight - mean) * ProbAll(lcv);
     }
 
     return expectation;
@@ -792,9 +792,9 @@ real1_f QInterface::ExpectationFloatsFactorized(const std::vector<bitLenInt>& bi
 
     real1_f expectation = ZERO_R1_F;
     for (bitCapInt lcv = ZERO_BCI; bi_compare(lcv, maxQPower) < 0; bi_increment(&lcv, 1U)) {
-        real1_f weight = 0U;
+        real1_f weight = ONE_R1_F;
         for (size_t p = 0U; p < bits.size(); ++p) {
-            weight += (bi_compare_0(lcv & bitPowers[p]) != 0) ? weights[(p << 1U) | 1U] : weights[p << 1U];
+            weight *= (bi_compare_0(lcv & bitPowers[p]) != 0) ? weights[(p << 1U) | 1U] : weights[p << 1U];
         }
         expectation += weight * ProbAll(lcv);
     }

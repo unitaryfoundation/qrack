@@ -347,9 +347,9 @@ real1_f QStabilizer::getExpectation(
     const real1_f& nrm, const std::vector<bitCapInt>& bitPowers, const std::vector<real1_f>& weights)
 {
     const AmplitudeEntry entry = getBasisAmp(nrm);
-    real1_f weight = ZERO_R1_F;
+    real1_f weight = ONE_R1_F;
     for (size_t b = 0U; b < bitPowers.size(); ++b) {
-        weight += (bi_compare_0(entry.permutation & bitPowers[b]) != 0) ? weights[(b << 1U) | 1U] : weights[b << 1U];
+        weight *= (bi_compare_0(entry.permutation & bitPowers[b]) != 0) ? weights[(b << 1U) | 1U] : weights[b << 1U];
     }
     return weight * norm(entry.amplitude);
 }
@@ -371,9 +371,9 @@ real1_f QStabilizer::getVariance(const real1_f& mean, const real1_f& nrm, const 
     const std::vector<real1_f>& weights)
 {
     const AmplitudeEntry entry = getBasisAmp(nrm);
-    real1_f weight = ZERO_R1_F;
+    real1_f weight = ONE_R1_F;
     for (size_t b = 0U; b < bitPowers.size(); ++b) {
-        weight += (bi_compare_0(entry.permutation & bitPowers[b]) != 0) ? weights[(b << 1U) | 1U] : weights[b << 1U];
+        weight *= (bi_compare_0(entry.permutation & bitPowers[b]) != 0) ? weights[(b << 1U) | 1U] : weights[b << 1U];
     }
     const real1_f diff = weight - mean;
     return diff * diff * norm(entry.amplitude);
