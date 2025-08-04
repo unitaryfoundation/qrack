@@ -1998,7 +1998,7 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
             nQubits->r[i + start] = toCopy->r[i];
             nQubits->x[i + start][j] = toCopy->x[i][j];
             nQubits->z[i + start][j] = toCopy->z[i][j];
-            nQubits->r[i + nQubitCount + start] = r[i + qubitCount];
+            nQubits->r[i + nQubitCount + start] = r[i + length];
             nQubits->x[i + nQubitCount + start][j] = toCopy->x[i + length][j];
             nQubits->z[i + nQubitCount + start][j] = toCopy->z[i + length][j];
         }

@@ -104,7 +104,6 @@ protected:
         r = orig->r;
         x = orig->x;
         z = orig->z;
-        SetQubitCount(orig->qubitCount);
     }
 
 #if BOOST_AVAILABLE
