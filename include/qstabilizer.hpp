@@ -111,8 +111,8 @@ protected:
     // By Elara (OpenAI custom GPT)
     std::vector<boost::dynamic_bitset<>> FastTranspose(const std::vector<boost::dynamic_bitset<>>& matrix)
     {
-        size_t num_rows = matrix.size();
-        size_t num_cols = matrix[0].size();
+        const size_t num_rows = matrix.size();
+        const size_t num_cols = matrix[0].size();
 
         std::vector<BoolVector> transposed(num_cols, BoolVector(num_rows));
 
@@ -188,6 +188,7 @@ public:
         x.clear();
         z.clear();
         r.clear();
+        isTransposed = false;
         phaseOffset = ZERO_R1;
         qubitCount = 0U;
         maxQPower = ONE_BCI;
@@ -250,9 +251,6 @@ protected:
     /// Left-multiply row i by row k - does not change the logical state
     void rowmult(const bitLenInt& i, const bitLenInt& k)
     {
-#if BOOST_AVAILABLE
-        SetTransposeState(false);
-#endif
         r[i] = clifford(i, k);
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
