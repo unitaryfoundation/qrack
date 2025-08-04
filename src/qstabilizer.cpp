@@ -85,7 +85,9 @@ QInterfacePtr QStabilizer::Clone()
     clone->z = z;
     clone->r = r;
     clone->phaseOffset = phaseOffset;
+#if BOOST_AVAILABLE
     clone->isTransposed = isTransposed;
+#endif
 
     return clone;
 }
@@ -1847,7 +1849,9 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
             return result;
         }
 
+#if BOOST_AVAILABLE
         SetTransposeState(false);
+#endif
 
         const QStabilizerPtr clone = randGlobalPhase ? nullptr : std::dynamic_pointer_cast<QStabilizer>(Clone());
 
@@ -2262,7 +2266,9 @@ real1_f QStabilizer::ApproxCompareHelper(QStabilizerPtr toCompare, real1_f error
     toCompare->Finish();
     Finish();
 
+#if BOOST_AVAILABLE
     toCompare->SetTransposeState(false);
+#endif
 
     // log_2 of number of nonzero basis states
     const bitLenInt g = gaussian();
@@ -2905,7 +2911,9 @@ std::istream& operator>>(std::istream& is, const QStabilizerPtr s)
     size_t n;
     is >> n;
     s->SetQubitCount(n);
+#if BOOST_AVAILABLE
     s->isTransposed = false;
+#endif
 
     const size_t rows = n << 1U;
     s->r = std::vector<uint8_t>(rows + 1U);

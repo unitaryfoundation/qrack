@@ -99,7 +99,9 @@ protected:
         rawRandBools = orig->rawRandBools;
         rawRandBoolsRemaining = orig->rawRandBoolsRemaining;
         phaseOffset = orig->phaseOffset;
+#if BOOST_AVAILABLE
         isTransposed = orig->isTransposed;
+#endif
         maxStateMapCacheQubitCount = orig->maxStateMapCacheQubitCount;
         r = orig->r;
         x = orig->x;
@@ -187,7 +189,9 @@ public:
         x.clear();
         z.clear();
         r.clear();
+#if BOOST_AVAILABLE
         isTransposed = false;
+#endif
         phaseOffset = ZERO_R1;
         qubitCount = 0U;
         maxQPower = ONE_BCI;
