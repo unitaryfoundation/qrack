@@ -26,6 +26,10 @@
 
 #include "qinterface.hpp"
 
+#if BOOST_AVAILABLE
+#include <boost/dynamic_bitset.hpp>
+#endif
+
 namespace Qrack {
 
 struct AmplitudeEntry {
@@ -48,11 +52,18 @@ protected:
     unsigned rawRandBoolsRemaining;
     real1 phaseOffset;
     bitLenInt maxStateMapCacheQubitCount;
+#if BOOST_AVAILABLE
+    bool isTransposed;
+#endif
 
     // Phase bits: 0 for +1, 1 for i, 2 for -1, 3 for -i.  Normally either 0 or 2.
     std::vector<uint8_t> r;
     // Typedef for special type std::vector<bool> compatibility
+#if BOOST_AVAILABLE
+    typedef boost::dynamic_bitset<> BoolVector;
+#else
     typedef std::vector<bool> BoolVector;
+#endif
     // (2n+1)*n matrix for stabilizer/destabilizer x bits (there's one "scratch row" at the bottom)
     std::vector<BoolVector> x;
     // (2n+1)*n matrix for z bits
@@ -88,11 +99,44 @@ protected:
         rawRandBools = orig->rawRandBools;
         rawRandBoolsRemaining = orig->rawRandBoolsRemaining;
         phaseOffset = orig->phaseOffset;
+        isTransposed = orig->isTransposed;
         maxStateMapCacheQubitCount = orig->maxStateMapCacheQubitCount;
         r = orig->r;
         x = orig->x;
         z = orig->z;
+        SetQubitCount(orig->qubitCount);
     }
+
+#if BOOST_AVAILABLE
+    // By Elara (OpenAI custom GPT)
+    std::vector<boost::dynamic_bitset<>> FastTranspose(const std::vector<boost::dynamic_bitset<>>& matrix)
+    {
+        size_t num_rows = matrix.size();
+        size_t num_cols = matrix[0].size();
+
+        std::vector<BoolVector> transposed(num_cols, BoolVector(num_rows));
+
+        for (size_t row = 0; row < num_rows; ++row) {
+            const BoolVector& bit_row = matrix[row];
+            for (size_t col = bit_row.find_first(); col != BoolVector::npos; col = bit_row.find_next(col)) {
+                transposed[col].set(row);
+            }
+        }
+
+        return transposed;
+    }
+
+    void SetTransposeState(bool isTrans)
+    {
+        if (isTrans == isTransposed) {
+            return;
+        }
+
+        x = FastTranspose(x);
+        z = FastTranspose(z);
+        isTransposed = isTrans;
+    }
+#endif
 
 public:
     QStabilizer(bitLenInt n, const bitCapInt& perm = ZERO_BCI, qrack_rand_gen_ptr rgp = nullptr,
@@ -157,6 +201,9 @@ protected:
             return;
         }
 
+#if BOOST_AVAILABLE
+        SetTransposeState(false);
+#endif
         x[i] = x[k];
         z[i] = z[k];
         r[i] = r[k];
@@ -168,6 +215,9 @@ protected:
             return;
         }
 
+#if BOOST_AVAILABLE
+        SetTransposeState(false);
+#endif
         std::swap(x[k], x[i]);
         std::swap(z[k], z[i]);
         std::swap(r[k], r[i]);
@@ -175,10 +225,19 @@ protected:
     /// Sets row i equal to the bth observable (X_1,...X_n,Z_1,...,Z_n)
     void rowset(const bitLenInt& i, bitLenInt b)
     {
+#if BOOST_AVAILABLE
+        SetTransposeState(false);
+#endif
+
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
+#if BOOST_AVAILABLE
+        xi.reset();
+        zi.reset();
+#else
         std::fill(xi.begin(), xi.end(), false);
         std::fill(zi.begin(), zi.end(), false);
+#endif
         r[i] = 0;
 
         if (b < qubitCount) {
@@ -191,13 +250,22 @@ protected:
     /// Left-multiply row i by row k - does not change the logical state
     void rowmult(const bitLenInt& i, const bitLenInt& k)
     {
+#if BOOST_AVAILABLE
+        SetTransposeState(false);
+#endif
         r[i] = clifford(i, k);
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
+
+#if BOOST_AVAILABLE
+        xi ^= x[k];
+        zi ^= z[k];
+#else
         for (bitLenInt j = 0U; j < qubitCount; ++j) {
             xi[j] = xi[j] ^ x[k][j];
             zi[j] = zi[j] ^ z[k][j];
         }
+#endif
     }
     /// Return the phase (0,1,2,3) when row i is LEFT-multiplied by row k
     uint8_t clifford(const bitLenInt& i, const bitLenInt& k);
