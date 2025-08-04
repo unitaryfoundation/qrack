@@ -1969,7 +1969,6 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
     const bitLenInt length = toCopy->qubitCount;
     const bitLenInt nQubitCount = qubitCount + length;
     const bitLenInt endLength = qubitCount - start;
-    const bitLenInt secondStart = qubitCount + start;
 
 #if BOOST_AVAILABLE
     QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
@@ -1989,32 +1988,46 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
             nQubits->r[i] = r[i];
             nQubits->x[i][j] = x[i][j];
             nQubits->z[i][j] = z[i][j];
-            nQubits->r[i + nQubitCount] = r[i + qubitCount];
-            nQubits->x[i + nQubitCount][j] = x[i + qubitCount][j];
-            nQubits->z[i + nQubitCount][j] = z[i + qubitCount][j];
+
+            const bitLenInt ia = i + nQubitCount;
+            const bitLenInt ib = i + qubitCount;
+            nQubits->r[ia] = r[ib];
+            nQubits->x[ia][j] = x[ib][j];
+            nQubits->z[ia][j] = z[ib][j];
         }
     }
 
     for (bitLenInt i = 0U; i < length; ++i) {
         for (bitLenInt j = 0U; j < length; ++j) {
-            nQubits->r[i + start] = toCopy->r[i];
-            nQubits->x[i + start][j] = toCopy->x[i][j];
-            nQubits->z[i + start][j] = toCopy->z[i][j];
-            nQubits->r[i + nQubitCount + start] = r[i + length];
-            nQubits->x[i + nQubitCount + start][j] = toCopy->x[i + length][j];
-            nQubits->z[i + nQubitCount + start][j] = toCopy->z[i + length][j];
+            bitLenInt ia = i + start;
+            const bitLenInt ja = j + start;
+            nQubits->r[ia] = toCopy->r[i];
+            nQubits->x[ia][ja] = toCopy->x[i][j];
+            nQubits->z[ia][ja] = toCopy->z[i][j];
+
+            ia += nQubitCount;
+            const bitLenInt ib = i + length;
+            nQubits->r[ia] = r[ib];
+            nQubits->x[ia][ja] = toCopy->x[ib][j];
+            nQubits->z[ia][ja] = toCopy->z[ib][j];
         }
     }
 
     const bitLenInt end = start + length;
     for (bitLenInt i = 0; i < endLength; ++i) {
         for (bitLenInt j = 0; j < endLength; ++j) {
-            nQubits->r[i + end] = r[i + start];
-            nQubits->x[i + end][j] = x[i + start][j];
-            nQubits->z[i + end][j] = z[i + start][j];
-            nQubits->r[i + nQubitCount + end] = r[i + secondStart];
-            nQubits->x[i + nQubitCount + end][j] = x[i + secondStart][j];
-            nQubits->z[i + nQubitCount + end][j] = z[i + secondStart][j];
+            bitLenInt ia = i + end;
+            bitLenInt ib = i + start;
+            const bitLenInt ja = j + end;
+            nQubits->r[ia] = r[ib];
+            nQubits->x[ia][ja] = x[ib][j];
+            nQubits->z[ia][ja] = z[ib][j];
+
+            ia += nQubitCount;
+            ib = i + qubitCount;
+            nQubits->r[ia] = r[ib];
+            nQubits->x[ia][ja] = x[ib][j];
+            nQubits->z[ia][ja] = z[ib][j];
         }
     }
 
@@ -2022,6 +2035,7 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
 #else
     const bitLenInt rowCount = (qubitCount << 1U) + 1U;
     const bitLenInt dLen = length << 1U;
+    const bitLenInt secondStart = qubitCount + start;
 
     for (bitLenInt i = 0U; i < rowCount; ++i) {
         BoolVector& xi = x[i];
