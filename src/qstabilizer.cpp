@@ -93,7 +93,11 @@ QInterfacePtr QStabilizer::Clone()
 void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
 {
     Dump();
+#if BOOST_AVAILABLE
     isTransposed = false;
+    x = std::vector<BoolVector>((qubitCount << 1U) + 1U, BoolVector(qubitCount));
+    z = std::vector<BoolVector>((qubitCount << 1U) + 1U, BoolVector(qubitCount));
+#endif
 
     if (phaseFac != CMPLX_DEFAULT_ARG) {
         phaseOffset = std::arg(phaseFac);
@@ -111,9 +115,6 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
 #if BOOST_AVAILABLE
-        xi.reset();
-        zi.reset();
-
         if (i < qubitCount) {
             xi.set(i);
         } else {
@@ -1441,11 +1442,10 @@ void QStabilizer::H(bitLenInt t)
 
     const bitLenInt maxLcv = qubitCount << 1U;
     for (bitLenInt i = 0; i < maxLcv; ++i) {
-        if (!xt[i] || !zt[i]) {
-            continue;
+        if (xt[i] && zt[i]) {
+            uint8_t& ri = r[i];
+            ri = (ri + 2U) & 0x3U;
         }
-        uint8_t& ri = r[i];
-        ri = (ri + 2U) & 0x3U;
     }
 #else
     ParFor(
@@ -1727,11 +1727,13 @@ bool QStabilizer::IsSeparableZ(const bitLenInt& t)
 
     // for brevity
     const bitLenInt& n = qubitCount;
+    const bitLenInt& nt2 = n << 1U;
+
 #if BOOST_AVAILABLE
     SetTransposeState(true);
-    return x[t].find_next(n - 1U) == BoolVector::npos;
+
+    return x[t].find_next(n - 1U) >= nt2;
 #else
-    const bitLenInt& nt2 = n << 1U;
     // loop over stabilizer generators
     for (bitLenInt p = n; p < nt2; ++p) {
         // if a Zbar does NOT commute with Z_b (the operator being measured), then outcome is random
