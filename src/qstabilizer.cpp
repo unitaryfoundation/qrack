@@ -113,17 +113,22 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
 #if BOOST_AVAILABLE
         xi.reset();
         zi.reset();
+
+        if (i < qubitCount) {
+            xi.set(i);
+        } else {
+            zi.set(i - qubitCount);
+        }
 #else
         std::fill(xi.begin(), xi.end(), false);
         std::fill(zi.begin(), zi.end(), false);
-#endif
 
         if (i < qubitCount) {
             xi[i] = true;
         } else {
-            const bitLenInt j = i - qubitCount;
-            zi[j] = true;
+            zi[i - qubitCount] = true;
         }
+#endif
     }
 
     if (bi_compare_0(perm) == 0) {
@@ -140,7 +145,9 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
 /// Return the phase (0,1,2,3) when row i is LEFT-multiplied by row k
 uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
 {
+#if BOOST_AVAILABLE
     SetTransposeState(false);
+#endif
 
     const BoolVector& xi = x[i];
     const BoolVector& zi = z[i];
@@ -187,7 +194,9 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
  */
 bitLenInt QStabilizer::gaussian()
 {
+#if BOOST_AVAILABLE
     SetTransposeState(false);
+#endif
 
     // For brevity:
     const bitLenInt& n = qubitCount;
@@ -252,7 +261,9 @@ bitLenInt QStabilizer::gaussian()
  */
 void QStabilizer::seed(const bitLenInt& g)
 {
+#if BOOST_AVAILABLE
     SetTransposeState(false);
+#endif
 
     const bitLenInt elemCount = qubitCount << 1U;
     int min = 0;
@@ -909,9 +920,7 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
             BoolVector& xi = x[i];
             BoolVector& zi = z[i];
 
-            if (xi[c]) {
-                xi[t] = !xi[t];
-            }
+            xi[t] = xi[t] ^ xi[c];
 
             if (zi[t]) {
                 zi[c] = !zi[c];
@@ -1067,7 +1076,7 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
             continue;
         }
 
-        if (xc[i] && (xt[i] != zc[i])) {
+        if (!xc[i] && (xt[i] != zc[i])) {
             uint8_t& ri = r[i];
             ri = (ri + 2U) & 0x3U;
         }
@@ -1190,7 +1199,7 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
             continue;
         }
 
-        if (xc[i] && (xt[i] == zc[i])) {
+        if (!xc[i] && (xt[i] != zc[i])) {
             uint8_t& ri = r[i];
             ri = (ri + 2U) & 0x3U;
         }
@@ -1720,7 +1729,7 @@ bool QStabilizer::IsSeparableZ(const bitLenInt& t)
     const bitLenInt& n = qubitCount;
 #if BOOST_AVAILABLE
     SetTransposeState(true);
-    return x[t].find_next(n - 1U) != BoolVector::npos;
+    return x[t].find_next(n - 1U) == BoolVector::npos;
 #else
     const bitLenInt& nt2 = n << 1U;
     // loop over stabilizer generators
@@ -1958,6 +1967,7 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
     const bitLenInt length = toCopy->qubitCount;
     const bitLenInt nQubitCount = qubitCount + length;
     const bitLenInt endLength = qubitCount - start;
+    const bitLenInt secondStart = qubitCount + start;
 
 #if BOOST_AVAILABLE
     QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
@@ -1966,16 +1976,10 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
     SetTransposeState(false);
     toCopy->SetTransposeState(false);
 
-    const bitLenInt oRowCount = (nQubitCount << 1U) + 1U;
-    for (bitLenInt i = 0; i < oRowCount; ++i) {
-        BoolVector& xi = nQubits->x[i];
-        BoolVector& zi = nQubits->z[i];
-        if (i < nQubitCount) {
-            xi[i] = false;
-        } else {
-            const bitLenInt j = i - nQubitCount;
-            zi[j] = false;
-        }
+    const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
+    for (bitLenInt i = 0U; i < oRowLength; ++i) {
+        nQubits->x[i].reset();
+        nQubits->z[i].reset();
     }
 
     for (bitLenInt i = 0U; i < start; ++i) {
@@ -1983,18 +1987,9 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
             nQubits->r[i] = r[i];
             nQubits->x[i][j] = x[i][j];
             nQubits->z[i][j] = z[i][j];
+            nQubits->r[i + nQubitCount] = r[i + qubitCount];
             nQubits->x[i + nQubitCount][j] = x[i + qubitCount][j];
             nQubits->z[i + nQubitCount][j] = z[i + qubitCount][j];
-        }
-    }
-
-    for (bitLenInt i = endLength; i < qubitCount; ++i) {
-        for (bitLenInt j = endLength; j < qubitCount; ++j) {
-            nQubits->r[i + length] = r[i];
-            nQubits->x[i + length][j] = x[i][j];
-            nQubits->z[i + length][j] = z[i][j];
-            nQubits->x[i + nQubitCount + length][j] = x[i + qubitCount][j];
-            nQubits->z[i + nQubitCount + length][j] = z[i + qubitCount][j];
         }
     }
 
@@ -2003,15 +1998,27 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
             nQubits->r[i + start] = toCopy->r[i];
             nQubits->x[i + start][j] = toCopy->x[i][j];
             nQubits->z[i + start][j] = toCopy->z[i][j];
-            nQubits->x[i + nQubitCount + start][j] = toCopy->x[i + qubitCount][j];
-            nQubits->z[i + nQubitCount + start][j] = toCopy->z[i + qubitCount][j];
+            nQubits->r[i + nQubitCount + start] = r[i + qubitCount];
+            nQubits->x[i + nQubitCount + start][j] = toCopy->x[i + length][j];
+            nQubits->z[i + nQubitCount + start][j] = toCopy->z[i + length][j];
+        }
+    }
+
+    const bitLenInt end = start + length;
+    for (bitLenInt i = 0; i < endLength; ++i) {
+        for (bitLenInt j = 0; j < endLength; ++j) {
+            nQubits->r[i + end] = r[i + start];
+            nQubits->x[i + end][j] = x[i + start][j];
+            nQubits->z[i + end][j] = z[i + start][j];
+            nQubits->r[i + nQubitCount + end] = r[i + secondStart];
+            nQubits->x[i + nQubitCount + end][j] = x[i + secondStart][j];
+            nQubits->z[i + nQubitCount + end][j] = z[i + secondStart][j];
         }
     }
 
     Copy(nQubits);
 #else
     const bitLenInt rowCount = (qubitCount << 1U) + 1U;
-    const bitLenInt secondStart = qubitCount + start;
     const bitLenInt dLen = length << 1U;
 
     for (bitLenInt i = 0U; i < rowCount; ++i) {

@@ -230,16 +230,23 @@ protected:
         SetTransposeState(false);
 #endif
 
+        r[i] = 0;
+
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
 #if BOOST_AVAILABLE
         xi.reset();
         zi.reset();
+
+        if (b < qubitCount) {
+            xi.set(b);
+        } else {
+            b -= qubitCount;
+            zi.set(b);
+        }
 #else
         std::fill(xi.begin(), xi.end(), false);
         std::fill(zi.begin(), zi.end(), false);
-#endif
-        r[i] = 0;
 
         if (b < qubitCount) {
             xi[b] = true;
@@ -247,10 +254,15 @@ protected:
             b -= qubitCount;
             zi[b] = true;
         }
+#endif
     }
     /// Left-multiply row i by row k - does not change the logical state
     void rowmult(const bitLenInt& i, const bitLenInt& k)
     {
+#if BOOST_AVAILABLE
+        SetTransposeState(false);
+#endif
+
         r[i] = clifford(i, k);
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
