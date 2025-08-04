@@ -911,7 +911,6 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
         if (!zt[i]) {
             continue;
         }
-
         if (xc[i] && (xt[i] == zc[i])) {
             uint8_t& ri = r[i];
             ri = (ri + 2U) & 0x3U;
@@ -923,7 +922,9 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
             BoolVector& xi = x[i];
             BoolVector& zi = z[i];
 
-            xi[t] = xi[t] ^ xi[c];
+            if (xi[c]) {
+                xi[t] = !xi[t];
+            }
 
             if (zi[t]) {
                 zi[c] = !zi[c];
@@ -1094,7 +1095,10 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
             BoolVector& zi = z[i];
 
             zi[t] = zi[t] ^ xi[t];
-            xi[t] = xi[t] ^ xi[c];
+
+            if (xi[c]) {
+                xi[t] = !xi[t];
+            }
 
             if (zi[t]) {
                 if (!xi[c] || (xi[t] != zi[c])) {
@@ -1163,7 +1167,9 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
                 }
             }
 
-            zi[t] = zi[t] ^ xi[c];
+            if (xi[c]) {
+                zi[t] = !zi[t];
+            }
         },
         { c, t });
 #endif
@@ -1224,7 +1230,9 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
                 }
             }
 
-            zi[t] = zi[t] ^ xi[c];
+            if (xi[c]) {
+                zi[t] = !zi[t];
+            }
         },
         { c, t });
 #endif
