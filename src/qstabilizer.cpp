@@ -2194,6 +2194,9 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         false, randGlobalPhase, false, -1, !!hardware_rand_generator);
 
     SetTransposeState(false);
+    if (dest) {
+        dest->SetTransposeState(false);
+    }
     nQubits->SetTransposeState(false);
 
     const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
@@ -2216,25 +2219,27 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         }
     }
 
-    for (bitLenInt i = 0U; i < length; ++i) {
-        const bitLenInt ia = i + start;
-        const bitLenInt ib = ia + qubitCount;
-        const bitLenInt ic = i + length;
-        for (bitLenInt j = 0U; j < length; ++j) {
-            const bitLenInt ja = j + start;
-            dest->r[i] = r[ia];
-            dest->x[i][j] = x[ia][ja];
-            dest->z[i][j] = z[ia][ja];
+    if (dest) {
+        for (bitLenInt i = 0U; i < length; ++i) {
+            const bitLenInt ia = i + start;
+            const bitLenInt ib = i + length;
+            const bitLenInt ic = ia + qubitCount;
+            for (bitLenInt j = 0U; j < length; ++j) {
+                const bitLenInt ja = j + start;
+                dest->r[i] = r[ia];
+                dest->x[i][j] = x[ia][ja];
+                dest->z[i][j] = z[ia][ja];
 
-            dest->r[ic] = r[ib];
-            dest->x[ic][j] = x[ib][ja];
-            dest->z[ic][j] = z[ib][ja];
+                dest->r[ib] = r[ic];
+                dest->x[ib][j] = x[ic][ja];
+                dest->z[ib][j] = z[ic][ja];
+            }
         }
     }
 
     for (bitLenInt i = 0; i < endLength; ++i) {
-        const bitLenInt ia = i + end;
-        const bitLenInt ib = i + start;
+        const bitLenInt ia = i + start;
+        const bitLenInt ib = i + end;
         const bitLenInt ic = ia + nQubitCount;
         const bitLenInt id = ib + qubitCount;
         for (bitLenInt j = 0; j < endLength; ++j) {
