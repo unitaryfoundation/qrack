@@ -153,19 +153,19 @@ public:
 
     virtual bool match(Qrack::QInterfacePtr const& qftReg) const override
     {
-        if (length == 0) {
+        if (length == 0U) {
             ((ProbPattern*)this)->length = qftReg->GetQubitCount();
         }
 
-        if (length > sizeof(mask) * 8) {
-            WARN("requested length " << length << " larger than possible bitmap " << sizeof(mask) * 8);
+        if (length > sizeof(mask) * 8U) {
+            WARN("requested length " << length << " larger than possible bitmap " << sizeof(mask) * 8U);
             return false;
         }
 
-        for (bitLenInt j = 0; j < length; j++) {
+        for (bitLenInt j = 0U; j < length; j++) {
             /* Consider anything more than a 50% probability as a '1'. */
             const bool bit = qftReg->Prob(j + start) > QRACK_TEST_EPSILON;
-            if (bit == (bi_and_1(mask >> j) == 0)) {
+            if (bit == (bi_and_1(mask >> j) == 0U)) {
                 return false;
             }
         }

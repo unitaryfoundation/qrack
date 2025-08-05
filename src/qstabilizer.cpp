@@ -1261,13 +1261,13 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
 
     SetTransposeState(true);
 
-    std::swap(x[c], x[t]);
-    std::swap(z[c], z[t]);
-
     BoolVector& xc = x[c];
     BoolVector& zc = z[c];
     BoolVector& xt = x[t];
     BoolVector& zt = z[t];
+
+    std::swap(xc, xt);
+    std::swap(zc, zt);
 
     zc ^= xt;
 
@@ -1383,8 +1383,8 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
         }
     }
 
-    std::swap(x[c], x[t]);
-    std::swap(z[c], z[t]);
+    std::swap(xc, xt);
+    std::swap(zc, zt);
 
 #else
     ParFor(
@@ -1731,14 +1731,12 @@ bool QStabilizer::IsSeparableZ(const bitLenInt& t)
 
     // for brevity
     const bitLenInt& n = qubitCount;
-    const bitLenInt& nt2 = qubitCount << 1U;
-
 #if BOOST_AVAILABLE
     if (isTransposed) {
-        return x[t].find_next(n - 1U) >= nt2;
+        return x[t].find_next(n - 1U) == BoolVector::npos;
     }
 #endif
-
+    const bitLenInt& nt2 = qubitCount << 1U;
     // loop over stabilizer generators
     for (bitLenInt p = n; p < nt2; ++p) {
         // if a Zbar does NOT commute with Z_b (the operator being measured), then outcome is random
@@ -1820,7 +1818,8 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
     // loop over stabilizer generators
 #if BOOST_AVAILABLE
     if (isTransposed) {
-        p = (bitLenInt)x[t].find_next(n - 1U) - n;
+        const auto pos = x[t].find_next(n - 1U);
+        p = (pos == BoolVector::npos) ? n : (bitLenInt)(pos - n);
     } else {
         for (p = 0U; p < n; ++p) {
             // if a Zbar does NOT commute with Z_b (the operator being measured), then outcome is random
@@ -1920,7 +1919,8 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
     bitLenInt m;
 #if BOOST_AVAILABLE
     if (isTransposed) {
-        m = (bitLenInt)x[t].find_first();
+        const auto pos = x[t].find_first();
+        m = ((pos == BoolVector::npos) || (pos >= n)) ? n : (bitLenInt)pos;
     } else {
         for (m = 0U; m < n; ++m) {
             if (x[m][t]) {
@@ -1988,6 +1988,7 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
 
     const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
     for (bitLenInt i = 0U; i < oRowLength; ++i) {
+        nQubits->r[i] = 0U;
         nQubits->x[i].reset();
         nQubits->z[i].reset();
     }
@@ -2201,6 +2202,7 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
 
     const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
     for (bitLenInt i = 0U; i < oRowLength; ++i) {
+        nQubits->r[i] = 0U;
         nQubits->x[i].reset();
         nQubits->z[i].reset();
     }
