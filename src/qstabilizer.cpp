@@ -1380,7 +1380,7 @@ void QStabilizer::X(bitLenInt t)
     ParFor(
         [this, t](const bitLenInt& i) {
             if (z[i][t]) {
-                r[i] = (r[i] + 2U) & 0x3U;
+                r[1U][i] = !r[1U][i];
             }
         },
         { t });
@@ -1405,7 +1405,7 @@ void QStabilizer::Y(bitLenInt t)
     ParFor(
         [this, t](const bitLenInt& i) {
             if (z[i][t] ^ x[i][t]) {
-                r[i] = (r[i] + 2U) & 0x3U;
+                r[1U][i] = !r[1U][i];
             }
         },
         { t });
@@ -1433,7 +1433,7 @@ void QStabilizer::Z(bitLenInt t)
     ParFor(
         [this, t](const bitLenInt& i) {
             if (x[i][t]) {
-                r[i] = (r[i] + 2U) & 0x3U;
+                r[1U][i] = !r[1U][i];
             }
         },
         { t });
@@ -1475,7 +1475,7 @@ void QStabilizer::S(bitLenInt t)
             const BoolVector& xi = x[i];
             BoolVector& zi = z[i];
             if (xi[t] && zi[t]) {
-                r[i] = (r[i] + 2U) & 0x3U;
+                r[1U][i] = !r[1U][i];
             }
             zi[t] = zi[t] ^ xi[t];
         },
@@ -1519,7 +1519,7 @@ void QStabilizer::IS(bitLenInt t)
             BoolVector& zi = z[i];
             zi[t] = zi[t] ^ xi[t];
             if (xi[t] && zi[t]) {
-                r[i] = (r[i] + 2U) & 0x3U;
+                r[1U][i] = !r[1U][i];
             }
         },
         { t });
