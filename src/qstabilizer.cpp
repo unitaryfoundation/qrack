@@ -2833,7 +2833,7 @@ std::ostream& operator<<(std::ostream& os, const QStabilizerPtr s)
             os << zRow[i] << " ";
         }
 
-        os << (int)s->r[0U][row] << " " << (int)s->r[1U][row] << std::endl;
+        os << (int)s->GetR(row) << std::endl;
     }
 
     return os;
@@ -2883,9 +2883,8 @@ std::istream& operator>>(std::istream& is, const QStabilizerPtr s)
 
         size_t _r;
         is >> _r;
-        s->r[0U][row] = (bool)_r;
-        is >> _r;
-        s->r[1U][row] = (bool)_r;
+        s->r[0U][row] = (bool)(_r & 1U);
+        s->r[1U][row] = (bool)(_r & 2U);
     }
 
     return is;
