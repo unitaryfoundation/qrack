@@ -94,7 +94,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=9 -DCPP_STD=14 -I/opt/homebrew/include -L/opt/homebrew/lib ..
+          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=9 -DCPP_STD=14 -DBoost_INCLUDE_DIR=/opt/homebrew/include -DBoost_LIBRARY_DIRS=/opt/homebrew/lib ..
           make qrack_pinvoke benchmarks
           sudo cpack
 
@@ -127,7 +127,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=9 -DCPP_STD=14 -I/opt/homebrew/include -L/opt/homebrew/lib ..
+          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=9 -DCPP_STD=14 -DBoost_INCLUDE_DIR=/opt/homebrew/include -DBoost_LIBRARY_DIRS=/opt/homebrew/lib ..
           make qrack_pinvoke benchmarks
           sudo cpack
 
@@ -154,7 +154,9 @@ jobs:
       - name: Install Boost
         uses: MarkusJx/install-boost@v2.0.0
         with:
-          boost_version: 1.78.0
+          boost_version: 1.73.0
+          version: legacy
+          toolset: msvc
           platform_version: 2022
           cache: true
 
