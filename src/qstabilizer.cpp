@@ -1261,13 +1261,13 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
 
     SetTransposeState(true);
 
+    std::swap(x[c], x[t]);
+    std::swap(z[c], z[t]);
+
     BoolVector& xc = x[c];
     BoolVector& zc = z[c];
     BoolVector& xt = x[t];
     BoolVector& zt = z[t];
-
-    std::swap(xc, xt);
-    std::swap(zc, zt);
 
     zc ^= xt;
 
@@ -1383,8 +1383,8 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
         }
     }
 
-    std::swap(xc, xt);
-    std::swap(zc, zt);
+    std::swap(x[c], x[t]);
+    std::swap(z[c], z[t]);
 
 #else
     ParFor(
