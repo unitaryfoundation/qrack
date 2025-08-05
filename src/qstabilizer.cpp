@@ -1805,35 +1805,40 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
         insert_bits(z[i], bitSpan, start);
     }
 
-    const BoolVector blankRow(nQubitCount);
-    for (bitLenInt i = 0U; i < length; ++i) {
-        x.insert(x.begin() + qubitCount + start, blankRow);
-        z.insert(z.begin() + qubitCount + start, blankRow);
-        x.insert(x.begin() + start, blankRow);
-        z.insert(z.begin() + start, blankRow);
-    }
-
     insert_bits(r[0U], bitSpan, start + qubitCount);
     insert_bits(r[1U], bitSpan, start + qubitCount);
     insert_bits(r[0U], bitSpan, start);
     insert_bits(r[1U], bitSpan, start);
-    for (bitLenInt i = 0U; i < length; ++i) {
-        const bitLenInt ia = i + start;
-        const bitLenInt ib = ia + nQubitCount;
-        const bitLenInt ic = i + length;
-        r[0U][ia] = toCopy->r[0U][i];
-        r[1U][ia] = toCopy->r[1U][i];
-        r[0U][ib] = toCopy->r[0U][ic];
-        r[1U][ib] = toCopy->r[1U][ic];
-        for (bitLenInt j = 0U; j < length; ++j) {
-            const bitLenInt ja = j + start;
-            x[ia][ja] = toCopy->x[i][j];
-            z[ia][ja] = toCopy->z[i][j];
 
-            x[ib][ja] = toCopy->x[ic][j];
-            z[ib][ja] = toCopy->z[ic][j];
-        }
+    const BoolVector blankStart(start);
+    const BoolVector blankEnd(endLength);
+    std::vector<BoolVector> xRows1, xRows2;
+    std::vector<BoolVector> zRows1, zRows2;
+    xRows1.reserve(length);
+    xRows2.reserve(length);
+    zRows1.reserve(length);
+    zRows2.reserve(length);
+    for (bitLenInt i = 0U; i < length; ++i) {
+        xRows1.push_back(blankStart);
+        xRows1.back().append(toCopy->x[i]);
+        xRows1.back().append(blankEnd);
+        zRows1.push_back(blankStart);
+        zRows1.back().append(toCopy->z[i]);
+        zRows1.back().append(blankEnd);
+
+        const bitLenInt j = i + length;
+        xRows2.push_back(blankStart);
+        xRows2.back().append(toCopy->x[j]);
+        xRows2.back().append(blankEnd);
+        zRows2.push_back(blankStart);
+        zRows2.back().append(toCopy->z[j]);
+        zRows2.back().append(blankEnd);
     }
+
+    x.insert(x.begin() + qubitCount + start, xRows2.begin(), xRows2.end());
+    z.insert(z.begin() + qubitCount + start, zRows2.begin(), zRows2.end());
+    x.insert(x.begin() + start, xRows1.begin(), xRows1.end());
+    z.insert(z.begin() + start, zRows1.begin(), zRows1.end());
 
     SetQubitCount(nQubitCount);
 #else
