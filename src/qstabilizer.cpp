@@ -897,7 +897,7 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
                 zi[c] = !zi[c];
 
                 if (xi[c] && (xi[t] == zi[c])) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
             }
         },
@@ -937,7 +937,7 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
                 zi[c] = !zi[c];
 
                 if (!xi[c] || (xi[t] != zi[c])) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
             }
         },
@@ -981,7 +981,7 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
 
             if (zi[t]) {
                 if (xi[c] && (xi[t] == zi[c])) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
 
                 zi[c] = !zi[c];
@@ -1029,7 +1029,7 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
 
             if (zi[t]) {
                 if (!xi[c] || (xi[t] != zi[c])) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
 
                 zi[c] = !zi[c];
@@ -1079,7 +1079,7 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
                 zi[c] = !zi[c];
 
                 if (xi[c] && (zi[t] == zi[c])) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
             }
 
@@ -1130,7 +1130,7 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
                 zi[c] = !zi[c];
 
                 if (!xi[c] || (zi[t] != zi[c])) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
             }
 
@@ -1216,7 +1216,7 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
                 zi[c] = !zi[c];
 
                 if (!xi[c] && zi[t]) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
             }
 
@@ -1224,7 +1224,7 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
                 zi[t] = !zi[t];
 
                 if (zi[c] && !xi[t]) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
             }
 
@@ -1277,7 +1277,7 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
                 zi[t] = !zi[t];
 
                 if (zi[c] && !xi[t]) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
             }
 
@@ -1285,7 +1285,7 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
                 zi[c] = !zi[c];
 
                 if (!xi[c] && zi[t]) {
-                    r[1U][i] = !(r[1U][i]);
+                    r[1U][i].flip();
                 }
             }
 
@@ -1319,7 +1319,7 @@ void QStabilizer::H(bitLenInt t)
             BoolVector& zi = z[i];
             BoolVector::swap(xi[t], zi[t]);
             if (xi[t] && zi[t]) {
-                r[1U][i] = !(r[1U][i]);
+                r[1U][i].flip();
             }
         },
         { t });
@@ -2144,8 +2144,8 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         std::copy(r[0U].begin() + j, r[0U].begin() + j + length, dest->r[0U].begin());
         std::copy(r[1U].begin() + j, r[1U].begin() + j + length, dest->r[1U].begin());
         j = qubitCount + start;
-        std::copy(r[0U].begin() + j, r[0U].begin() + j + length, dest->r[1U].begin() + length);
-        std::copy(r[0U].begin() + j, r[0U].begin() + j + length, dest->r[1U].begin() + length);
+        std::copy(r[0U].begin() + j, r[0U].begin() + j + length, dest->r[0U].begin() + length);
+        std::copy(r[1U].begin() + j, r[1U].begin() + j + length, dest->r[1U].begin() + length);
     }
 
     x.erase(x.begin() + secondStart, x.begin() + secondEnd);

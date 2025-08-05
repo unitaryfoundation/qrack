@@ -221,9 +221,13 @@ public:
     {
         x.clear();
         z.clear();
-        r.clear();
 #if BOOST_AVAILABLE
+        r[0U].reset();
+        r[1U].reset();
         isTransposed = false;
+#else
+        r[0U].clear();
+        r[1U].clear();
 #endif
         phaseOffset = ZERO_R1;
         qubitCount = 0U;
@@ -297,8 +301,8 @@ protected:
     void rowmult(const bitLenInt& i, const bitLenInt& k)
     {
         uint8_t phase = clifford(i, k);
-        r[0U][i] = phase & 1U;
-        r[1U][i] = phase & 2U;
+        r[0U][i] = (bool)(phase & 1U);
+        r[1U][i] = (bool)(phase & 2U);
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
 
