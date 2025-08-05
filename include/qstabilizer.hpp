@@ -212,9 +212,6 @@ protected:
             return;
         }
 
-#if BOOST_AVAILABLE
-        SetTransposeState(false);
-#endif
         x[i] = x[k];
         z[i] = z[k];
         r[i] = r[k];
@@ -226,9 +223,6 @@ protected:
             return;
         }
 
-#if BOOST_AVAILABLE
-        SetTransposeState(false);
-#endif
         std::swap(x[k], x[i]);
         std::swap(z[k], z[i]);
         std::swap(r[k], r[i]);
@@ -236,10 +230,6 @@ protected:
     /// Sets row i equal to the bth observable (X_1,...X_n,Z_1,...,Z_n)
     void rowset(const bitLenInt& i, bitLenInt b)
     {
-#if BOOST_AVAILABLE
-        SetTransposeState(false);
-#endif
-
         r[i] = 0;
 
         BoolVector& xi = x[i];
@@ -269,10 +259,6 @@ protected:
     /// Left-multiply row i by row k - does not change the logical state
     void rowmult(const bitLenInt& i, const bitLenInt& k)
     {
-#if BOOST_AVAILABLE
-        SetTransposeState(false);
-#endif
-
         r[i] = clifford(i, k);
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
@@ -340,7 +326,7 @@ public:
      * (Return value = number of such generators = log_2 of number of nonzero basis states)
      * At the bottom, generators containing Z's only in quasi-upper-triangular form.
      */
-    bitLenInt gaussian();
+    bitLenInt gaussian(bool s=true);
 
     bitCapInt PermCount() { return pow2(gaussian()); }
 

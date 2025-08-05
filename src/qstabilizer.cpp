@@ -150,10 +150,6 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
 /// Return the phase (0,1,2,3) when row i is LEFT-multiplied by row k
 uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
 {
-#if BOOST_AVAILABLE
-    SetTransposeState(false);
-#endif
-
     const BoolVector& xi = x[i];
     const BoolVector& zi = z[i];
     const BoolVector& xk = x[k];
@@ -197,7 +193,7 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
  * (Return value = number of such generators = log_2 of number of nonzero basis states)
  * At the bottom, generators containing Z's only in quasi-upper-triangular form.
  */
-bitLenInt QStabilizer::gaussian()
+bitLenInt QStabilizer::gaussian(bool s)
 {
 #if BOOST_AVAILABLE
     SetTransposeState(false);
@@ -256,6 +252,10 @@ bitLenInt QStabilizer::gaussian()
         }
     }
 
+    if (s) {
+        seed(g);
+    }
+
     return g;
 }
 
@@ -266,10 +266,6 @@ bitLenInt QStabilizer::gaussian()
  */
 void QStabilizer::seed(const bitLenInt& g)
 {
-#if BOOST_AVAILABLE
-    SetTransposeState(false);
-#endif
-
     const bitLenInt elemCount = qubitCount << 1U;
     int min = 0;
 
@@ -431,8 +427,6 @@ void QStabilizer::GetQuantumState(complex* stateVec)
     // (1 / permCount) ^ (1/2)
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
-    seed(g);
-
     // init stateVec as all 0 values
     par_for(0, pow2Ocl(qubitCount), [&](const bitCapIntOcl& lcv, const unsigned& cpu) { stateVec[lcv] = ZERO_CMPLX; });
 
@@ -458,8 +452,6 @@ void QStabilizer::GetQuantumState(QInterfacePtr eng)
     const bitCapInt permCountMinus1 = pow2Mask(g);
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
-
-    seed(g);
 
     // init stateVec as all 0 values
     eng->SetPermutation(ZERO_BCI);
@@ -488,8 +480,6 @@ std::map<bitCapInt, complex> QStabilizer::GetQuantumState()
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
-    seed(g);
-
     std::map<bitCapInt, complex> stateMap;
 
     setBasisState(nrm, stateMap);
@@ -517,8 +507,6 @@ void QStabilizer::GetProbs(real1* outputProbs)
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
-    seed(g);
-
     // init stateVec as all 0 values
     par_for(0, pow2Ocl(qubitCount), [&](const bitCapIntOcl& lcv, const unsigned& cpu) { outputProbs[lcv] = ZERO_R1; });
 
@@ -544,8 +532,6 @@ complex QStabilizer::GetAmplitude(const bitCapInt& perm)
     const bitCapInt permCountMinus1 = pow2Mask(g);
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
-
-    seed(g);
 
     const AmplitudeEntry entry = getBasisAmp(nrm);
     if (bi_compare(entry.permutation, perm) == 0) {
@@ -580,8 +566,6 @@ std::vector<complex> QStabilizer::GetAmplitudes(std::vector<bitCapInt> perms)
     const bitCapInt permCountMinus1 = pow2Mask(g);
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
-
-    seed(g);
 
     const AmplitudeEntry entry = getBasisAmp(nrm);
     if (prms.find(entry.permutation) != prms.end()) {
@@ -621,8 +605,6 @@ AmplitudeEntry QStabilizer::GetAnyAmplitude()
     const bitLenInt g = gaussian();
     const real1_f nrm = sqrt(ONE_R1_F / pow2Ocl(g));
 
-    seed(g);
-
     return getBasisAmp(nrm);
 }
 
@@ -638,8 +620,6 @@ AmplitudeEntry QStabilizer::GetQubitAmplitude(bitLenInt t, bool m)
     const bitCapInt permCountMinus1 = pow2Mask(g);
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
-
-    seed(g);
 
     const AmplitudeEntry entry = getBasisAmp(nrm);
     if (bi_compare(entry.permutation & tPow, mPow) == 0) {
@@ -683,8 +663,6 @@ real1_f QStabilizer::ExpectationBitsFactorized(
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
-    seed(g);
-
     real1 expectation = (real1)getExpectation(nrm, bitPowers, perms, offset);
     for (bitCapInt t = ZERO_BCI; bi_compare(t, permCountMinus1) < 0; bi_increment(&t, 1U)) {
         const bitCapInt t2 = t ^ (t + ONE_BCI);
@@ -722,8 +700,6 @@ real1_f QStabilizer::ExpectationFloatsFactorized(
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
-    seed(g);
-
     real1_f expectation = getExpectation(nrm, bitPowers, weights);
     for (bitCapInt t = ZERO_BCI; bi_compare(t, permCountMinus1) < 0; bi_increment(&t, 1U)) {
         const bitCapInt t2 = t ^ (t + ONE_BCI);
@@ -759,8 +735,6 @@ real1_f QStabilizer::VarianceBitsFactorized(
     const bitCapInt permCountMinus1 = pow2Mask(g);
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
-
-    seed(g);
 
     const real1_f mean = ExpectationBitsFactorized(bits, perms, offset);
     real1 expectation = (real1)getVariance(mean, nrm, bitPowers, perms, offset);
@@ -799,8 +773,6 @@ real1_f QStabilizer::VarianceFloatsFactorized(const std::vector<bitLenInt>& bits
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
-    seed(g);
-
     const real1_f mean = ExpectationFloatsFactorized(bits, weights);
     real1_f expectation = getVariance(mean, nrm, bitPowers, weights);
     for (bitCapInt t = ZERO_BCI; bi_compare(t, permCountMinus1) < 0; bi_increment(&t, 1U)) {
@@ -838,8 +810,6 @@ real1_f QStabilizer::ProbPermRdm(const bitCapInt& _perm, bitLenInt ancillaeStart
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
-    seed(g);
-
     const AmplitudeEntry firstAmp = getBasisAmp(nrm);
     real1 prob = (bi_compare(firstAmp.permutation & qubitMask, perm) == 0) ? norm(firstAmp.amplitude) : ZERO_R1;
     for (bitCapInt t = ZERO_BCI; bi_compare(t, permCountMinus1) < 0; bi_increment(&t, 1U)) {
@@ -867,8 +837,6 @@ real1_f QStabilizer::ProbMask(const bitCapInt& mask, const bitCapInt& perm)
     const bitCapInt permCountMinus1 = pow2Mask(g);
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
-
-    seed(g);
 
     const AmplitudeEntry firstAmp = getBasisAmp(nrm);
     real1 prob = (bi_compare(firstAmp.permutation & mask, perm) == 0) ? norm(firstAmp.amplitude) : ZERO_R1;
@@ -1502,8 +1470,6 @@ void QStabilizer::H(bitLenInt t)
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
-    seed(g);
-
     const AmplitudeEntry entry = getBasisAmp(nrm);
     if (nIsSepZ || (bi_compare_0(entry.permutation & tPow) == 0)) {
         const complex oAmp = clone->GetAmplitude(oIsSepZ ? entry.permutation : (entry.permutation & ~tPow));
@@ -1921,8 +1887,6 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
         const bitLenInt elemCount = qubitCount << 1U;
         const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
-        seed(g);
-
         const AmplitudeEntry entry = getBasisAmp(nrm);
         const complex oAmp = clone->GetAmplitude(entry.permutation);
         if (norm(oAmp) > FP_NORM_EPSILON) {
@@ -2138,7 +2102,7 @@ bool QStabilizer::CanDecomposeDispose(const bitLenInt start, const bitLenInt len
     Finish();
 
     // We want to have the maximum number of 0 cross terms possible.
-    gaussian();
+    gaussian(false);
 
     const bitLenInt end = start + length;
 
@@ -2207,7 +2171,7 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     const AmplitudeEntry ampEntry = (randGlobalPhase || dest) ? AmplitudeEntry(ZERO_BCI, ONE_CMPLX) : GetAnyAmplitude();
 
     // We want to have the maximum number of 0 cross terms possible.
-    gaussian();
+    gaussian(false);
 
     // We assume that the bits to "decompose" the representation of already have 0 cross-terms in their generators
     // outside inter- "dest" cross terms. (Usually, we're "decomposing" the representation of a just-measured single
@@ -2349,8 +2313,6 @@ real1_f QStabilizer::ApproxCompareHelper(QStabilizerPtr toCompare, real1_f error
     const bitLenInt elemCount = qubitCount << 1U;
     const real1_f pNrm = ONE_R1_F / (real1_f)bi_to_double(permCount);
     const real1_f nrm = sqrt(pNrm);
-
-    seed(g);
 
     if (isDiscrete) {
         const AmplitudeEntry entry = getBasisAmp(nrm);
@@ -2948,7 +2910,7 @@ bool QStabilizer::TrySeparate(const std::vector<bitLenInt>& qubits, real1_f igno
 
 std::ostream& operator<<(std::ostream& os, const QStabilizerPtr s)
 {
-    s->gaussian();
+    s->gaussian(false);
     const size_t qubitCount = (size_t)s->GetQubitCount();
     os << qubitCount << std::endl;
 
