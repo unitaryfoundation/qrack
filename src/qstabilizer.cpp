@@ -920,9 +920,6 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
-    ValidateQubitIndex(c);
-    ValidateQubitIndex(t);
-
     SetTransposeState(true);
 
     BoolVector& xc = x[c];
@@ -939,7 +936,7 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
             continue;
         }
 
-        if (!xc[i] && (xt[i] != zc[i])) {
+        if (!xc[i] || (xt[i] != zc[i])) {
             uint8_t& ri = r[i];
             ri = (ri + 2U) & 0x3U;
         }
@@ -1055,7 +1052,7 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
             continue;
         }
 
-        if (!xc[i] && (xt[i] != zc[i])) {
+        if (!xc[i] || (xt[i] != zc[i])) {
             uint8_t& ri = r[i];
             ri = (ri + 2U) & 0x3U;
         }
@@ -1184,7 +1181,7 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
             continue;
         }
 
-        if (!xc[i] && (zt[i] != zc[i])) {
+        if (!xc[i] || (zt[i] != zc[i])) {
             uint8_t& ri = r[i];
             ri = (ri + 2U) & 0x3U;
         }
