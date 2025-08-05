@@ -152,9 +152,10 @@ jobs:
           vcpkg install opencl
 
       - name: Install Boost
-        uses: MarkusJx/install-boost@v2.0.0
+        uses: MarkusJx/install-boost@v2
         with:
           boost_version: 1.73.0
+          version: legacy
           toolset: msvc14.2
 
       - name: Checkout Qrack
