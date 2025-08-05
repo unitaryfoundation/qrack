@@ -158,9 +158,12 @@ jobs:
 
       - name: Build Boost
         run: |
-          cd boost_1_76_0
+          dir
+          dir ..
+          cd boost/boost_1_76_0
           .\bootstrap.bat
           .\b2.exe --build-type=complete --with-all --toolset=msvc address-model=64 install
+          cd ..\..
 
       - name: Checkout Qrack
         uses: actions/checkout@v4
