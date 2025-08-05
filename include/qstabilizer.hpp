@@ -252,12 +252,17 @@ protected:
 
         std::swap(x[k], x[i]);
         std::swap(z[k], z[i]);
+#if BOOST_AVAILABLE
         bool _r = r[0U][k];
         r[0U][k] = r[0U][i];
         r[0U][i] = _r;
         _r = r[1U][k];
         r[1U][k] = r[1U][i];
         r[1U][i] = _r;
+#else
+        BoolVector::swap(r[0U][k], r[0U][i]);
+        BoolVector::swap(r[1U][k], r[1U][i]);
+#endif
     }
     /// Sets row i equal to the bth observable (X_1,...X_n,Z_1,...,Z_n)
     void rowset(const bitLenInt& i, bitLenInt b)

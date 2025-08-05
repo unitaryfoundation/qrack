@@ -153,8 +153,8 @@ jobs:
 
       - name: Download and Extract Boost
         run: |
-          Invoke-WebRequest -Uri "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.zip" -OutFile "boost.zip"
-          Expand-Archive -Path "boost.zip" -DestinationPath "."
+          powershell -c "Invoke-WebRequest -Uri 'https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.zip' -OutFile 'boost.zip'"
+          powershell -c "Expand-Archive -Path 'boost.zip' -DestinationPath '.'"
 
       - name: Build Boost
         run: |
