@@ -2243,7 +2243,7 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         const bitLenInt ic = ia + nQubitCount;
         const bitLenInt id = ib + qubitCount;
         for (bitLenInt j = 0; j < endLength; ++j) {
-            const bitLenInt ja = j + end;
+            const bitLenInt ja = j + start;
             nQubits->r[ia] = r[ib];
             nQubits->x[ia][ja] = x[ib][j];
             nQubits->z[ia][ja] = z[ib][j];
