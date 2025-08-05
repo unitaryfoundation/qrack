@@ -60,9 +60,7 @@ QStabilizer::QStabilizer(bitLenInt n, const bitCapInt& perm, qrack_rand_gen_ptr 
 void QStabilizer::ParFor(StabilizerParallelFunc fn, std::vector<bitLenInt> qubits)
 {
     for (const bitLenInt& qubit : qubits) {
-        if (qubit >= qubitCount) {
-            throw std::domain_error("QStabilizer gate qubit indices are out-of-bounds!");
-        }
+        ValidateQubitIndex(qubit);
     }
 
     Dispatch([this, fn] {
@@ -896,6 +894,9 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(c);
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xc = x[c];
@@ -947,6 +948,9 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(c);
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xc = x[c];
@@ -999,6 +1003,9 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(c);
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xc = x[c];
@@ -1057,6 +1064,9 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(c);
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xc = x[c];
@@ -1120,6 +1130,9 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
         randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(c, false);
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(c);
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xc = x[c];
@@ -1181,6 +1194,9 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
     const AmplitudeEntry ampEntry = randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(c, true);
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(c);
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xc = x[c];
@@ -1239,6 +1255,9 @@ void QStabilizer::Swap(bitLenInt c, bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(c);
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
     std::swap(x[c], x[t]);
     std::swap(z[c], z[t]);
@@ -1265,6 +1284,9 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(c);
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xc = x[c];
@@ -1349,6 +1371,9 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(c);
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xc = x[c];
@@ -1429,6 +1454,8 @@ void QStabilizer::H(bitLenInt t)
     const QStabilizerPtr clone = randGlobalPhase ? nullptr : std::dynamic_pointer_cast<QStabilizer>(Clone());
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xt = x[t];
@@ -1506,6 +1533,8 @@ void QStabilizer::X(bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(t);
+
     const bitLenInt maxLcv = qubitCount << 1U;
     if (isTransposed) {
         BoolVector& zt = z[t];
@@ -1543,6 +1572,8 @@ void QStabilizer::Y(bitLenInt t)
     }
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(t);
+
     const bitLenInt maxLcv = qubitCount << 1U;
     if (isTransposed) {
         BoolVector& zt = z[t];
@@ -1584,6 +1615,8 @@ void QStabilizer::Z(bitLenInt t)
         randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(t, false);
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(t);
+
     const bitLenInt maxLcv = qubitCount << 1U;
     if (isTransposed) {
         BoolVector& xt = x[t];
@@ -1630,6 +1663,8 @@ void QStabilizer::S(bitLenInt t)
         randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(t, false);
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xt = x[t];
@@ -1677,6 +1712,8 @@ void QStabilizer::IS(bitLenInt t)
         randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(t, false);
 
 #if BOOST_AVAILABLE
+    ValidateQubitIndex(t);
+
     SetTransposeState(true);
 
     BoolVector& xt = x[t];

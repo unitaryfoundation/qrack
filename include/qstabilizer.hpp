@@ -139,6 +139,12 @@ protected:
     }
 #endif
 
+    void ValidateQubitIndex(bitLenInt qubit) {
+        if (qubit >= qubitCount) {
+            throw std::domain_error("QStabilizer gate qubit indices are out-of-bounds!");
+        }
+    }
+
 public:
     QStabilizer(bitLenInt n, const bitCapInt& perm = ZERO_BCI, qrack_rand_gen_ptr rgp = nullptr,
         const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false, bool randomGlobalPhase = true,
