@@ -2337,10 +2337,6 @@ real1_f QStabilizer::ApproxCompareHelper(QStabilizerPtr toCompare, real1_f error
     toCompare->Finish();
     Finish();
 
-#if BOOST_AVAILABLE
-    toCompare->SetTransposeState(false);
-#endif
-
     // log_2 of number of nonzero basis states
     const bitLenInt g = gaussian();
     const bitCapInt permCount = pow2(g);
