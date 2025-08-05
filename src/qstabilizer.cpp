@@ -1320,7 +1320,6 @@ void QStabilizer::H(bitLenInt t)
             BoolVector::swap(xi[t], zi[t]);
             if (xi[t] && zi[t]) {
                 r[1U][i] = !(r[1U][i]);
-                ri = !ri;
             }
         },
         { t });
@@ -2155,8 +2154,8 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     r[1U].erase(r[1U].begin() + secondStart, r[1U].begin() + secondEnd);
     x.erase(x.begin() + start, x.begin() + end);
     z.erase(z.begin() + start, z.begin() + end);
-    r[0U].erase(r.begin() + start, r[0U].begin() + end);
-    r[1U].erase(r.begin() + start, r[1U].begin() + end);
+    r[0U].erase(r[0U].begin() + start, r[0U].begin() + end);
+    r[1U].erase(r[1U].begin() + start, r[1U].begin() + end);
 
     SetQubitCount(nQubitCount);
 
