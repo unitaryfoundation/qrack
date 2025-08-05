@@ -1941,6 +1941,10 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
         return false;
     }
 
+#if BOOST_AVAILABLE
+        SetTransposeState(false);
+#endif
+
     rowcopy(elemCount, m + n);
     for (bitLenInt i = m + 1U; i < n; ++i) {
         if (x[i][t]) {
@@ -1980,6 +1984,7 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
 
     SetTransposeState(false);
     toCopy->SetTransposeState(false);
+    nQubits->SetTransposeState(false);
 
     const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
     for (bitLenInt i = 0U; i < oRowLength; ++i) {
@@ -2188,6 +2193,7 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         false, randGlobalPhase, false, -1, !!hardware_rand_generator);
 
     SetTransposeState(false);
+    nQubits->SetTransposeState(false);
 
     const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
     for (bitLenInt i = 0U; i < oRowLength; ++i) {
