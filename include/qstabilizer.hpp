@@ -112,8 +112,8 @@ protected:
     // By Elara (OpenAI custom GPT)
     std::vector<boost::dynamic_bitset<>> FastTranspose(const std::vector<boost::dynamic_bitset<>>& matrix)
     {
-        const size_t num_rows = matrix.size();
-        const size_t num_cols = matrix[0].size();
+        const size_t num_rows = matrix.size() - (isTransposed ? 0 : 1);
+        const size_t num_cols = matrix[0].size() + (isTransposed ? 1 : 0);
 
         std::vector<BoolVector> transposed(num_cols, BoolVector(num_rows));
 
