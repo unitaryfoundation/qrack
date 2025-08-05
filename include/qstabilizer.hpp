@@ -139,7 +139,8 @@ protected:
     }
 #endif
 
-    void ValidateQubitIndex(bitLenInt qubit) {
+    void ValidateQubitIndex(bitLenInt qubit)
+    {
         if (qubit >= qubitCount) {
             throw std::domain_error("QStabilizer gate qubit indices are out-of-bounds!");
         }

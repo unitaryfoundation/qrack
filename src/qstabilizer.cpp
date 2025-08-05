@@ -93,10 +93,13 @@ QInterfacePtr QStabilizer::Clone()
 void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
 {
     Dump();
+
+    const bitLenInt rowCount = (qubitCount << 1U);
+
 #if BOOST_AVAILABLE
     isTransposed = false;
-    x = std::vector<BoolVector>((qubitCount << 1U) + 1U, BoolVector(qubitCount));
-    z = std::vector<BoolVector>((qubitCount << 1U) + 1U, BoolVector(qubitCount));
+    x = std::vector<BoolVector>(rowCount + 1U, BoolVector(qubitCount));
+    z = std::vector<BoolVector>(rowCount + 1U, BoolVector(qubitCount));
 #endif
 
     if (phaseFac != CMPLX_DEFAULT_ARG) {
@@ -106,8 +109,6 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
     } else {
         phaseOffset = ZERO_R1;
     }
-
-    const bitLenInt rowCount = (qubitCount << 1U);
 
     std::fill(r.begin(), r.end(), 0U);
 
@@ -2211,6 +2212,54 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     const bitCapInt oMaxQMask = pow2Mask(qubitCount);
     const bitLenInt end = start + length;
     const bitLenInt nQubitCount = qubitCount - length;
+
+#if BOOST_AVAILABLE
+    const bitLenInt endLength = qubitCount - end;
+
+    QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
+        false, randGlobalPhase, false, -1, !!hardware_rand_generator);
+
+    SetTransposeState(false);
+
+    const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
+    for (bitLenInt i = 0U; i < oRowLength; ++i) {
+        nQubits->x[i].reset();
+        nQubits->z[i].reset();
+    }
+
+    for (bitLenInt i = 0U; i < start; ++i) {
+        for (bitLenInt j = 0U; j < start; ++j) {
+            nQubits->r[i] = r[i];
+            nQubits->x[i][j] = x[i][j];
+            nQubits->z[i][j] = z[i][j];
+
+            const bitLenInt ia = i + nQubitCount;
+            const bitLenInt ib = i + qubitCount;
+            nQubits->r[ia] = r[ib];
+            nQubits->x[ia][j] = x[ib][j];
+            nQubits->z[ia][j] = z[ib][j];
+        }
+    }
+
+    for (bitLenInt i = 0; i < endLength; ++i) {
+        for (bitLenInt j = 0; j < endLength; ++j) {
+            bitLenInt ia = i + start;
+            bitLenInt ib = i + end;
+            const bitLenInt ja = j + start;
+            nQubits->r[ia] = r[ib];
+            nQubits->x[ia][ja] = x[ib][j];
+            nQubits->z[ia][ja] = z[ib][j];
+
+            ia += nQubitCount;
+            ib = i + qubitCount;
+            nQubits->r[ia] = r[ib];
+            nQubits->x[ia][ja] = x[ib][j];
+            nQubits->z[ia][ja] = z[ib][j];
+        }
+    }
+
+    Copy(nQubits);
+#else
     const bitLenInt secondStart = qubitCount + start;
     const bitLenInt secondEnd = qubitCount + end;
 
@@ -2219,19 +2268,15 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
             bitLenInt j = start + i;
             const BoolVector& xj = x[j];
             const BoolVector& zj = z[j];
-            for (bitLenInt k = 0U; k < length; ++k) {
-                dest->x[i][k] = xj[start + k];
-                dest->z[i][k] = zj[start + k];
-            }
+            std::copy(xj.begin() + start, xj.begin() + end, dest->x[i].begin());
+            std::copy(zj.begin() + start, zj.begin() + end, dest->z[i].begin());
 
             j = qubitCount + start + i;
             const bitLenInt i2 = i + length;
             const BoolVector& xj2 = x[j];
             const BoolVector& zj2 = z[j];
-            for (bitLenInt k = 0U; k < length; ++k) {
-                dest->x[i2][k] = xj2[start + k];
-                dest->z[i2][k] = zj2[start + k];
-            }
+            std::copy(xj2.begin() + start, xj2.begin() + end, dest->x[i2].begin());
+            std::copy(zj2.begin() + start, zj2.begin() + end, dest->z[i2].begin());
         }
         bitLenInt j = start;
         std::copy(r.begin() + j, r.begin() + j + length, dest->r.begin());
@@ -2248,11 +2293,6 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
 
     SetQubitCount(nQubitCount);
 
-#if BOOST_AVAILABLE
-    SetTransposeState(true);
-    x.erase(x.begin() + start, x.begin() + end);
-    z.erase(z.begin() + start, z.begin() + end);
-#else
     const bitLenInt rowCount = (qubitCount << 1U) + 1U;
     for (bitLenInt i = 0U; i < rowCount; ++i) {
         BoolVector& xi = x[i];
