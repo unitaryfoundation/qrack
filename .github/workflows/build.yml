@@ -94,7 +94,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=9 -DCPP_STD=14 ..
+          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=9 -DCPP_STD=14 -I/opt/homebrew/include -L/opt/homebrew/lib ..
           make qrack_pinvoke benchmarks
           sudo cpack
 
@@ -127,7 +127,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=9 -DCPP_STD=14 ..
+          cmake -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=9 -DCPP_STD=14 -I/opt/homebrew/include -L/opt/homebrew/lib ..
           make qrack_pinvoke benchmarks
           sudo cpack
 
@@ -154,8 +154,7 @@ jobs:
       - name: Install Boost
         uses: MarkusJx/install-boost@v2.0.0
         with:
-          boost_version: 1.82.0
-          toolset: msvc
+          boost_version: 1.78.0
           platform_version: 2022
           cache: true
 
@@ -168,8 +167,10 @@ jobs:
           cd build
           powershell -c "Invoke-WebRequest -Uri 'https://github.com/ckormanyos/xxd/releases/download/v1.1/xxd-win64-msvc.zip' -OutFile 'xxd-win64-msvc.zip'"
           powershell -c "Expand-Archive -Path xxd-win64-msvc.zip -DestinationPath ."
-          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=9 -DCPP_STD=14
+          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=9 -DCPP_STD=14 -DBoost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}/include -DBoost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}/lib
           cmake --build . --config Release --target PACKAGE benchmarks
+        env:
+          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
