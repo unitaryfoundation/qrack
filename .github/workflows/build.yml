@@ -23,7 +23,7 @@ jobs:
       - name: Prepare Build Environment (Linux)
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev opencl-headers
+          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev opencl-headers libboost-dev
 
       - name: Build Qrack Linux x86-64
         run: |
@@ -55,7 +55,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev opencl-headers
+          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev opencl-headers libboost-dev
 
       - name: Build Qrack Linux x86-64
         run: |
@@ -88,7 +88,7 @@ jobs:
 
       - name: Prepare Build Environment (MacOS)
         run: |
-          brew install cmake
+          brew install cmake boost
 
       - name: Build Qrack MacOS
         run: |
@@ -121,7 +121,7 @@ jobs:
 
       - name: Prepare Build Environment (MacOS)
         run: |
-          brew install cmake
+          brew install cmake boost
 
       - name: Build Qrack MacOS
         run: |
@@ -150,6 +150,14 @@ jobs:
       - name: Install vcpkg dependencies
         run: |
           vcpkg install opencl
+
+      - name: Install Boost
+        uses: MarkusJx/install-boost@v2.0.0
+        with:
+          boost_version: 1.82.0
+          toolset: msvc
+          platform_version: 2022
+          cache: true
 
       - name: Checkout Qrack
         uses: actions/checkout@v4
