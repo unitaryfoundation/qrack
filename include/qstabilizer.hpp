@@ -63,7 +63,7 @@ protected:
     typedef std::vector<bool> BoolVector;
 #endif
     // Phase bits: 0 for +1, 1 for i, 2 for -1, 3 for -i.  Normally either 0 or 2.
-    std::vector<uint8_t> r;
+    std::vector<BoolVector> r;
     // (2n+1)*n matrix for stabilizer/destabilizer x bits (there's one "scratch row" at the bottom)
     std::vector<BoolVector> x;
     // (2n+1)*n matrix for z bits
@@ -89,6 +89,18 @@ protected:
         if (isNeg) {
             phaseOffset = -phaseOffset;
         }
+    }
+
+    uint8_t GetR(size_t i) { return (r[0U][i] ? 1U : 0U) | (r[1U][i] ? 2U : 0U); }
+    void ResetR(size_t i)
+    {
+#if BOOST_AVAILABLE
+        r[0U].reset(i);
+        r[1U].reset(i);
+#else
+        r[0U][i] = false;
+        r[1U][i] = false;
+#endif
     }
 
     using QInterface::Copy;
@@ -136,6 +148,8 @@ protected:
         if (!isTransposed) {
             x.pop_back();
             z.pop_back();
+            r[0U].pop_back();
+            r[1U].pop_back();
         }
 
         x = FastTranspose(x);
@@ -145,6 +159,8 @@ protected:
         if (!isTransposed) {
             x.emplace_back(qubitCount);
             z.emplace_back(qubitCount);
+            r[0U].push_back(0U);
+            r[1U].push_back(0U);
         }
     }
 #endif
@@ -224,7 +240,8 @@ protected:
 
         x[i] = x[k];
         z[i] = z[k];
-        r[i] = r[k];
+        r[0U][i] = r[0U][k];
+        r[1U][i] = r[1U][k];
     }
     /// Swaps row i and row k - does not change the logical state
     void rowswap(const bitLenInt& i, const bitLenInt& k)
@@ -235,12 +252,17 @@ protected:
 
         std::swap(x[k], x[i]);
         std::swap(z[k], z[i]);
-        std::swap(r[k], r[i]);
+        bool _r = r[0U][k];
+        r[0U][k] = r[0U][i];
+        r[0U][i] = _r;
+        _r = r[1U][k];
+        r[1U][k] = r[1U][i];
+        r[1U][i] = _r;
     }
     /// Sets row i equal to the bth observable (X_1,...X_n,Z_1,...,Z_n)
     void rowset(const bitLenInt& i, bitLenInt b)
     {
-        r[i] = 0;
+        ResetR(i);
 
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
@@ -269,7 +291,9 @@ protected:
     /// Left-multiply row i by row k - does not change the logical state
     void rowmult(const bitLenInt& i, const bitLenInt& k)
     {
-        r[i] = clifford(i, k);
+        uint8_t phase = clifford(i, k);
+        r[0U][i] = phase & 1U;
+        r[1U][i] = phase & 2U;
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
 
