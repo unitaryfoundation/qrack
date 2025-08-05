@@ -97,9 +97,12 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
     const bitLenInt rowCount = (qubitCount << 1U);
 
 #if BOOST_AVAILABLE
-    isTransposed = false;
-    x = std::vector<BoolVector>(rowCount + 1U, BoolVector(qubitCount));
-    z = std::vector<BoolVector>(rowCount + 1U, BoolVector(qubitCount));
+    const bitLenInt rc = (bitLenInt)x.size();
+    for (bitLenInt i = 0U; i < rc; ++i) {
+        x[i].reset();
+        z[i].reset();
+    }
+    SetTransposeState(false);
 #endif
 
     if (phaseFac != CMPLX_DEFAULT_ARG) {
