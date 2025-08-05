@@ -326,7 +326,7 @@ public:
      * (Return value = number of such generators = log_2 of number of nonzero basis states)
      * At the bottom, generators containing Z's only in quasi-upper-triangular form.
      */
-    bitLenInt gaussian(bool s=true);
+    bitLenInt gaussian(bool s = true);
 
     bitCapInt PermCount() { return pow2(gaussian()); }
 
