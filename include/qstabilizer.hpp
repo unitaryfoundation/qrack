@@ -56,14 +56,14 @@ protected:
     bool isTransposed;
 #endif
 
-    // Phase bits: 0 for +1, 1 for i, 2 for -1, 3 for -i.  Normally either 0 or 2.
-    std::vector<uint8_t> r;
     // Typedef for special type std::vector<bool> compatibility
 #if BOOST_AVAILABLE
     typedef boost::dynamic_bitset<> BoolVector;
 #else
     typedef std::vector<bool> BoolVector;
 #endif
+    // Phase bits: 0 for +1, 1 for i, 2 for -1, 3 for -i.  Normally either 0 or 2.
+    std::vector<uint8_t> r;
     // (2n+1)*n matrix for stabilizer/destabilizer x bits (there's one "scratch row" at the bottom)
     std::vector<BoolVector> x;
     // (2n+1)*n matrix for z bits

@@ -535,7 +535,7 @@ bool QUnitClifford::SeparateBit(bool value, bitLenInt qubit)
     CliffordShard& shard = shards[qubit];
     const QStabilizerPtr unit = shard.unit;
 
-    if (unit->GetQubitCount() <= 1U) {
+    if (unit->GetQubitCount() == 1U) {
         unit->SetBit(0, value);
 
         return true;
@@ -812,7 +812,7 @@ bool QUnitClifford::TrySeparate(bitLenInt qubit)
 {
     CliffordShard& shard = shards[qubit];
 
-    if (shard.unit->GetQubitCount() <= 1U) {
+    if (shard.unit->GetQubitCount() == 1U) {
         return true;
     }
 
