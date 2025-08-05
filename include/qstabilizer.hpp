@@ -26,6 +26,10 @@
 
 #include "qinterface.hpp"
 
+#if BOOST_AVAILABLE
+#include <boost/dynamic_bitset.hpp>
+#endif
+
 namespace Qrack {
 
 struct AmplitudeEntry {
@@ -48,11 +52,18 @@ protected:
     unsigned rawRandBoolsRemaining;
     real1 phaseOffset;
     bitLenInt maxStateMapCacheQubitCount;
+#if BOOST_AVAILABLE
+    bool isTransposed;
+#endif
 
+    // Typedef for special type std::vector<bool> compatibility
+#if BOOST_AVAILABLE
+    typedef boost::dynamic_bitset<> BoolVector;
+#else
+    typedef std::vector<bool> BoolVector;
+#endif
     // Phase bits: 0 for +1, 1 for i, 2 for -1, 3 for -i.  Normally either 0 or 2.
     std::vector<uint8_t> r;
-    // Typedef for special type std::vector<bool> compatibility
-    typedef std::vector<bool> BoolVector;
     // (2n+1)*n matrix for stabilizer/destabilizer x bits (there's one "scratch row" at the bottom)
     std::vector<BoolVector> x;
     // (2n+1)*n matrix for z bits
@@ -88,10 +99,61 @@ protected:
         rawRandBools = orig->rawRandBools;
         rawRandBoolsRemaining = orig->rawRandBoolsRemaining;
         phaseOffset = orig->phaseOffset;
+#if BOOST_AVAILABLE
+        isTransposed = orig->isTransposed;
+#endif
         maxStateMapCacheQubitCount = orig->maxStateMapCacheQubitCount;
         r = orig->r;
         x = orig->x;
         z = orig->z;
+    }
+
+#if BOOST_AVAILABLE
+    // By Elara (OpenAI custom GPT)
+    std::vector<boost::dynamic_bitset<>> FastTranspose(const std::vector<boost::dynamic_bitset<>>& matrix)
+    {
+        const size_t num_rows = matrix.size();
+        const size_t num_cols = matrix[0].size();
+
+        std::vector<BoolVector> transposed(num_cols, BoolVector(num_rows));
+
+        for (size_t row = 0; row < num_rows; ++row) {
+            const BoolVector& bit_row = matrix[row];
+            for (size_t col = bit_row.find_first(); col != BoolVector::npos; col = bit_row.find_next(col)) {
+                transposed[col].set(row);
+            }
+        }
+
+        return transposed;
+    }
+
+    void SetTransposeState(bool isTrans)
+    {
+        if (isTrans == isTransposed) {
+            return;
+        }
+
+        if (!isTransposed) {
+            x.pop_back();
+            z.pop_back();
+        }
+
+        x = FastTranspose(x);
+        z = FastTranspose(z);
+        isTransposed = isTrans;
+
+        if (!isTransposed) {
+            x.emplace_back(qubitCount);
+            z.emplace_back(qubitCount);
+        }
+    }
+#endif
+
+    void ValidateQubitIndex(bitLenInt qubit)
+    {
+        if (qubit >= qubitCount) {
+            throw std::domain_error("QStabilizer gate qubit indices are out-of-bounds!");
+        }
     }
 
 public:
@@ -144,6 +206,9 @@ public:
         x.clear();
         z.clear();
         r.clear();
+#if BOOST_AVAILABLE
+        isTransposed = false;
+#endif
         phaseOffset = ZERO_R1;
         qubitCount = 0U;
         maxQPower = ONE_BCI;
@@ -175,11 +240,23 @@ protected:
     /// Sets row i equal to the bth observable (X_1,...X_n,Z_1,...,Z_n)
     void rowset(const bitLenInt& i, bitLenInt b)
     {
+        r[i] = 0;
+
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
+#if BOOST_AVAILABLE
+        xi.reset();
+        zi.reset();
+
+        if (b < qubitCount) {
+            xi.set(b);
+        } else {
+            b -= qubitCount;
+            zi.set(b);
+        }
+#else
         std::fill(xi.begin(), xi.end(), false);
         std::fill(zi.begin(), zi.end(), false);
-        r[i] = 0;
 
         if (b < qubitCount) {
             xi[b] = true;
@@ -187,6 +264,7 @@ protected:
             b -= qubitCount;
             zi[b] = true;
         }
+#endif
     }
     /// Left-multiply row i by row k - does not change the logical state
     void rowmult(const bitLenInt& i, const bitLenInt& k)
@@ -194,10 +272,16 @@ protected:
         r[i] = clifford(i, k);
         BoolVector& xi = x[i];
         BoolVector& zi = z[i];
+
+#if BOOST_AVAILABLE
+        xi ^= x[k];
+        zi ^= z[k];
+#else
         for (bitLenInt j = 0U; j < qubitCount; ++j) {
             xi[j] = xi[j] ^ x[k][j];
             zi[j] = zi[j] ^ z[k][j];
         }
+#endif
     }
     /// Return the phase (0,1,2,3) when row i is LEFT-multiplied by row k
     uint8_t clifford(const bitLenInt& i, const bitLenInt& k);
@@ -252,7 +336,7 @@ public:
      * (Return value = number of such generators = log_2 of number of nonzero basis states)
      * At the bottom, generators containing Z's only in quasi-upper-triangular form.
      */
-    bitLenInt gaussian();
+    bitLenInt gaussian(bool s = true);
 
     bitCapInt PermCount() { return pow2(gaussian()); }
 
