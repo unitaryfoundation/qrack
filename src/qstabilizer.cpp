@@ -1466,10 +1466,11 @@ void QStabilizer::H(bitLenInt t)
 
     const bitLenInt maxLcv = qubitCount << 1U;
     for (bitLenInt i = 0; i < maxLcv; ++i) {
-        if (xt[i] && zt[i]) {
-            uint8_t& ri = r[i];
-            ri = (ri + 2U) & 0x3U;
+        if (!xt[i] || !zt[i]) {
+            continue;
         }
+        uint8_t& ri = r[i];
+        ri = (ri + 2U) & 0x3U;
     }
 #else
     ParFor(
