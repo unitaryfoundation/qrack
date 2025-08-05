@@ -163,6 +163,34 @@ protected:
             r[1U].push_back(0U);
         }
     }
+
+    // By Google search AI (with light adaptation by Dan Strano):
+    void insert_bits(BoolVector& original_bitset, const BoolVector& bits_to_insert, size_t position)
+    {
+        // Create prefix and suffix
+        boost::dynamic_bitset<> prefix = original_bitset.operator[](boost::dynamic_bitset<>::range_type(0, position));
+        boost::dynamic_bitset<> suffix = original_bitset.operator[](
+            boost::dynamic_bitset<>::range_type(position, original_bitset.size() - position));
+
+        // Combine into new bitset
+        original_bitset.clear(); // Clear the original
+        original_bitset.append(prefix);
+        original_bitset.append(bits_to_insert);
+        original_bitset.append(suffix);
+    }
+
+    void remove_bits(BoolVector& original_bitset, size_t position, size_t length)
+    {
+        // Create prefix and suffix
+        boost::dynamic_bitset<> prefix = original_bitset.operator[](boost::dynamic_bitset<>::range_type(0, position));
+        boost::dynamic_bitset<> suffix = original_bitset.operator[](
+            boost::dynamic_bitset<>::range_type(position + length, original_bitset.size() - (position + length)));
+
+        // Combine into new bitset
+        original_bitset.clear(); // Clear the original
+        original_bitset.append(prefix);
+        original_bitset.append(suffix);
+    }
 #endif
 
     void ValidateQubitIndex(bitLenInt qubit)
