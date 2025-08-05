@@ -151,12 +151,16 @@ jobs:
         run: |
           vcpkg install opencl
 
-      - name: Install boost
-        uses: MarkusJx/install-boost@v1.0.1
-        id: install-boost
-        with:
-          boost_version: 1.73.0
-          toolset: msvc14.2
+      - name: Download and Extract Boost
+        run: |
+          Invoke-WebRequest -Uri "https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.zip" -OutFile "boost.zip"
+          Expand-Archive -Path "boost.zip" -DestinationPath "."
+
+      - name: Build Boost
+        run: |
+          cd boost_1_76_0
+          .\bootstrap.bat
+          .\b2.exe --build-type=complete --with-all --toolset=msvc address-model=64 install
 
       - name: Checkout Qrack
         uses: actions/checkout@v4
@@ -167,7 +171,7 @@ jobs:
           cd build
           powershell -c "Invoke-WebRequest -Uri 'https://github.com/ckormanyos/xxd/releases/download/v1.1/xxd-win64-msvc.zip' -OutFile 'xxd-win64-msvc.zip'"
           powershell -c "Expand-Archive -Path xxd-win64-msvc.zip -DestinationPath ."
-          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=9 -DCPP_STD=14 -DBoost_INCLUDE_DIR=${{steps.install-boost.outputs.BOOST_ROOT}}/include -DBoost_LIBRARY_DIRS=${{steps.install-boost.outputs.BOOST_ROOT}}/lib
+          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=9 -DCPP_STD=14
           cmake --build . --config Release --target PACKAGE benchmarks
         env:
           BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
