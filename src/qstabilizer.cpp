@@ -1731,13 +1731,14 @@ bool QStabilizer::IsSeparableZ(const bitLenInt& t)
 
     // for brevity
     const bitLenInt& n = qubitCount;
-    const bitLenInt& nt2 = n << 1U;
+    const bitLenInt& nt2 = qubitCount << 1U;
 
 #if BOOST_AVAILABLE
-    SetTransposeState(true);
+    if (isTransposed) {
+        return x[t].find_next(n - 1U) >= nt2;
+    }
+#endif
 
-    return x[t].find_next(n - 1U) >= nt2;
-#else
     // loop over stabilizer generators
     for (bitLenInt p = n; p < nt2; ++p) {
         // if a Zbar does NOT commute with Z_b (the operator being measured), then outcome is random
@@ -1745,7 +1746,6 @@ bool QStabilizer::IsSeparableZ(const bitLenInt& t)
             return false;
         }
     }
-#endif
 
     return true;
 }
