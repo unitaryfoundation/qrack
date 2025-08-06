@@ -773,6 +773,8 @@ real1_f QUnitClifford::SumSqrDiff(QUnitCliffordPtr toCompare)
 
 bool QUnitClifford::TrySeparate(bitLenInt qubit)
 {
+    ThrowIfQubitInvalid(qubit, std::string("QUnitClifford::TrySeparate"));
+
     CliffordShard& shard = shards[qubit];
     QStabilizerPtr unit = shard.unit;
     const bitLenInt qbc = unit->GetQubitCount();

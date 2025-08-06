@@ -15,6 +15,8 @@
 #include "qengine.hpp"
 #include "qunitclifford.hpp"
 
+#include <iostream>
+
 #define QINTERFACE_TO_QALU(qReg) std::dynamic_pointer_cast<QAlu>(qReg)
 #define QINTERFACE_TO_QPARITY(qReg) std::dynamic_pointer_cast<QParity>(qReg)
 
@@ -97,6 +99,7 @@ protected:
     }
     bool EitherIsBuffered(bool logical)
     {
+        PruneAncillae();
         const size_t maxLcv = logical ? (size_t)qubitCount : shards.size();
         for (size_t i = 0U; i < maxLcv; ++i) {
             if (shards[i]) {
@@ -111,6 +114,7 @@ protected:
     bool IsLogicalBuffered() { return EitherIsBuffered(true); }
     bool EitherIsProbBuffered(bool logical)
     {
+        PruneAncillae();
         const size_t maxLcv = logical ? (size_t)qubitCount : shards.size();
         for (size_t i = 0U; i < maxLcv; ++i) {
             MpsShardPtr shard = shards[i];
@@ -257,6 +261,7 @@ protected:
 
     void FlushCliffordFromBuffers()
     {
+        PruneAncillae();
         for (size_t i = 0U; i < qubitCount; ++i) {
             // Flush all buffers as close as possible to Clifford.
             const MpsShardPtr& shard = shards[i];
@@ -340,6 +345,56 @@ protected:
             ++deadAncillaCount;
         }
         --ancillaCount;
+    }
+
+    void PruneAncillae()
+    {
+        if (engine) {
+            return;
+        }
+
+        const bitLenInt maxI = stabilizer->GetQubitCount();
+        std::set<bitLenInt> sepAncilla;
+        for (bitLenInt i = qubitCount; i < maxI; ++i) {
+            const std::vector<bitLenInt> eqb = stabilizer->EntangledQubits(i);
+            bool isSep = true;
+            for (bitLenInt j = 0U; j < eqb.size(); ++j) {
+                if (eqb[j] < qubitCount) {
+                    isSep = false;
+                    break;
+                }
+            }
+            if (!isSep) {
+                continue;
+            }
+            std::copy(eqb.begin(), eqb.end(), std::inserter(sepAncilla, sepAncilla.end()));
+        }
+
+        if (sepAncilla.empty()) {
+            return;
+        }
+
+        const bitLenInt liveCount = qubitCount + ancillaCount;
+        bitLenInt i = liveCount;
+        bitLenInt deadCount = 0U;
+        for (const bitLenInt& qb : sepAncilla) {
+            if (qb >= liveCount) {
+                // Dead ancilla
+                stabilizer->Swap(liveCount + deadCount, qb);
+                ++deadCount;
+            } else {
+                // Live ancilla
+                --i;
+                stabilizer->Swap(i, qb);
+                std::swap(shards[i], shards[qb]);
+            }
+        }
+
+        const bitLenInt aCount = (sepAncilla.size() - deadCount);
+        stabilizer->Dispose(i, sepAncilla.size());
+        shards.resize(shards.size() - aCount);
+        ancillaCount -= aCount;
+        deadAncillaCount -= deadCount;
     }
 
     real1_f ApproxCompareHelper(
@@ -437,6 +492,8 @@ public:
 
     real1_f ProbRdm(bitLenInt qubit)
     {
+        PruneAncillae();
+
         if (!ancillaCount || stabilizer->IsSeparable(qubit)) {
             return Prob(qubit);
         }
