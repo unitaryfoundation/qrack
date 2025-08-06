@@ -811,27 +811,40 @@ real1_f QUnitClifford::SumSqrDiff(QUnitCliffordPtr toCompare)
 bool QUnitClifford::TrySeparate(bitLenInt qubit)
 {
     CliffordShard& shard = shards[qubit];
+    QStabilizerPtr unit = shard.unit;
+    const bitLenInt qbc = unit->GetQubitCount();
 
-    if (shard.unit->GetQubitCount() == 1U) {
+    if (qbc == 1U) {
         return true;
     }
 
-    if (!shard.unit->TrySeparate(shard.mapped)) {
+    std::vector<bitLenInt> eqb = unit->EntangledQubits(shard.mapped);
+    if (eqb.size() == qbc) {
         return false;
     }
 
-    // If TrySeparate() == true, this bit can be decomposed.
-    QStabilizerPtr sepUnit = std::dynamic_pointer_cast<QStabilizer>(shard.unit->Decompose(shard.mapped, 1U));
+    for (bitLenInt i = 0U; i < eqb.size(); ++i) {
+        unit->Swap(i, eqb[i]);
+    }
+
+    // Otherwise, this shard can be decomposed.
+    QStabilizerPtr sepUnit = std::dynamic_pointer_cast<QStabilizer>(shard.unit->Decompose(0U, eqb.size()));
 
     for (bitLenInt i = 0U; i < qubitCount; ++i) {
         CliffordShard& oShard = shards[i];
-        if ((shard.unit == oShard.unit) && (shard.mapped < oShard.mapped)) {
-            --oShard.mapped;
+        if (unit != oShard.unit) {
+            continue;
+        }
+        const auto it = std::find(eqb.begin(), eqb.end(), oShard.mapped);
+        if (it != eqb.end()) {
+            oShard.mapped = std::distance(eqb.begin(), it);
+            oShard.unit = sepUnit;
+        } else if (oShard.mapped < eqb.size()) {
+            oShard.mapped = eqb[oShard.mapped] - eqb.size();
+        } else {
+            oShard.mapped -= eqb.size();
         }
     }
-
-    shard.mapped = 0U;
-    shard.unit = sepUnit;
 
     return true;
 }
