@@ -42,6 +42,7 @@ struct CliffordShard {
 class QUnitClifford : public QInterface {
 protected:
     complex phaseOffset;
+    bool isReactiveSeparate;
     std::vector<CliffordShard> shards;
 
     using QInterface::Copy;
@@ -106,6 +107,9 @@ protected:
         QStabilizerPtr unit = EntangleInCurrentBasis(ebits.begin(), ebits.end());
         cfn(unit, bits[0U], bits[1U], mtrx);
         CombinePhaseOffsets(unit);
+        if (!isReactiveSeparate) {
+            return;
+        }
         TrySeparate(control);
         TrySeparate(target);
     }
@@ -149,6 +153,9 @@ public:
         bool ignored2 = false, int64_t ignored3 = -1, bool useHardwareRNG = true, bool ignored4 = false,
         real1_f ignored5 = REAL1_EPSILON, std::vector<int64_t> ignored6 = {}, bitLenInt ignored7 = 0U,
         real1_f ignored8 = _qrack_qunit_sep_thresh);
+
+    void SetReactiveSeparate(bool isAggSep) { isReactiveSeparate = isAggSep; }
+    bool GetReactiveSeparate() { return isReactiveSeparate; }
 
     ~QUnitClifford() { Dump(); }
 
@@ -404,7 +411,7 @@ public:
     /// Returns all qubits entangled with "qubit" (including itself)
     std::vector<bitLenInt> EntangledQubits(const bitLenInt& qubit)
     {
-        ThrowIfQubitInvalid(qubit, std::string("QUnitClifford::TrySeparate"));
+        ThrowIfQubitInvalid(qubit, std::string("QUnitClifford::EntangledQubits"));
         const CliffordShard& shard = shards[qubit];
         QStabilizerPtr unit = shard.unit;
         std::vector<bitLenInt> eqb = unit->EntangledQubits(shard.mapped);
@@ -705,6 +712,9 @@ public:
         QStabilizerPtr unit = EntangleInCurrentBasis(ebits.begin(), ebits.end());
         unit->FSim(theta, phi, c, t);
         CombinePhaseOffsets(unit);
+        if (!isReactiveSeparate) {
+            return;
+        }
         TrySeparate(c);
         TrySeparate(t);
     }

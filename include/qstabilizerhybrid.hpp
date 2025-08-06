@@ -492,8 +492,6 @@ public:
 
     real1_f ProbRdm(bitLenInt qubit)
     {
-        PruneAncillae();
-
         if (!ancillaCount || stabilizer->IsSeparable(qubit)) {
             return Prob(qubit);
         }

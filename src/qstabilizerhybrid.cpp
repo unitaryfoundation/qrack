@@ -1162,9 +1162,11 @@ void QStabilizerHybrid::Mtrx(const complex* lMtrx, bitLenInt target)
                 }
 
                 // Use reverse t-injection gadget.
+                stabilizer->SetReactiveSeparate(false);
                 stabilizer->CNOT(target, ancillaIndex);
                 Mtrx(shard->gate, ancillaIndex);
                 H(ancillaIndex);
+                stabilizer->SetReactiveSeparate(true);
             }
         }
 

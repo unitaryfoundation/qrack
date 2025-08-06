@@ -22,6 +22,7 @@ QUnitClifford::QUnitClifford(bitLenInt n, const bitCapInt& perm, qrack_rand_gen_
     real1_f ignored5, std::vector<int64_t> ignored6, bitLenInt ignored7, real1_f ignored8)
     : QInterface(n, rgp, doNorm, useHardwareRNG, randomGlobalPhase, REAL1_EPSILON)
     , phaseOffset(ONE_CMPLX)
+    , isReactiveSeparate(true)
 {
     SetPermutation(perm, phaseFac);
 }
@@ -545,7 +546,7 @@ bool QUnitClifford::ForceM(bitLenInt t, bool res, bool doForce, bool doApply)
         shard.unit->ResetPhaseOffset();
     }
 
-    if (!doApply) {
+    if (!doApply || !isReactiveSeparate) {
         return result;
     }
 
