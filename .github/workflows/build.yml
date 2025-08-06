@@ -154,16 +154,11 @@ jobs:
         run: |
           vcpkg install opencl
 
-      - name: Download and Extract Boost
+      - name: Download, Extract, and Build Boost
         run: |
           powershell -c "Invoke-WebRequest -Uri 'https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.zip' -OutFile 'boost.zip'"
-          powershell -c "Expand-Archive -Path 'boost.zip' -DestinationPath 'D:/a/qrack/qrack/.'"
-
-      - name: Build Boost
-        run: |
-          dir D:/a/qrack/qrack/.
-          dir D:/a/qrack/qrack/boost.
-          cd boost/boost_1_76_0
+          powershell -c "Expand-Archive -Path boost.zip -DestinationPath ."
+          cd .\boost\boost_1_76_0
           .\bootstrap.bat
           .\b2.exe --build-type=complete --with-all --toolset=msvc address-model=64 install
           cd ..\..
@@ -176,8 +171,6 @@ jobs:
           powershell -c "Expand-Archive -Path xxd-win64-msvc.zip -DestinationPath ."
           cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=9 -DCPP_STD=14
           cmake --build . --config Release --target PACKAGE benchmarks
-        env:
-          BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
