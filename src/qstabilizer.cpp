@@ -1796,15 +1796,14 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
     QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
         false, randGlobalPhase, false, -1, !!hardware_rand_generator);
 
-    SetTransposeState(false);
-    toCopy->SetTransposeState(false);
-    nQubits->SetTransposeState(false);
+    SetTransposeState(true);
+    toCopy->SetTransposeState(true);
+    nQubits->SetTransposeState(true);
 
     const bitLenInt end = start + length;
-    const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
     nQubits->r[0U].reset();
     nQubits->r[1U].reset();
-    for (bitLenInt i = 0U; i < oRowLength; ++i) {
+    for (bitLenInt i = 0U; i < nQubitCount; ++i) {
         nQubits->x[i].reset();
         nQubits->z[i].reset();
     }
@@ -1817,20 +1816,20 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
         nQubits->r[0U][ia] = r[0U][ib];
         nQubits->r[1U][ia] = r[1U][ib];
         for (bitLenInt j = 0U; j < start; ++j) {
-            nQubits->x[i][j] = x[i][j];
-            nQubits->z[i][j] = z[i][j];
+            nQubits->x[j][i] = x[j][i];
+            nQubits->z[j][i] = z[j][i];
 
-            nQubits->x[ia][j] = x[ib][j];
-            nQubits->z[ia][j] = z[ib][j];
+            nQubits->x[j][ia] = x[j][ib];
+            nQubits->z[j][ia] = z[j][ib];
         }
         for (bitLenInt j = 0U; j < endLength; ++j) {
             const bitLenInt ja = j + end;
             const bitLenInt jb = j + start;
-            nQubits->x[i][ja] = x[i][jb];
-            nQubits->z[i][ja] = z[i][jb];
+            nQubits->x[ja][i] = x[jb][i];
+            nQubits->z[ja][i] = z[jb][i];
 
-            nQubits->x[ia][ja] = x[ib][jb];
-            nQubits->z[ia][ja] = z[ib][jb];
+            nQubits->x[ja][ia] = x[jb][ib];
+            nQubits->z[ja][ia] = z[jb][ib];
         }
     }
 
@@ -1844,11 +1843,11 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
         nQubits->r[1U][ib] = toCopy->r[1U][ic];
         for (bitLenInt j = 0U; j < length; ++j) {
             const bitLenInt ja = j + start;
-            nQubits->x[ia][ja] = toCopy->x[i][j];
-            nQubits->z[ia][ja] = toCopy->z[i][j];
+            nQubits->x[ja][ia] = toCopy->x[j][i];
+            nQubits->z[ja][ia] = toCopy->z[j][i];
 
-            nQubits->x[ib][ja] = toCopy->x[ic][j];
-            nQubits->z[ib][ja] = toCopy->z[ic][j];
+            nQubits->x[ja][ib] = toCopy->x[j][ic];
+            nQubits->z[ja][ib] = toCopy->z[j][ic];
         }
     }
 
@@ -1862,20 +1861,20 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
         nQubits->r[0U][ic] = r[0U][id];
         nQubits->r[1U][ic] = r[1U][id];
         for (bitLenInt j = 0; j < start; ++j) {
-            nQubits->x[ia][j] = x[ib][j];
-            nQubits->z[ia][j] = z[ib][j];
+            nQubits->x[j][ia] = x[j][ib];
+            nQubits->z[j][ia] = z[j][ib];
 
-            nQubits->x[ic][j] = x[id][j];
-            nQubits->z[ic][j] = z[id][j];
+            nQubits->x[j][ic] = x[j][id];
+            nQubits->z[j][ic] = z[j][id];
         }
         for (bitLenInt j = 0; j < endLength; ++j) {
             const bitLenInt ja = j + end;
             const bitLenInt jb = j + start;
-            nQubits->x[ia][ja] = x[ib][jb];
-            nQubits->z[ia][ja] = z[ib][jb];
+            nQubits->x[ja][ia] = x[jb][ib];
+            nQubits->z[ja][ia] = z[jb][ib];
 
-            nQubits->x[ic][ja] = x[id][jb];
-            nQubits->z[ic][ja] = z[id][jb];
+            nQubits->x[ja][ic] = x[jb][id];
+            nQubits->z[ja][ic] = z[jb][id];
         }
     }
 
@@ -2033,17 +2032,16 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
         false, randGlobalPhase, false, -1, !!hardware_rand_generator);
 
-    SetTransposeState(false);
+    SetTransposeState(true);
     if (dest) {
-        dest->SetTransposeState(false);
+        dest->SetTransposeState(true);
     }
-    nQubits->SetTransposeState(false);
+    nQubits->SetTransposeState(true);
 
     const bitLenInt endLength = qubitCount - end;
-    const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
     nQubits->r[0U].reset();
     nQubits->r[1U].reset();
-    for (bitLenInt i = 0U; i < oRowLength; ++i) {
+    for (bitLenInt i = 0U; i < nQubitCount; ++i) {
         nQubits->x[i].reset();
         nQubits->z[i].reset();
     }
@@ -2056,20 +2054,20 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         nQubits->r[0U][ia] = r[0U][ib];
         nQubits->r[1U][ia] = r[1U][ib];
         for (bitLenInt j = 0U; j < start; ++j) {
-            nQubits->x[i][j] = x[i][j];
-            nQubits->z[i][j] = z[i][j];
+            nQubits->x[j][i] = x[j][i];
+            nQubits->z[j][i] = z[j][i];
 
-            nQubits->x[ia][j] = x[ib][j];
-            nQubits->z[ia][j] = z[ib][j];
+            nQubits->x[j][ia] = x[j][ib];
+            nQubits->z[j][ia] = z[j][ib];
         }
         for (bitLenInt j = 0U; j < endLength; ++j) {
             const bitLenInt ja = j + start;
             const bitLenInt jb = j + end;
-            nQubits->x[i][ja] = x[i][jb];
-            nQubits->z[i][ja] = z[i][jb];
+            nQubits->x[ja][i] = x[jb][i];
+            nQubits->z[ja][i] = z[jb][i];
 
-            nQubits->x[ia][ja] = x[ib][jb];
-            nQubits->z[ia][ja] = z[ib][jb];
+            nQubits->x[ja][ia] = x[jb][ib];
+            nQubits->z[ja][ia] = z[jb][ib];
         }
     }
 
@@ -2084,11 +2082,11 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
             dest->r[1U][ib] = r[1U][ic];
             for (bitLenInt j = 0U; j < length; ++j) {
                 const bitLenInt ja = j + start;
-                dest->x[i][j] = x[ia][ja];
-                dest->z[i][j] = z[ia][ja];
+                dest->x[j][i] = x[ja][ia];
+                dest->z[j][i] = z[ja][ia];
 
-                dest->x[ib][j] = x[ic][ja];
-                dest->z[ib][j] = z[ic][ja];
+                dest->x[j][ib] = x[ja][ic];
+                dest->z[j][ib] = z[ja][ic];
             }
         }
     }
@@ -2103,20 +2101,20 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         nQubits->r[0U][ic] = r[0U][id];
         nQubits->r[1U][ic] = r[1U][id];
         for (bitLenInt j = 0; j < start; ++j) {
-            nQubits->x[ia][j] = x[ib][j];
-            nQubits->z[ia][j] = z[ib][j];
+            nQubits->x[j][ia] = x[j][ib];
+            nQubits->z[j][ia] = z[j][ib];
 
-            nQubits->x[ic][j] = x[id][j];
-            nQubits->z[ic][j] = z[id][j];
+            nQubits->x[j][ic] = x[j][id];
+            nQubits->z[j][ic] = z[j][id];
         }
         for (bitLenInt j = 0; j < endLength; ++j) {
             const bitLenInt ja = j + start;
             const bitLenInt jb = j + end;
-            nQubits->x[ia][ja] = x[ib][jb];
-            nQubits->z[ia][ja] = z[ib][jb];
+            nQubits->x[ja][ia] = x[jb][ib];
+            nQubits->z[ja][ia] = z[jb][ib];
 
-            nQubits->x[ic][ja] = x[id][jb];
-            nQubits->z[ic][ja] = z[id][jb];
+            nQubits->x[ja][ic] = x[jb][id];
+            nQubits->z[ja][ic] = z[jb][id];
         }
     }
 
