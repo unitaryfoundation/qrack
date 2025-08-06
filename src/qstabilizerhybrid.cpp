@@ -1144,6 +1144,8 @@ void QStabilizerHybrid::Mtrx(const complex* lMtrx, bitLenInt target)
             if ((2 * abs(angle)) > (FP_NORM_EPSILON * PI_R1)) {
                 // We're adding an ancilla, so drop any rdmClone.
                 rdmClone = nullptr;
+                // Reactive separation in QUnitClifford won't be safe.
+                stabilizer->SetReactiveSeparate(false);
 
                 const real1 angleCos = cos(angle);
                 const real1 angleSin = sin(angle);
@@ -1162,11 +1164,9 @@ void QStabilizerHybrid::Mtrx(const complex* lMtrx, bitLenInt target)
                 }
 
                 // Use reverse t-injection gadget.
-                stabilizer->SetReactiveSeparate(false);
                 stabilizer->CNOT(target, ancillaIndex);
                 Mtrx(shard->gate, ancillaIndex);
                 H(ancillaIndex);
-                stabilizer->SetReactiveSeparate(true);
             }
         }
 

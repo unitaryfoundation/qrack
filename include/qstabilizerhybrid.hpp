@@ -345,6 +345,11 @@ protected:
             ++deadAncillaCount;
         }
         --ancillaCount;
+
+        if (!ancillaCount) {
+            // This is no longer near-Clifford at all.
+            stabilizer->SetReactiveSeparate(true);
+        }
     }
 
     void PruneAncillae()
@@ -395,6 +400,11 @@ protected:
         shards.resize(shards.size() - aCount);
         ancillaCount -= aCount;
         deadAncillaCount -= deadCount;
+
+        if (!ancillaCount) {
+            // This is no longer near-Clifford at all.
+            stabilizer->SetReactiveSeparate(true);
+        }
     }
 
     real1_f ApproxCompareHelper(
