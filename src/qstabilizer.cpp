@@ -1534,24 +1534,28 @@ void QStabilizer::IS(bitLenInt t)
  */
 std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target)
 {
+    // for brevity
+    const bitLenInt n = qubitCount;
     gaussian(false);
-    const bitLenInt tpqc = target + qubitCount;
+    const bitLenInt tpn = target + n;
     BoolVector bits(qubitCount);
 
 #if BOOST_AVAILABLE
     if (isTransposed) {
         for (bitLenInt i = 0U; i < qubitCount; ++i) {
-            bits[i] = x[i][target] || z[i][target] || x[i][tpqc] || z[i][tpqc] || x[target][i] || z[target][i];
+            bits[i] = x[i][target] || z[i][target] || x[i][tpn] || z[i][tpn] || x[target][i] || z[target][i] ||
+                x[target][i + n] || z[target][i + n];
         }
     } else {
-        bits = x[target] | z[target] | x[tpqc] | z[tpqc];
+        bits = x[target] | z[target] | x[tpn] | z[tpn];
         for (bitLenInt i = 0U; i < qubitCount; ++i) {
-            bits[i] |= x[i][target] || z[i][target];
+            bits[i] = x[i][target] || z[i][target] || x[i + n][target] || z[i + n][target];
         }
     }
 #else
     for (bitLenInt i = 0U; i < qubitCount; ++i) {
-        bits[i] = x[target][i] || z[target][i] || x[tpqc][i] || z[tpqc][i] || x[i][target] || z[i][target];
+        bits[i] = x[target][i] || z[target][i] || x[tpn][i] || z[tpn][i] || x[i][target] || z[i][target] ||
+            x[i + n][target] || z[i + n][target];
     }
 #endif
 
