@@ -1530,6 +1530,42 @@ void QStabilizer::IS(bitLenInt t)
 }
 
 /**
+ * Returns all qubits entangled with "target" (including itself)
+ */
+std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target)
+{
+    gaussian(false);
+    const bitLenInt tpqc = target + qubitCount;
+    BoolVector bits(qubitCount);
+
+#if BOOST_AVAILABLE
+    if (isTransposed) {
+        for (bitLenInt i = 0U; i < qubitCount; ++i) {
+            bits[i] = x[i][target] || z[i][target] || x[i][tpqc] || z[i][tpqc] || x[target][i] || z[target][i];
+        }
+    } else {
+        bits = x[target] | z[target] | x[tpqc] | z[tpqc];
+        for (bitLenInt i = 0U; i < qubitCount; ++i) {
+            bits[i] |= x[i][target] || z[i][target];
+        }
+    }
+#else
+    for (bitLenInt i = 0U; i < qubitCount; ++i) {
+        bits[i] = x[target][i] || z[target][i] || x[tpqc][i] || z[tpqc][i] || x[i][target] || z[i][target];
+    }
+#endif
+
+    std::vector<bitLenInt> toReturn;
+    for (bitLenInt i = 0U; i < qubitCount; ++i) {
+        if (bits.test(i)) {
+            toReturn.push_back(i);
+        }
+    }
+
+    return toReturn;
+}
+
+/**
  * Returns "true" if target qubit is a Z basis eigenstate
  */
 bool QStabilizer::IsSeparableZ(const bitLenInt& t)

@@ -222,8 +222,8 @@ public:
         x.clear();
         z.clear();
 #if BOOST_AVAILABLE
-        r[0U].reset();
-        r[1U].reset();
+        r[0U].resize(0);
+        r[1U].resize(0);
         isTransposed = false;
 #else
         r[0U].clear();
@@ -457,17 +457,13 @@ public:
     /// Direct measure of masked permutation probability
     real1_f ProbMask(const bitCapInt& mask, const bitCapInt& permutation);
 
-    /**
-     * Returns "true" if target qubit is a Z basis eigenstate
-     */
+    /// Returns all qubits entangled with "target" (including itself)
+    std::vector<bitLenInt> EntangledQubits(const bitLenInt& target);
+    /// Returns "true" if target qubit is a Z basis eigenstate
     bool IsSeparableZ(const bitLenInt& target);
-    /**
-     * Returns "true" if target qubit is an X basis eigenstate
-     */
+    /// Returns "true" if target qubit is an X basis eigenstate
     bool IsSeparableX(const bitLenInt& target);
-    /**
-     * Returns "true" if target qubit is a Y basis eigenstate
-     */
+    /// Returns "true" if target qubit is a Y basis eigenstate
     bool IsSeparableY(const bitLenInt& target);
     /**
      * Returns:
