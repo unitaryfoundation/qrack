@@ -154,7 +154,7 @@ jobs:
         run: |
           vcpkg install opencl
 
-      - name: Install boost
+      - name: Install Boost
         uses: MarkusJx/install-boost@v1.0.1
         id: install-boost
         with:
