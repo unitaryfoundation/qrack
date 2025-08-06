@@ -1791,20 +1791,21 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
     const bitLenInt endLength = qubitCount - start;
 
 #if BOOST_AVAILABLE
+    const bitLenInt end = start + length;
+
     QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
         false, randGlobalPhase, false, -1, !!hardware_rand_generator);
+
+    nQubits->r[0U].reset();
+    nQubits->r[1U].reset();
+    for (bitLenInt i = 0U; i < nQubits->x.size(); ++i) {
+        nQubits->x[i].reset();
+        nQubits->z[i].reset();
+    }
 
     SetTransposeState(true);
     toCopy->SetTransposeState(true);
     nQubits->SetTransposeState(true);
-
-    const bitLenInt end = start + length;
-    nQubits->r[0U].reset();
-    nQubits->r[1U].reset();
-    for (bitLenInt i = 0U; i < nQubitCount; ++i) {
-        nQubits->x[i].reset();
-        nQubits->z[i].reset();
-    }
 
     for (bitLenInt i = 0U; i < start; ++i) {
         const bitLenInt ia = i + nQubitCount;
@@ -2027,22 +2028,30 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     const bitLenInt nQubitCount = qubitCount - length;
 
 #if BOOST_AVAILABLE
+    const bitLenInt endLength = qubitCount - end;
+
     QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
         false, randGlobalPhase, false, -1, !!hardware_rand_generator);
 
-    SetTransposeState(true);
-    if (dest) {
-        dest->SetTransposeState(true);
-    }
-    nQubits->SetTransposeState(true);
-
-    const bitLenInt endLength = qubitCount - end;
     nQubits->r[0U].reset();
     nQubits->r[1U].reset();
-    for (bitLenInt i = 0U; i < nQubitCount; ++i) {
+    for (bitLenInt i = 0U; i < nQubits->x.size(); ++i) {
         nQubits->x[i].reset();
         nQubits->z[i].reset();
     }
+
+    if (dest) {
+        dest->r[0U].reset();
+        dest->r[1U].reset();
+        for (bitLenInt i = 0U; i < dest->x.size(); ++i) {
+            dest->x[i].reset();
+            dest->z[i].reset();
+        }
+        dest->SetTransposeState(true);
+    }
+
+    SetTransposeState(true);
+    nQubits->SetTransposeState(true);
 
     for (bitLenInt i = 0U; i < start; ++i) {
         const bitLenInt ia = i + nQubitCount;
