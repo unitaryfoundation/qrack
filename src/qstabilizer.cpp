@@ -1793,54 +1793,93 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
     const bitLenInt endLength = qubitCount - start;
 
 #if BOOST_AVAILABLE
+    QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
+        false, randGlobalPhase, false, -1, !!hardware_rand_generator);
+
     SetTransposeState(false);
     toCopy->SetTransposeState(false);
+    nQubits->SetTransposeState(false);
 
     const bitLenInt end = start + length;
     const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
-
-    const BoolVector bitSpan(length);
-    for (bitLenInt i = 0U; i < x.size(); ++i) {
-        insert_bits(x[i], bitSpan, start);
-        insert_bits(z[i], bitSpan, start);
+    nQubits->r[0U].reset();
+    nQubits->r[1U].reset();
+    for (bitLenInt i = 0U; i < oRowLength; ++i) {
+        nQubits->x[i].reset();
+        nQubits->z[i].reset();
     }
 
-    insert_bits(r[0U], bitSpan, start + qubitCount);
-    insert_bits(r[1U], bitSpan, start + qubitCount);
-    insert_bits(r[0U], bitSpan, start);
-    insert_bits(r[1U], bitSpan, start);
+    for (bitLenInt i = 0U; i < start; ++i) {
+        const bitLenInt ia = i + nQubitCount;
+        const bitLenInt ib = i + qubitCount;
+        nQubits->r[0U][i] = r[0U][i];
+        nQubits->r[1U][i] = r[1U][i];
+        nQubits->r[0U][ia] = r[0U][ib];
+        nQubits->r[1U][ia] = r[1U][ib];
+        for (bitLenInt j = 0U; j < start; ++j) {
+            nQubits->x[i][j] = x[i][j];
+            nQubits->z[i][j] = z[i][j];
 
-    const BoolVector blankStart(start);
-    const BoolVector blankEnd(endLength);
-    std::vector<BoolVector> xRows1, xRows2;
-    std::vector<BoolVector> zRows1, zRows2;
-    xRows1.reserve(length);
-    xRows2.reserve(length);
-    zRows1.reserve(length);
-    zRows2.reserve(length);
+            nQubits->x[ia][j] = x[ib][j];
+            nQubits->z[ia][j] = z[ib][j];
+        }
+        for (bitLenInt j = 0U; j < endLength; ++j) {
+            const bitLenInt ja = j + end;
+            const bitLenInt jb = j + start;
+            nQubits->x[i][ja] = x[i][jb];
+            nQubits->z[i][ja] = z[i][jb];
+
+            nQubits->x[ia][ja] = x[ib][jb];
+            nQubits->z[ia][ja] = z[ib][jb];
+        }
+    }
+
     for (bitLenInt i = 0U; i < length; ++i) {
-        xRows1.push_back(blankStart);
-        xRows1.back().append(toCopy->x[i]);
-        xRows1.back().append(blankEnd);
-        zRows1.push_back(blankStart);
-        zRows1.back().append(toCopy->z[i]);
-        zRows1.back().append(blankEnd);
+        const bitLenInt ia = i + start;
+        const bitLenInt ib = ia + nQubitCount;
+        const bitLenInt ic = i + length;
+        nQubits->r[0U][ia] = toCopy->r[0U][i];
+        nQubits->r[1U][ia] = toCopy->r[1U][i];
+        nQubits->r[0U][ib] = toCopy->r[0U][ic];
+        nQubits->r[1U][ib] = toCopy->r[1U][ic];
+        for (bitLenInt j = 0U; j < length; ++j) {
+            const bitLenInt ja = j + start;
+            nQubits->x[ia][ja] = toCopy->x[i][j];
+            nQubits->z[ia][ja] = toCopy->z[i][j];
 
-        const bitLenInt j = i + length;
-        xRows2.push_back(blankStart);
-        xRows2.back().append(toCopy->x[j]);
-        xRows2.back().append(blankEnd);
-        zRows2.push_back(blankStart);
-        zRows2.back().append(toCopy->z[j]);
-        zRows2.back().append(blankEnd);
+            nQubits->x[ib][ja] = toCopy->x[ic][j];
+            nQubits->z[ib][ja] = toCopy->z[ic][j];
+        }
     }
 
-    x.insert(x.begin() + qubitCount + start, xRows2.begin(), xRows2.end());
-    z.insert(z.begin() + qubitCount + start, zRows2.begin(), zRows2.end());
-    x.insert(x.begin() + start, xRows1.begin(), xRows1.end());
-    z.insert(z.begin() + start, zRows1.begin(), zRows1.end());
+    for (bitLenInt i = 0; i < endLength; ++i) {
+        const bitLenInt ia = i + end;
+        const bitLenInt ib = i + start;
+        const bitLenInt ic = ia + nQubitCount;
+        const bitLenInt id = ib + qubitCount;
+        nQubits->r[0U][ia] = r[0U][ib];
+        nQubits->r[1U][ia] = r[1U][ib];
+        nQubits->r[0U][ic] = r[0U][id];
+        nQubits->r[1U][ic] = r[1U][id];
+        for (bitLenInt j = 0; j < start; ++j) {
+            nQubits->x[ia][j] = x[ib][j];
+            nQubits->z[ia][j] = z[ib][j];
 
-    SetQubitCount(nQubitCount);
+            nQubits->x[ic][j] = x[id][j];
+            nQubits->z[ic][j] = z[id][j];
+        }
+        for (bitLenInt j = 0; j < endLength; ++j) {
+            const bitLenInt ja = j + end;
+            const bitLenInt jb = j + start;
+            nQubits->x[ia][ja] = x[ib][jb];
+            nQubits->z[ia][ja] = z[ib][jb];
+
+            nQubits->x[ic][ja] = x[id][jb];
+            nQubits->z[ic][ja] = z[id][jb];
+        }
+    }
+
+    Copy(nQubits);
 #else
     const bitLenInt rowCount = (qubitCount << 1U) + 1U;
     const bitLenInt dLen = length << 1U;
@@ -1991,13 +2030,48 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     const bitLenInt nQubitCount = qubitCount - length;
 
 #if BOOST_AVAILABLE
+    QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
+        false, randGlobalPhase, false, -1, !!hardware_rand_generator);
+
     SetTransposeState(false);
     if (dest) {
         dest->SetTransposeState(false);
     }
+    nQubits->SetTransposeState(false);
 
     const bitLenInt endLength = qubitCount - end;
     const bitLenInt oRowLength = (nQubitCount << 1U) + 1U;
+    nQubits->r[0U].reset();
+    nQubits->r[1U].reset();
+    for (bitLenInt i = 0U; i < oRowLength; ++i) {
+        nQubits->x[i].reset();
+        nQubits->z[i].reset();
+    }
+
+    for (bitLenInt i = 0U; i < start; ++i) {
+        const bitLenInt ia = i + nQubitCount;
+        const bitLenInt ib = i + qubitCount;
+        nQubits->r[0U][i] = r[0U][i];
+        nQubits->r[1U][i] = r[1U][i];
+        nQubits->r[0U][ia] = r[0U][ib];
+        nQubits->r[1U][ia] = r[1U][ib];
+        for (bitLenInt j = 0U; j < start; ++j) {
+            nQubits->x[i][j] = x[i][j];
+            nQubits->z[i][j] = z[i][j];
+
+            nQubits->x[ia][j] = x[ib][j];
+            nQubits->z[ia][j] = z[ib][j];
+        }
+        for (bitLenInt j = 0U; j < endLength; ++j) {
+            const bitLenInt ja = j + start;
+            const bitLenInt jb = j + end;
+            nQubits->x[i][ja] = x[i][jb];
+            nQubits->z[i][ja] = z[i][jb];
+
+            nQubits->x[ia][ja] = x[ib][jb];
+            nQubits->z[ia][ja] = z[ib][jb];
+        }
+    }
 
     if (dest) {
         for (bitLenInt i = 0U; i < length; ++i) {
@@ -2019,21 +2093,34 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         }
     }
 
-    for (bitLenInt i = 0U; i < x.size(); ++i) {
-        insert_bits(x[i], bitSpan, length);
-        insert_bits(z[i], bitSpan, length);
+    for (bitLenInt i = 0; i < endLength; ++i) {
+        const bitLenInt ia = i + start;
+        const bitLenInt ib = i + end;
+        const bitLenInt ic = ia + nQubitCount;
+        const bitLenInt id = ib + qubitCount;
+        nQubits->r[0U][ia] = r[0U][ib];
+        nQubits->r[1U][ia] = r[1U][ib];
+        nQubits->r[0U][ic] = r[0U][id];
+        nQubits->r[1U][ic] = r[1U][id];
+        for (bitLenInt j = 0; j < start; ++j) {
+            nQubits->x[ia][j] = x[ib][j];
+            nQubits->z[ia][j] = z[ib][j];
+
+            nQubits->x[ic][j] = x[id][j];
+            nQubits->z[ic][j] = z[id][j];
+        }
+        for (bitLenInt j = 0; j < endLength; ++j) {
+            const bitLenInt ja = j + start;
+            const bitLenInt jb = j + end;
+            nQubits->x[ia][ja] = x[ib][jb];
+            nQubits->z[ia][ja] = z[ib][jb];
+
+            nQubits->x[ic][ja] = x[id][jb];
+            nQubits->z[ic][ja] = z[id][jb];
+        }
     }
 
-    x.erase(x.begin() + qubitCount + start, x.begin() + qubitCount + end);
-    z.erase(z.begin() + qubitCount + start, z.begin() + qubitCount + end);
-    x.erase(x.begin() + start, x.begin() + end);
-    z.erase(z.begin() + start, z.begin() + end);
-    remove_bits(r[0U], qubitCount + start, length);
-    remove_bits(r[1U], qubitCount + start, length);
-    remove_bits(r[0U], start, length);
-    remove_bits(r[1U], start, length);
-
-    SetQubitCount(nQubitCount);
+    Copy(nQubits);
 #else
     const bitLenInt secondStart = qubitCount + start;
     const bitLenInt secondEnd = qubitCount + end;
