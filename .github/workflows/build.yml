@@ -161,6 +161,8 @@ jobs:
 
       - name: Build Boost
         run: |
+          dir D:/a/qrack/qrack/.
+          dir D:/a/qrack/qrack/boost.
           cd boost/boost_1_76_0
           .\bootstrap.bat
           .\b2.exe --build-type=complete --with-all --toolset=msvc address-model=64 install
