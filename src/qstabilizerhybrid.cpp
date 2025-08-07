@@ -395,8 +395,6 @@ QInterfacePtr QStabilizerHybrid::CloneBody(bool isCopy)
 
 real1_f QStabilizerHybrid::ProbAllRdm(bool roundRz, const bitCapInt& fullRegister)
 {
-    PruneAncillae();
-
     if (engine || !ancillaCount) {
         return ProbAll(fullRegister);
     }
@@ -430,8 +428,6 @@ void QStabilizerHybrid::SwitchToEngine()
     if (engine) {
         return;
     }
-
-    PruneAncillae();
 
     rdmClone = nullptr;
 
@@ -510,9 +506,6 @@ bitLenInt QStabilizerHybrid::ComposeEither(QStabilizerHybridPtr toCopy, bool wil
         return qubitCount;
     }
 
-    PruneAncillae();
-    toCopy->PruneAncillae();
-
     const bitLenInt nQubits = qubitCount + toCopy->qubitCount;
 
     if ((ancillaCount + toCopy->ancillaCount) > maxAncillaCount) {
@@ -557,9 +550,6 @@ bitLenInt QStabilizerHybrid::Compose(QStabilizerHybridPtr toCopy, bitLenInt star
     if (!toCopy->qubitCount) {
         return qubitCount;
     }
-
-    PruneAncillae();
-    toCopy->PruneAncillae();
 
     if (toCopy->ancillaCount || toCopy->deadAncillaCount) {
         const bitLenInt origSize = qubitCount;
@@ -632,8 +622,6 @@ void QStabilizerHybrid::Decompose(bitLenInt start, QStabilizerHybridPtr dest)
         dest->stabilizer = dest->MakeStabilizer(ZERO_BCI);
     }
 
-    PruneAncillae();
-    dest->PruneAncillae();
     stabilizer->Decompose(start, dest->stabilizer);
     std::copy(shards.begin() + start, shards.begin() + start + length, dest->shards.begin());
     shards.erase(shards.begin() + start, shards.begin() + start + length);
@@ -647,7 +635,6 @@ void QStabilizerHybrid::Dispose(bitLenInt start, bitLenInt length)
     if (engine) {
         engine->Dispose(start, length);
     } else {
-        PruneAncillae();
         stabilizer->Dispose(start, length);
     }
 
@@ -662,7 +649,6 @@ void QStabilizerHybrid::Dispose(bitLenInt start, bitLenInt length, const bitCapI
     if (engine) {
         engine->Dispose(start, length, disposedPerm);
     } else {
-        PruneAncillae();
         stabilizer->Dispose(start, length);
     }
 
@@ -689,8 +675,6 @@ void QStabilizerHybrid::GetQuantumState(complex* outputState)
         return engine->GetQuantumState(outputState);
     }
 
-    PruneAncillae();
-
     if (!IsBuffered()) {
         return stabilizer->GetQuantumState(outputState);
     }
@@ -705,8 +689,6 @@ void QStabilizerHybrid::GetProbs(real1* outputProbs)
     if (engine) {
         return engine->GetProbs(outputProbs);
     }
-
-    PruneAncillae();
 
     if (!IsProbBuffered()) {
         return stabilizer->GetProbs(outputProbs);
@@ -723,7 +705,6 @@ complex QStabilizerHybrid::GetAmplitudeOrProb(const bitCapInt& perm, bool isProb
         return engine->GetAmplitude(perm);
     }
 
-    PruneAncillae();
     UpdateRoundingThreshold();
     const bool isRounded = roundingThreshold > FP_NORM_EPSILON;
     const QUnitCliffordPtr origStabilizer =
@@ -1146,8 +1127,6 @@ void QStabilizerHybrid::Mtrx(const complex* lMtrx, bitLenInt target)
             if ((2 * abs(angle)) > (FP_NORM_EPSILON * PI_R1)) {
                 // We're adding an ancilla, so drop any rdmClone.
                 rdmClone = nullptr;
-                // Reactive separation in QUnitClifford won't be safe.
-                stabilizer->SetReactiveSeparate(false);
 
                 const real1 angleCos = cos(angle);
                 const real1 angleSin = sin(angle);
@@ -1444,8 +1423,6 @@ void QStabilizerHybrid::MACInvert(
 
 real1_f QStabilizerHybrid::Prob(bitLenInt qubit)
 {
-    PruneAncillae();
-
     if (ancillaCount && !(stabilizer->IsSeparable(qubit))) {
         if (qubitCount <= maxEngineQubitCount) {
             QStabilizerHybridPtr clone = std::dynamic_pointer_cast<QStabilizerHybrid>(Clone());
@@ -1630,8 +1607,6 @@ bitCapInt QStabilizerHybrid::MAll()
     if (roundingThreshold > FP_NORM_EPSILON) {
         RdmCloneFlush(roundingThreshold);
     }
-
-    PruneAncillae();
 
     if (!IsProbBuffered()) {
         const bitCapInt toRet = stabilizer->MAll();
@@ -2151,7 +2126,6 @@ void QStabilizerHybrid::NormalizeState(real1_f nrm, real1_f norm_thresh, real1_f
 bool QStabilizerHybrid::TrySeparate(bitLenInt qubit)
 {
     if (qubitCount == 1U) {
-        PruneAncillae();
         if (ancillaCount || deadAncillaCount) {
             SwitchToEngine();
             complex sv[2];
@@ -2171,7 +2145,6 @@ bool QStabilizerHybrid::TrySeparate(bitLenInt qubit)
 }
 bool QStabilizerHybrid::TrySeparate(bitLenInt qubit1, bitLenInt qubit2)
 {
-    PruneAncillae();
     if ((qubitCount == 2U) && !ancillaCount && !deadAncillaCount) {
         return true;
     }

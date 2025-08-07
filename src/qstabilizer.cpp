@@ -1537,27 +1537,50 @@ std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target)
     // for brevity
     const bitLenInt n = qubitCount;
     gaussian(false);
-    const bitLenInt tpn = target + n;
     BoolVector bits(qubitCount);
+    bits[target] = true;
+    BoolVector origBits;
 
+    do {
+        origBits = bits;
+        std::vector<bitLenInt> toCheck;
+        for (bitLenInt i = 0U; i < qubitCount; ++i) {
+            if (!bits.test(i)) {
+                toCheck.push_back(i);
+            }
+        }
+        for (bitLenInt b = 0U; b < qubitCount; ++b) {
+            if (!origBits.test(b)) {
+                continue;
+            }
+            const bitLenInt bpn = b + n;
 #if BOOST_AVAILABLE
-    if (isTransposed) {
-        for (bitLenInt i = 0U; i < qubitCount; ++i) {
-            bits[i] = x[i][target] || z[i][target] || x[i][tpn] || z[i][tpn] || x[target][i] || z[target][i] ||
-                x[target][i + n] || z[target][i + n];
-        }
-    } else {
-        bits = x[target] | z[target] | x[tpn] | z[tpn];
-        for (bitLenInt i = 0U; i < qubitCount; ++i) {
-            bits[i] = x[i][target] || z[i][target] || x[i + n][target] || z[i + n][target];
-        }
-    }
+            if (isTransposed) {
+                for (const bitLenInt& i : toCheck) {
+                    bits[i] |= x[i][b] || z[i][b] || x[i][bpn] || z[i][bpn] || x[b][i] || z[b][i] || x[b][i+n] || z[b][i+n];
+                    if (bits.test(i)) {
+                        break;
+                    }
+                }
+            } else {
+                bits = x[b] | z[b] | x[bpn] | z[bpn];
+                for (const bitLenInt& i : toCheck) {
+                    bits[i] |= x[i][b] || z[i][b] || x[i+n][b] || z[i+n][bpn];
+                    if (bits.test(i)) {
+                        break;
+                    }
+                }
+            }
 #else
-    for (bitLenInt i = 0U; i < qubitCount; ++i) {
-        bits[i] = x[target][i] || z[target][i] || x[tpn][i] || z[tpn][i] || x[i][target] || z[i][target] ||
-            x[i + n][target] || z[i + n][target];
-    }
+            for (const bitLenInt& i : toCheck) {
+                bits[i] |= x[b][i] || z[b][i] || x[bpn][i] || z[bpn][i] || x[i][b] || z[i][b] || x[i+n][b] || z[i+n][b];
+                if (bits.test(i)) {
+                    break;
+                }
+            }
 #endif
+        }
+    } while (origBits != bits);
 
     std::vector<bitLenInt> toReturn;
     for (bitLenInt i = 0U; i < qubitCount; ++i) {
