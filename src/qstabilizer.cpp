@@ -1550,7 +1550,7 @@ std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target)
             }
         }
         for (bitLenInt b = 0U; b < qubitCount; ++b) {
-            if (!origBits.test(b)) {
+            if (!bits.test(b)) {
                 continue;
             }
             const bitLenInt bpn = b + n;
