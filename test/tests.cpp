@@ -6761,6 +6761,27 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_mirror_circuit_36", "[mirror]")
     REQUIRE((bitCapIntOcl)result.begin()->first == 5U);
 }
 
+TEST_CASE_METHOD(QInterfaceTestFixture, "test_mirror_circuit_37", "[mirror]")
+{
+    qftReg = MakeEngine(4);
+    qftReg->SetPermutation(14);
+
+    qftReg->H(0);
+    qftReg->AntiCY(0, 1);
+    qftReg->CNOT(3, 2);
+    qftReg->H(2);
+    qftReg->ISwap(1, 3);
+    qftReg->AntiCY(0, 2);
+    qftReg->AntiCY(0, 2);
+    qftReg->IISwap(1, 3);
+    qftReg->H(2);
+    qftReg->CNOT(3, 2);
+    qftReg->AntiCY(0, 1);
+    qftReg->H(0);
+
+    REQUIRE((bitCapIntOcl)qftReg->MAll() == 14);
+}
+
 bitLenInt pickRandomBit(real1_f rand, std::set<bitLenInt>* unusedBitsPtr)
 {
     std::set<bitLenInt>::iterator bitIterator = unusedBitsPtr->begin();

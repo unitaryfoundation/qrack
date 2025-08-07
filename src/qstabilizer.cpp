@@ -1560,17 +1560,19 @@ std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target)
 #if BOOST_AVAILABLE
             if (isTransposed) {
                 for (const bitLenInt& i : toCheck) {
-                    bits[i] |= x[i][b] || z[i][b] || x[i][bpn] || z[i][bpn] || x[b][i] || z[b][i] || x[b][i+n] || z[b][i+n];
+                    bits[i] |= x[i][b] || z[i][b] || x[i][bpn] || z[i][bpn] || x[b][i] || z[b][i] || x[b][i + n] ||
+                        z[b][i + n];
                 }
             } else {
                 bits |= x[b] | z[b] | x[bpn] | z[bpn];
                 for (const bitLenInt& i : toCheck) {
-                    bits[i] |= x[i][b] || z[i][b] || x[i+n][b] || z[i+n][b];
+                    bits[i] |= x[i][b] || z[i][b] || x[i + n][b] || z[i + n][b];
                 }
             }
 #else
             for (const bitLenInt& i : toCheck) {
-                bits[i] |= x[b][i] || z[b][i] || x[bpn][i] || z[bpn][i] || x[i][b] || z[i][b] || x[i+n][b] || z[i+n][b];
+                bits[i] |=
+                    x[b][i] || z[b][i] || x[bpn][i] || z[bpn][i] || x[i][b] || z[i][b] || x[i + n][b] || z[i + n][b];
             }
 #endif
         }
