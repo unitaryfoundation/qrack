@@ -956,8 +956,6 @@ void QStabilizerHybrid::Swap(bitLenInt qubit1, bitLenInt qubit2)
 }
 void QStabilizerHybrid::CSwap(const std::vector<bitLenInt>& lControls, bitLenInt qubit1, bitLenInt qubit2)
 {
-    rdmClone = nullptr;
-
     if (stabilizer) {
         std::vector<bitLenInt> controls;
 
