@@ -12,6 +12,8 @@
 
 #include "qunitclifford.hpp"
 
+#include <algorithm>
+
 #define IS_0_R1(r) (abs(r) <= REAL1_EPSILON)
 #define IS_1_R1(r) (abs(r) <= REAL1_EPSILON)
 
