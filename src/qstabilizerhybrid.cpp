@@ -2073,8 +2073,8 @@ void QStabilizerHybrid::ISwapHelper(bitLenInt qubit1, bitLenInt qubit2, bool inv
         return;
     }
 
-    FlushIfBlocked(qubit1, qubit2, false);
-    FlushIfBlocked(qubit2, qubit1, false);
+    FlushIfBlocked(qubit1, qubit2, true);
+    FlushIfBlocked(qubit2, qubit1, true);
 
     std::swap(shards[qubit1], shards[qubit2]);
 
