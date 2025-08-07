@@ -2073,42 +2073,25 @@ void QStabilizerHybrid::ISwapHelper(bitLenInt qubit1, bitLenInt qubit2, bool inv
         return;
     }
 
-    MpsShardPtr& shard1 = shards[qubit1];
-    if (shard1 && (shard1->IsHPhase() || shard1->IsHInvert())) {
-        FlushH(qubit1);
-    }
-    if (shard1 && shard1->IsInvert()) {
-        InvertBuffer(qubit1);
-    }
+    FlushIfBlocked(qubit1, qubit2, false);
+    FlushIfBlocked(qubit2, qubit1, false);
 
-    MpsShardPtr& shard2 = shards[qubit2];
-    if (shard2 && (shard2->IsHPhase() || shard2->IsHInvert())) {
-        FlushH(qubit2);
-    }
-    if (shard2 && shard2->IsInvert()) {
-        InvertBuffer(qubit2);
-    }
-
-    if ((shard1 && !shard1->IsPhase()) || (shard2 && !shard2->IsPhase())) {
-        FlushBuffers();
-    }
-
-    std::swap(shard1, shard2);
+    std::swap(shards[qubit1], shards[qubit2]);
 
     if (stabilizer) {
         rdmClone = nullptr;
         if (inverse) {
-            stabilizer->IISwap(qubit1, qubit2);
-        } else {
-            stabilizer->ISwap(qubit1, qubit2);
+            return stabilizer->IISwap(qubit1, qubit2);
         }
-    } else {
-        if (inverse) {
-            engine->IISwap(qubit1, qubit2);
-        } else {
-            engine->ISwap(qubit1, qubit2);
-        }
+
+        return stabilizer->ISwap(qubit1, qubit2);
     }
+
+    if (inverse) {
+        return engine->IISwap(qubit1, qubit2);
+    }
+
+    return engine->ISwap(qubit1, qubit2);
 }
 
 void QStabilizerHybrid::NormalizeState(real1_f nrm, real1_f norm_thresh, real1_f phaseArg)
