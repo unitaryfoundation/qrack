@@ -430,6 +430,7 @@ std::map<bitCapInt, complex> QUnitClifford::GetQuantumState()
 /// Convert the state to Schmidt-decomposed ket notation
 QUnitStateVectorPtr QUnitClifford::GetDecomposedQuantumState()
 {
+    MaxReduce();
     std::map<QInterfacePtr, bitLenInt> qis;
     std::map<bitLenInt, IdOffset> idMap;
     std::vector<std::map<bitCapInt, complex>> amps;
