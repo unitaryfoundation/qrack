@@ -794,8 +794,8 @@ public:
 
     void PhaseFlip()
     {
-        rdmClone = nullptr;
         if (stabilizer) {
+            rdmClone = nullptr;
             stabilizer->PhaseFlip();
         } else {
             engine->PhaseFlip();
