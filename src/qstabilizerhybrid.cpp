@@ -717,7 +717,6 @@ complex QStabilizerHybrid::GetAmplitudeOrProb(const bitCapInt& perm, bool isProb
         return engine->GetAmplitude(perm);
     }
 
-    PruneAncillae();
     UpdateRoundingThreshold();
     const bool isRounded = roundingThreshold > FP_NORM_EPSILON;
     const QUnitCliffordPtr origStabilizer =
@@ -734,7 +733,7 @@ complex QStabilizerHybrid::GetAmplitudeOrProb(const bitCapInt& perm, bool isProb
         RdmCloneFlush(roundingThreshold);
     }
 
-    if ((isProb && !ancillaCount && !IsLogicalProbBuffered()) || !IsBuffered()) {
+    if (!IsBuffered() || (isProb && !ancillaCount && !IsLogicalProbBuffered())) {
         const complex toRet = stabilizer->GetAmplitude(perm);
 
         if (isRounded) {
