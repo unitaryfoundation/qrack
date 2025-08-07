@@ -12,6 +12,8 @@
 
 #include "qunitclifford.hpp"
 
+#include <numeric>
+
 #define IS_0_R1(r) (abs(r) <= REAL1_EPSILON)
 #define IS_1_R1(r) (abs(r) <= REAL1_EPSILON)
 
@@ -791,10 +793,11 @@ bool QUnitClifford::TrySeparate(bitLenInt qubit)
     }
 
     std::vector<bitLenInt> inverseMap(qbc);
-    for (bitLenInt i = 0U; i < qbc; ++i) {
-        inverseMap[i] = i;
-    }
+    std::iota(inverseMap.begin(), inverseMap.end(), 0U);
     for (bitLenInt i = 0U; i < eqb.size(); ++i) {
+        if (i == eqb[i]) {
+            continue;
+        }
         unit->Swap(i, eqb[i]);
         std::swap(inverseMap[i], inverseMap[eqb[i]]);
     }
@@ -810,11 +813,10 @@ bool QUnitClifford::TrySeparate(bitLenInt qubit)
 
         oShard.mapped = std::distance(inverseMap.begin(), std::find(inverseMap.begin(), inverseMap.end(), oShard.mapped));
 
-        const auto it = std::find(eqb.begin(), eqb.end(), oShard.mapped);
-        if (it == eqb.end()) {
-            oShard.mapped -= eqb.size();
-        } else {
+        if (oShard.mapped < eqb.size()) {
             oShard.unit = sepUnit;
+        } else {
+            oShard.mapped -= eqb.size();
         }
     }
 
