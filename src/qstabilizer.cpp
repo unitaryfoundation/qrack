@@ -1550,13 +1550,21 @@ std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target, con
 
         std::vector<bitLenInt> toCheck;
         for (bitLenInt i = 0U; i < qubitCount; ++i) {
+#if BOOST_AVAILABLE
             if (!bits.test(i)) {
+#else
+            if (!bits[i]) {
+#endif
                 toCheck.push_back(i);
             }
         }
 
         for (bitLenInt b = 0U; b < qubitCount; ++b) {
+#if BOOST_AVAILABLE
             if (!origBits.test(b)) {
+#else
+            if (!origBits[b]) {
+#endif
                 continue;
             }
 
@@ -1584,7 +1592,11 @@ std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target, con
 
     std::vector<bitLenInt> toReturn;
     for (bitLenInt i = 0U; i < qubitCount; ++i) {
-        if (bits.test(i)) {
+#if BOOST_AVAILABLE
+        if (!bits.test(i)) {
+#else
+        if (!bits[i]) {
+#endif
             toReturn.push_back(i);
         }
     }
