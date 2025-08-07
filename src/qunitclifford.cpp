@@ -790,8 +790,13 @@ bool QUnitClifford::TrySeparate(bitLenInt qubit)
         return false;
     }
 
+    std::vector<bitLenInt> inverseMap(qbc);
+    for (bitLenInt i = 0U; i < qbc; ++i) {
+        inverseMap[i] = i;
+    }
     for (bitLenInt i = 0U; i < eqb.size(); ++i) {
         unit->Swap(i, eqb[i]);
+        std::swap(inverseMap[i], inverseMap[eqb[i]]);
     }
 
     // Otherwise, this shard can be decomposed.
@@ -803,17 +808,14 @@ bool QUnitClifford::TrySeparate(bitLenInt qubit)
             continue;
         }
 
-        const auto it = std::find(eqb.begin(), eqb.end(), oShard.mapped);
-        if (it != eqb.end()) {
-            oShard.mapped = std::distance(eqb.begin(), it);
-            oShard.unit = sepUnit;
-            continue;
-        }
+        oShard.mapped = std::distance(inverseMap.begin(), std::find(inverseMap.begin(), inverseMap.end(), oShard.mapped));
 
-        if (oShard.mapped < eqb.size()) {
-            oShard.mapped = eqb[oShard.mapped];
+        const auto it = std::find(eqb.begin(), eqb.end(), oShard.mapped);
+        if (it == eqb.end()) {
+            oShard.mapped -= eqb.size();
+        } else {
+            oShard.unit = sepUnit;
         }
-        oShard.mapped -= eqb.size();
     }
 
     return true;
