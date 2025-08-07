@@ -222,8 +222,8 @@ public:
         x.clear();
         z.clear();
 #if BOOST_AVAILABLE
-        r[0U].resize(0);
-        r[1U].resize(0);
+        r[0U].resize(0U);
+        r[1U].resize(0U);
         isTransposed = false;
 #else
         r[0U].clear();
