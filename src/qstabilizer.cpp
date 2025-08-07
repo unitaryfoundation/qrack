@@ -1543,16 +1543,19 @@ std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target)
 
     do {
         origBits = bits;
+
         std::vector<bitLenInt> toCheck;
         for (bitLenInt i = 0U; i < qubitCount; ++i) {
             if (!bits.test(i)) {
                 toCheck.push_back(i);
             }
         }
+
         for (bitLenInt b = 0U; b < qubitCount; ++b) {
-            if (!bits.test(b)) {
+            if (!origBits.test(b)) {
                 continue;
             }
+
             const bitLenInt bpn = b + n;
 #if BOOST_AVAILABLE
             if (isTransposed) {

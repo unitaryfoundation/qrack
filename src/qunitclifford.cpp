@@ -801,6 +801,7 @@ bool QUnitClifford::TrySeparate(bitLenInt qubit)
         if (unit != oShard.unit) {
             continue;
         }
+
         const auto it = std::find(eqb.begin(), eqb.end(), oShard.mapped);
         if (it != eqb.end()) {
             oShard.mapped = std::distance(eqb.begin(), it);
