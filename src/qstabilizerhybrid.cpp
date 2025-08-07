@@ -1987,6 +1987,7 @@ void QStabilizerHybrid::PruneAncillae(bool gaussian)
     }
 
     FlushCliffordFromBuffers();
+    stabilizer->MaxReduce();
 
     const bitLenInt maxI = stabilizer->GetQubitCount();
     std::set<bitLenInt> sepAncilla;

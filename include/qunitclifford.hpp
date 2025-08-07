@@ -449,6 +449,7 @@ public:
     /// Measure all qubits
     bitCapInt MAll()
     {
+        MaxReduce();
         bitCapInt toRet = QInterface::MAll();
         SetPermutation(toRet);
         return toRet;
@@ -834,6 +835,7 @@ public:
 
         return q1 && q2;
     }
+    void MaxReduce();
 
     friend std::ostream& operator<<(std::ostream& os, const QUnitCliffordPtr s);
     friend std::istream& operator>>(std::istream& is, const QUnitCliffordPtr s);

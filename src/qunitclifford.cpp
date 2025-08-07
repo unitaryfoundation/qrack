@@ -609,6 +609,8 @@ std::map<bitCapInt, int> QUnitClifford::MultiShotMeasureMask(const std::vector<b
     ThrowIfQbIdArrayIsBad(qIndices, qubitCount,
         "QUnitClifford::MultiShotMeasureMask parameter qPowers array values must be within allocated qubit bounds!");
 
+    MaxReduce();
+
     std::map<QStabilizerPtr, std::vector<bitCapInt>> subQPowers;
     std::map<QStabilizerPtr, std::vector<bitCapInt>> subIQPowers;
 
@@ -838,8 +840,57 @@ bool QUnitClifford::TrySeparate(bitLenInt qubit)
     return true;
 }
 
+void QUnitClifford::MaxReduce()
+{
+    for (bitLenInt qb = 0U; qb < qubitCount; ++qb) {
+        CliffordShard& shard = shards[qb];
+        QStabilizerPtr unit = shard.unit;
+        const bitLenInt qbc = unit->GetQubitCount();
+
+        if (qbc == 1U) {
+            continue;
+        }
+
+        std::vector<bitLenInt> eqb = unit->EntangledQubits(shard.mapped, true);
+        if (eqb.size() == qbc) {
+            continue;
+        }
+
+        std::vector<bitLenInt> inverseMap(qbc);
+        std::iota(inverseMap.begin(), inverseMap.end(), 0U);
+        for (bitLenInt i = 0U; i < eqb.size(); ++i) {
+            if (i == eqb[i]) {
+                continue;
+            }
+            unit->Swap(i, eqb[i]);
+            std::swap(inverseMap[i], inverseMap[eqb[i]]);
+        }
+
+        // Otherwise, this shard can be decomposed.
+        QStabilizerPtr sepUnit = std::dynamic_pointer_cast<QStabilizer>(unit->Decompose(0U, eqb.size()));
+
+        for (bitLenInt i = 0U; i < qubitCount; ++i) {
+            CliffordShard& oShard = shards[i];
+            if (unit != oShard.unit) {
+                continue;
+            }
+
+            oShard.mapped = std::distance(inverseMap.begin(), std::find(inverseMap.begin(), inverseMap.end(), oShard.mapped));
+
+            if (oShard.mapped < eqb.size()) {
+                oShard.unit = sepUnit;
+            } else {
+                oShard.mapped -= eqb.size();
+            }
+        }
+    }
+}
+
+
 std::ostream& operator<<(std::ostream& os, const QUnitCliffordPtr s)
 {
+    // s->MaxReduce();
+
     const size_t qubitCount = (size_t)s->GetQubitCount();
     os << qubitCount << std::endl;
 
