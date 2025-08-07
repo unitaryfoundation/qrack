@@ -2088,6 +2088,8 @@ void QStabilizerHybrid::ISwapHelper(bitLenInt qubit1, bitLenInt qubit2, bool inv
     FlushIfBlocked(qubit1, qubit2, false);
     FlushIfBlocked(qubit2, qubit1, false);
 
+    std::swap(shards[qubit1], shards[qubit2]);
+
     if (stabilizer) {
         rdmClone = nullptr;
         if (inverse) {
