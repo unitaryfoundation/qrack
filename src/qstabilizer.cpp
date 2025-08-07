@@ -1562,7 +1562,7 @@ std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target)
             } else {
                 bits |= x[b] | z[b] | x[bpn] | z[bpn];
                 for (const bitLenInt& i : toCheck) {
-                    bits[i] |= x[i][b] || z[i][b] || x[i+n][bpn] || z[i+n][bpn];
+                    bits[i] |= x[i][b] || z[i][b] || x[i+n][b] || z[i+n][b];
                 }
             }
 #else
