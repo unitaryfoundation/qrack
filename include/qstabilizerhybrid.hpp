@@ -99,7 +99,6 @@ protected:
     }
     bool EitherIsBuffered(bool logical)
     {
-        PruneAncillae();
         const size_t maxLcv = logical ? (size_t)qubitCount : shards.size();
         for (size_t i = 0U; i < maxLcv; ++i) {
             if (shards[i]) {
@@ -114,7 +113,6 @@ protected:
     bool IsLogicalBuffered() { return EitherIsBuffered(true); }
     bool EitherIsProbBuffered(bool logical)
     {
-        PruneAncillae();
         const size_t maxLcv = logical ? (size_t)qubitCount : shards.size();
         for (size_t i = 0U; i < maxLcv; ++i) {
             MpsShardPtr shard = shards[i];

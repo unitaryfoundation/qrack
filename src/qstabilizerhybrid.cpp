@@ -414,8 +414,6 @@ real1_f QStabilizerHybrid::ProbMaskRdm(bool roundRz, const bitCapInt& mask, cons
         return ProbAllRdm(roundRz, permutation);
     }
 
-    PruneAncillae();
-
     if (engine || !ancillaCount) {
         return ProbMask(mask, permutation);
     }
@@ -691,6 +689,8 @@ void QStabilizerHybrid::GetQuantumState(complex* outputState)
         return engine->GetQuantumState(outputState);
     }
 
+    PruneAncillae();
+
     if (!IsBuffered()) {
         return stabilizer->GetQuantumState(outputState);
     }
@@ -705,6 +705,8 @@ void QStabilizerHybrid::GetProbs(real1* outputProbs)
     if (engine) {
         return engine->GetProbs(outputProbs);
     }
+
+    PruneAncillae();
 
     if (!IsProbBuffered()) {
         return stabilizer->GetProbs(outputProbs);
@@ -1628,6 +1630,8 @@ bitCapInt QStabilizerHybrid::MAll()
     if (roundingThreshold > FP_NORM_EPSILON) {
         RdmCloneFlush(roundingThreshold);
     }
+
+    PruneAncillae();
 
     if (!IsProbBuffered()) {
         const bitCapInt toRet = stabilizer->MAll();
