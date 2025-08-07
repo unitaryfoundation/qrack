@@ -531,43 +531,6 @@ std::vector<complex> QUnitClifford::GetAmplitudes(std::vector<bitCapInt> perms)
     return toRet;
 }
 
-bool QUnitClifford::SeparateBit(bool value, bitLenInt qubit)
-{
-    CliffordShard& shard = shards[qubit];
-    const QStabilizerPtr unit = shard.unit;
-
-    if (unit->GetQubitCount() == 1U) {
-        unit->SetBit(0, value);
-
-        return true;
-    }
-
-    const bitLenInt mapped = shard.mapped;
-
-    if (!unit->TrySeparate(mapped)) {
-        // This conditional coaxes the unit into separable form, so this should never actually happen.
-        return false;
-    }
-
-    shard.unit = MakeStabilizer(1U, value);
-    shard.mapped = 0U;
-
-    unit->Dispose(mapped, 1U);
-    if (!randGlobalPhase) {
-        phaseOffset *= unit->GetPhaseOffset();
-        unit->ResetPhaseOffset();
-    }
-
-    // Update the mappings.
-    for (auto&& s : shards) {
-        if ((unit == s.unit) && (mapped < s.mapped)) {
-            --(s.mapped);
-        }
-    }
-
-    return true;
-}
-
 /// Measure qubit t
 bool QUnitClifford::ForceM(bitLenInt t, bool res, bool doForce, bool doApply)
 {
@@ -578,6 +541,7 @@ bool QUnitClifford::ForceM(bitLenInt t, bool res, bool doForce, bool doApply)
     const CliffordShard& shard = shards[t];
 
     const bool result = shard.unit->ForceM(shard.mapped, res, doForce, doApply);
+
     if (!randGlobalPhase) {
         phaseOffset *= shard.unit->GetPhaseOffset();
         shard.unit->ResetPhaseOffset();
@@ -587,7 +551,7 @@ bool QUnitClifford::ForceM(bitLenInt t, bool res, bool doForce, bool doApply)
         return result;
     }
 
-    SeparateBit(result, t);
+    TrySeparate(t);
 
     return result;
 }

@@ -151,8 +151,6 @@ protected:
 
     QInterfacePtr CloneBody(QUnitCliffordPtr copyPtr);
 
-    bool SeparateBit(bool value, bitLenInt qubit);
-
     void ThrowIfQubitInvalid(bitLenInt t, std::string methodName)
     {
         if (t >= qubitCount) {
