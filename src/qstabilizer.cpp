@@ -1558,25 +1558,16 @@ std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target)
             if (isTransposed) {
                 for (const bitLenInt& i : toCheck) {
                     bits[i] |= x[i][b] || z[i][b] || x[i][bpn] || z[i][bpn] || x[b][i] || z[b][i] || x[b][i+n] || z[b][i+n];
-                    if (bits.test(i)) {
-                        break;
-                    }
                 }
             } else {
                 bits = x[b] | z[b] | x[bpn] | z[bpn];
                 for (const bitLenInt& i : toCheck) {
                     bits[i] |= x[i][b] || z[i][b] || x[i+n][b] || z[i+n][bpn];
-                    if (bits.test(i)) {
-                        break;
-                    }
                 }
             }
 #else
             for (const bitLenInt& i : toCheck) {
                 bits[i] |= x[b][i] || z[b][i] || x[bpn][i] || z[bpn][i] || x[i][b] || z[i][b] || x[i+n][b] || z[i+n][b];
-                if (bits.test(i)) {
-                    break;
-                }
             }
 #endif
         }
