@@ -1532,11 +1532,15 @@ void QStabilizer::IS(bitLenInt t)
 /**
  * Returns all qubits entangled with "target" (including itself)
  */
-std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target)
+std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target, const bool& g)
 {
     // for brevity
     const bitLenInt n = qubitCount;
-    gaussian(false);
+    if (g) {
+        // This is technically necessary, but inefficient.
+        // Skipping it might return a larger set.
+        gaussian(false);
+    }
     BoolVector bits(qubitCount);
     bits[target] = true;
     BoolVector origBits;

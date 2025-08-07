@@ -458,7 +458,7 @@ public:
     real1_f ProbMask(const bitCapInt& mask, const bitCapInt& permutation);
 
     /// Returns all qubits entangled with "target" (including itself)
-    std::vector<bitLenInt> EntangledQubits(const bitLenInt& target);
+    std::vector<bitLenInt> EntangledQubits(const bitLenInt& target, const bool& g = true);
     /// Returns "true" if target qubit is a Z basis eigenstate
     bool IsSeparableZ(const bitLenInt& target);
     /// Returns "true" if target qubit is an X basis eigenstate

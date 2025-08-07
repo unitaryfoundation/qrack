@@ -787,7 +787,7 @@ bool QUnitClifford::TrySeparate(bitLenInt qubit)
         return true;
     }
 
-    std::vector<bitLenInt> eqb = unit->EntangledQubits(shard.mapped);
+    std::vector<bitLenInt> eqb = unit->EntangledQubits(shard.mapped, false);
     if (eqb.size() == qbc) {
         return false;
     }
