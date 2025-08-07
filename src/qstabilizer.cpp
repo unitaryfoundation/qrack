@@ -1530,6 +1530,69 @@ void QStabilizer::IS(bitLenInt t)
 }
 
 /**
+ * Returns all qubits entangled with "target" (including itself)
+ */
+std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target, const bool& g)
+{
+    // for brevity
+    const bitLenInt n = qubitCount;
+    if (g) {
+        // This is technically necessary, but inefficient.
+        // Skipping it might return a larger set.
+        gaussian(false);
+    }
+    BoolVector bits(qubitCount);
+    bits[target] = true;
+    BoolVector origBits;
+
+    do {
+        origBits = bits;
+
+        std::vector<bitLenInt> toCheck;
+        for (bitLenInt i = 0U; i < qubitCount; ++i) {
+            if (!bits.test(i)) {
+                toCheck.push_back(i);
+            }
+        }
+
+        for (bitLenInt b = 0U; b < qubitCount; ++b) {
+            if (!origBits.test(b)) {
+                continue;
+            }
+
+            const bitLenInt bpn = b + n;
+#if BOOST_AVAILABLE
+            if (isTransposed) {
+                for (const bitLenInt& i : toCheck) {
+                    bits[i] |= x[i][b] || z[i][b] || x[i][bpn] || z[i][bpn] || x[b][i] || z[b][i] || x[b][i + n] ||
+                        z[b][i + n];
+                }
+            } else {
+                bits |= x[b] | z[b] | x[bpn] | z[bpn];
+                for (const bitLenInt& i : toCheck) {
+                    bits[i] |= x[i][b] || z[i][b] || x[i + n][b] || z[i + n][b];
+                }
+            }
+#else
+            for (const bitLenInt& i : toCheck) {
+                bits[i] |=
+                    x[b][i] || z[b][i] || x[bpn][i] || z[bpn][i] || x[i][b] || z[i][b] || x[i + n][b] || z[i + n][b];
+            }
+#endif
+        }
+    } while (origBits != bits);
+
+    std::vector<bitLenInt> toReturn;
+    for (bitLenInt i = 0U; i < qubitCount; ++i) {
+        if (bits.test(i)) {
+            toReturn.push_back(i);
+        }
+    }
+
+    return toReturn;
+}
+
+/**
  * Returns "true" if target qubit is a Z basis eigenstate
  */
 bool QStabilizer::IsSeparableZ(const bitLenInt& t)

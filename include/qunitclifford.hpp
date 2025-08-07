@@ -42,6 +42,7 @@ struct CliffordShard {
 class QUnitClifford : public QInterface {
 protected:
     complex phaseOffset;
+    bool isReactiveSeparate;
     std::vector<CliffordShard> shards;
 
     using QInterface::Copy;
@@ -121,6 +122,9 @@ protected:
         QStabilizerPtr unit = EntangleInCurrentBasis(ebits.begin(), ebits.end());
         cfn(unit, bits[0U], bits[1U], mtrx);
         CombinePhaseOffsets(unit);
+        if (!isReactiveSeparate) {
+            return;
+        }
         TrySeparate(control);
         TrySeparate(target);
     }
@@ -138,6 +142,9 @@ protected:
         QStabilizerPtr unit = EntangleInCurrentBasis(ebits.begin(), ebits.end());
         ufn(unit, bits[0U], bits[1U]);
         CombinePhaseOffsets(unit);
+        if (!isReactiveSeparate) {
+            return;
+        }
         TrySeparate(control);
         TrySeparate(target);
     }
@@ -183,6 +190,9 @@ public:
         bool ignored2 = false, int64_t ignored3 = -1, bool useHardwareRNG = true, bool ignored4 = false,
         real1_f ignored5 = REAL1_EPSILON, std::vector<int64_t> ignored6 = {}, bitLenInt ignored7 = 0U,
         real1_f ignored8 = _qrack_qunit_sep_thresh);
+
+    void SetReactiveSeparate(bool isAggSep) { isReactiveSeparate = isAggSep; }
+    bool GetReactiveSeparate() { return isReactiveSeparate; }
 
     ~QUnitClifford() { Dump(); }
 
@@ -469,28 +479,41 @@ public:
     /// Get a single basis state amplitude
     std::vector<complex> GetAmplitudes(std::vector<bitCapInt> perms);
 
-    /**
-     * Returns "true" if target qubit is a Z basis eigenstate
-     */
+    /// Returns all qubits entangled with "qubit" (including itself)
+    std::vector<bitLenInt> EntangledQubits(const bitLenInt& qubit, const bool& g)
+    {
+        ThrowIfQubitInvalid(qubit, std::string("QUnitClifford::EntangledQubits"));
+        const CliffordShard& shard = shards[qubit];
+        QStabilizerPtr unit = shard.unit;
+        std::vector<bitLenInt> eqb = unit->EntangledQubits(shard.mapped, g);
+        for (bitLenInt i = 0U; i < eqb.size(); ++i) {
+            bitLenInt& qb = eqb[i];
+            for (bitLenInt j = 0U; j < qubitCount; ++j) {
+                const CliffordShard& oShard = shards[j];
+                if ((unit == oShard.unit) && (qb == oShard.mapped)) {
+                    qb = j;
+                    break;
+                }
+            }
+        }
+
+        return eqb;
+    }
+    /// Returns "true" if target qubit is a Z basis eigenstate
     bool IsSeparableZ(const bitLenInt& t)
     {
         ThrowIfQubitInvalid(t, std::string("QUnitClifford::IsSeparableZ"));
         CliffordShard& shard = shards[t];
         return shard.unit->IsSeparableZ(shard.mapped);
     }
-
-    /**
-     * Returns "true" if target qubit is an X basis eigenstate
-     */
+    /// Returns "true" if target qubit is an X basis eigenstate
     bool IsSeparableX(const bitLenInt& t)
     {
         ThrowIfQubitInvalid(t, std::string("QUnitClifford::IsSeparableX"));
         CliffordShard& shard = shards[t];
         return shard.unit->IsSeparableX(shard.mapped);
     }
-    /**
-     * Returns "true" if target qubit is a Y basis eigenstate
-     */
+    /// Returns "true" if target qubit is a Y basis eigenstate
     bool IsSeparableY(const bitLenInt& t)
     {
         ThrowIfQubitInvalid(t, std::string("QUnitClifford::IsSeparableY"));
@@ -782,6 +805,9 @@ public:
         QStabilizerPtr unit = EntangleInCurrentBasis(ebits.begin(), ebits.end());
         unit->FSim(theta, phi, c, t);
         CombinePhaseOffsets(unit);
+        if (!isReactiveSeparate) {
+            return;
+        }
         TrySeparate(c);
         TrySeparate(t);
     }

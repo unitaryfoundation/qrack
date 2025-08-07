@@ -457,17 +457,13 @@ public:
     /// Direct measure of masked permutation probability
     real1_f ProbMask(const bitCapInt& mask, const bitCapInt& permutation);
 
-    /**
-     * Returns "true" if target qubit is a Z basis eigenstate
-     */
+    /// Returns all qubits entangled with "target" (including itself)
+    std::vector<bitLenInt> EntangledQubits(const bitLenInt& target, const bool& g = true);
+    /// Returns "true" if target qubit is a Z basis eigenstate
     bool IsSeparableZ(const bitLenInt& target);
-    /**
-     * Returns "true" if target qubit is an X basis eigenstate
-     */
+    /// Returns "true" if target qubit is an X basis eigenstate
     bool IsSeparableX(const bitLenInt& target);
-    /**
-     * Returns "true" if target qubit is a Y basis eigenstate
-     */
+    /// Returns "true" if target qubit is a Y basis eigenstate
     bool IsSeparableY(const bitLenInt& target);
     /**
      * Returns:
