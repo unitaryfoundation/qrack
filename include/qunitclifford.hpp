@@ -151,8 +151,6 @@ protected:
 
     QInterfacePtr CloneBody(QUnitCliffordPtr copyPtr);
 
-    bool SeparateBit(bool value, bitLenInt qubit);
-
     void ThrowIfQubitInvalid(bitLenInt t, std::string methodName)
     {
         if (t >= qubitCount) {
@@ -835,7 +833,9 @@ public:
 
         return q1 && q2;
     }
+    std::vector<bitLenInt> MaxReduce(bitLenInt qubit);
     void MaxReduce();
+    bool SeparateBit(bool value, bitLenInt qubit);
 
     friend std::ostream& operator<<(std::ostream& os, const QUnitCliffordPtr s);
     friend std::istream& operator>>(std::istream& is, const QUnitCliffordPtr s);

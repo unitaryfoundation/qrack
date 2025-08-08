@@ -1583,8 +1583,8 @@ std::vector<bitLenInt> QStabilizer::EntangledQubits(const bitLenInt& target, con
             }
 #else
             for (const bitLenInt& i : toCheck) {
-                bits[i] =
-                    bits[i] || x[b][i] || z[b][i] || x[bpn][i] || z[bpn][i] || x[i][b] || z[i][b] || x[i + n][b] || z[i + n][b];
+                bits[i] = bits[i] || x[b][i] || z[b][i] || x[bpn][i] || z[bpn][i] || x[i][b] || z[i][b] ||
+                    x[i + n][b] || z[i + n][b];
             }
 #endif
         }

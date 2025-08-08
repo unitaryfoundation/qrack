@@ -844,52 +844,69 @@ bool QUnitClifford::TrySeparate(bitLenInt qubit)
     return true;
 }
 
+std::vector<bitLenInt> QUnitClifford::MaxReduce(bitLenInt qb)
+{
+    CliffordShard& shard = shards[qb];
+    QStabilizerPtr unit = shard.unit;
+    const bitLenInt qbc = unit->GetQubitCount();
+
+    if (qbc == 1U) {
+        return std::vector<bitLenInt>{ qb };
+    }
+
+    std::vector<bitLenInt> eqb = unit->EntangledQubits(shard.mapped, true);
+    if (eqb.size() == qbc) {
+        return eqb;
+    }
+
+    std::vector<bitLenInt> inverseMap(qbc);
+    std::iota(inverseMap.begin(), inverseMap.end(), 0U);
+    for (bitLenInt i = 0U; i < eqb.size(); ++i) {
+        if (i == eqb[i]) {
+            continue;
+        }
+        unit->Swap(i, eqb[i]);
+        std::swap(inverseMap[i], inverseMap[eqb[i]]);
+    }
+
+    // Otherwise, this shard can be decomposed.
+    QStabilizerPtr sepUnit = std::dynamic_pointer_cast<QStabilizer>(unit->Decompose(0U, eqb.size()));
+
+    std::vector<bitLenInt> toReturn;
+    toReturn.reserve(eqb.size());
+    for (bitLenInt i = 0U; i < qubitCount; ++i) {
+        CliffordShard& oShard = shards[i];
+        if (unit != oShard.unit) {
+            continue;
+        }
+
+        oShard.mapped =
+            std::distance(inverseMap.begin(), std::find(inverseMap.begin(), inverseMap.end(), oShard.mapped));
+
+        if (oShard.mapped < eqb.size()) {
+            oShard.unit = sepUnit;
+            toReturn.push_back(i);
+        } else {
+            oShard.mapped -= eqb.size();
+        }
+    }
+
+    return toReturn;
+}
+
 void QUnitClifford::MaxReduce()
 {
-    for (bitLenInt qb = 0U; qb < qubitCount; ++qb) {
-        CliffordShard& shard = shards[qb];
-        QStabilizerPtr unit = shard.unit;
-        const bitLenInt qbc = unit->GetQubitCount();
-
-        if (qbc == 1U) {
+    std::set<bitLenInt> qubits;
+    for (bitLenInt i = 0U; i < qubitCount; ++i) {
+        if (qubits.find(i) != qubits.end()) {
             continue;
         }
-
-        std::vector<bitLenInt> eqb = unit->EntangledQubits(shard.mapped, true);
-        if (eqb.size() == qbc) {
-            continue;
-        }
-
-        std::vector<bitLenInt> inverseMap(qbc);
-        std::iota(inverseMap.begin(), inverseMap.end(), 0U);
-        for (bitLenInt i = 0U; i < eqb.size(); ++i) {
-            if (i == eqb[i]) {
-                continue;
-            }
-            unit->Swap(i, eqb[i]);
-            std::swap(inverseMap[i], inverseMap[eqb[i]]);
-        }
-
-        // Otherwise, this shard can be decomposed.
-        QStabilizerPtr sepUnit = std::dynamic_pointer_cast<QStabilizer>(unit->Decompose(0U, eqb.size()));
-
-        for (bitLenInt i = 0U; i < qubitCount; ++i) {
-            CliffordShard& oShard = shards[i];
-            if (unit != oShard.unit) {
-                continue;
-            }
-
-            oShard.mapped = std::distance(inverseMap.begin(), std::find(inverseMap.begin(), inverseMap.end(), oShard.mapped));
-
-            if (oShard.mapped < eqb.size()) {
-                oShard.unit = sepUnit;
-            } else {
-                oShard.mapped -= eqb.size();
-            }
+        const std::vector<bitLenInt> removed = MaxReduce(i);
+        for (const bitLenInt& qb : removed) {
+            qubits.insert(qb);
         }
     }
 }
-
 
 std::ostream& operator<<(std::ostream& os, const QUnitCliffordPtr s)
 {
