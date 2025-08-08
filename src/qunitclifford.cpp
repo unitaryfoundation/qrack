@@ -138,6 +138,8 @@ real1_f QUnitClifford::ProbPermRdm(const bitCapInt& perm, bitLenInt ancillaeStar
         }
     }
 
+    MaxReduce();
+
     std::map<QStabilizerPtr, bitCapInt> permMap;
     for (size_t i = 0U; i < ancillaeStart; ++i) {
         if (bi_compare_0(perm & pow2(i)) == 0) {
