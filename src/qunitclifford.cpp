@@ -57,6 +57,10 @@ real1_f QUnitClifford::ExpVarBitsFactorized(
     ThrowIfQbIdArrayIsBad(bits, qubitCount,
         "QUnitClifford::ExpectationBitsAll parameter qubits vector values must be within allocated qubit bounds!");
 
+    for (size_t i = 0U; i < bits.size(); ++i) {
+        MaxReduce(bits[i]);
+    }
+
     std::map<QStabilizerPtr, std::vector<bitLenInt>> qubitMap;
     std::map<QStabilizerPtr, std::vector<bitCapInt>> permMap;
     for (size_t i = 0U; i < bits.size(); ++i) {
@@ -91,6 +95,10 @@ real1_f QUnitClifford::ExpVarFloatsFactorized(
     ThrowIfQbIdArrayIsBad(bits, qubitCount,
         "QUnitClifford::ExpectationFloatsFactorized parameter qubits vector values must be within allocated qubit "
         "bounds!");
+
+    for (size_t i = 0U; i < bits.size(); ++i) {
+        MaxReduce(bits[i]);
+    }
 
     std::map<QStabilizerPtr, std::vector<bitLenInt>> qubitMap;
     std::map<QStabilizerPtr, std::vector<real1_f>> weightMap;
@@ -161,6 +169,10 @@ real1_f QUnitClifford::ProbMask(const bitCapInt& mask, const bitCapInt& perm)
         bitCapInt oldV = v;
         bi_and_ip(&v, v - ONE_BCI); // clear the least significant bit set
         bits.push_back(log2((v ^ oldV) & oldV));
+    }
+
+    for (size_t i = 0U; i < bits.size(); ++i) {
+        MaxReduce(bits[i]);
     }
 
     std::map<QStabilizerPtr, bitCapInt> maskMap;
@@ -460,6 +472,8 @@ complex QUnitClifford::GetAmplitude(const bitCapInt& perm)
         throw std::invalid_argument("QUnitClifford::GetAmplitudeOrProb argument out-of-bounds!");
     }
 
+    MaxReduce();
+
     std::map<QStabilizerPtr, bitCapInt> perms;
     for (bitLenInt i = 0U; i < qubitCount; ++i) {
         CliffordShard& shard = shards[i];
@@ -485,6 +499,8 @@ complex QUnitClifford::GetAmplitude(const bitCapInt& perm)
 /// Convert the state to ket notation (warning: could be huge!)
 std::vector<complex> QUnitClifford::GetAmplitudes(std::vector<bitCapInt> perms)
 {
+    MaxReduce();
+
     std::map<QStabilizerPtr, std::set<bitCapInt>> permsMap;
     for (const auto& perm : perms) {
         std::map<QStabilizerPtr, bitCapInt> permMap;
@@ -613,7 +629,9 @@ std::map<bitCapInt, int> QUnitClifford::MultiShotMeasureMask(const std::vector<b
     ThrowIfQbIdArrayIsBad(qIndices, qubitCount,
         "QUnitClifford::MultiShotMeasureMask parameter qPowers array values must be within allocated qubit bounds!");
 
-    MaxReduce();
+    for (size_t i = 0U; i < qIndices.size(); ++i) {
+        MaxReduce(qIndices[i]);
+    }
 
     std::map<QStabilizerPtr, std::vector<bitCapInt>> subQPowers;
     std::map<QStabilizerPtr, std::vector<bitCapInt>> subIQPowers;
@@ -910,7 +928,7 @@ void QUnitClifford::MaxReduce()
 
 std::ostream& operator<<(std::ostream& os, const QUnitCliffordPtr s)
 {
-    // s->MaxReduce();
+    s->MaxReduce();
 
     const size_t qubitCount = (size_t)s->GetQubitCount();
     os << qubitCount << std::endl;

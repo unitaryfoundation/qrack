@@ -226,6 +226,7 @@ public:
 
     bitCapInt PermCount()
     {
+        MaxReduce();
         std::map<QStabilizerPtr, QStabilizerPtr> engines;
         bitCapInt permCount = ONE_BCI;
         for (CliffordShard& shard : shards) {
