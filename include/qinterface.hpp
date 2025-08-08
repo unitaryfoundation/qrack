@@ -304,6 +304,12 @@ public:
      */
     virtual void GetQuantumState(complex* outputState) = 0;
 
+    /** Get a reduced density matrix on the list of qubits
+     *
+     * \warning PSEUDO-QUANTUM
+     */
+    virtual void GetReducedDensityMatrix(const std::vector<bitLenInt>& qubits, complex* outputState);
+
     /** Get the pure quantum state representation
      *
      * \warning PSEUDO-QUANTUM

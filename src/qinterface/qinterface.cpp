@@ -850,6 +850,65 @@ bool QInterface::TryDecompose(bitLenInt start, QInterfacePtr dest, real1_f error
     return didSeparate;
 }
 
+void QInterface::GetReducedDensityMatrix(const std::vector<bitLenInt>& qubits, complex* outputState)
+{
+    const bitLenInt nQubits = GetQubitCount();
+    const bitLenInt keptQubits = (bitLenInt)qubits.size();
+    const bitCapIntOcl dimKept = pow2Ocl(keptQubits);
+    const bitLenInt envQubits = nQubits - keptQubits;
+    const bitCapInt dimEnv = pow2(envQubits);
+
+    std::fill(outputState, outputState + dimKept * dimKept, complex{ ZERO_R1, ZERO_R1 });
+
+    // Precompute bit positions for kept qubits and env qubits
+    std::vector<bitLenInt> keptBitPos = qubits;
+    std::vector<bool> isKept(nQubits, false);
+    for (auto q : keptBitPos) {
+        isKept[q] = true;
+    }
+
+    std::vector<bitLenInt> envBitPos;
+    envBitPos.reserve(envQubits);
+    for (bitLenInt q = 0; q < nQubits; ++q) {
+        if (!isKept[q]) {
+            envBitPos.push_back(q);
+        }
+    }
+
+    // Precompute full-index masks for each kept basis state given an env pattern
+    // We build a base index for each env state where kept qubits are all zero
+    for (bitCapInt envState = ZERO_BCI; envState < dimEnv; ++envState) {
+        bitCapInt envBaseIndex = ZERO_BCI;
+        for (bitLenInt e = 0U; e < envQubits; ++e)
+            if (bi_and_1(envState >> e)) {
+                envBaseIndex = envBaseIndex | pow2(envBitPos[e]);
+            }
+
+        // For each pair of kept basis states, accumulate contributions
+        for (bitCapIntOcl kept_i = 0U; kept_i < dimKept; ++kept_i) {
+            bitCapInt fullIndex_i = envBaseIndex;
+            for (bitLenInt k = 0U; k < keptQubits; ++k) {
+                if (bi_and_1(kept_i >> k)) {
+                    fullIndex_i = fullIndex_i | pow2(keptBitPos[k]);
+                }
+            }
+
+            const complex amp_i = GetAmplitude(fullIndex_i);
+
+            for (bitCapIntOcl kept_j = 0U; kept_j < dimKept; ++kept_j) {
+                bitCapInt fullIndex_j = envBaseIndex;
+                for (bitLenInt k = 0U; k < keptQubits; ++k) {
+                    if (bi_and_1(kept_j >> k)) {
+                        fullIndex_j = fullIndex_j | pow2(keptBitPos[k]);
+                    }
+                }
+
+                outputState[kept_i * dimKept + kept_j] += amp_i * std::conj(GetAmplitude(fullIndex_j));
+            }
+        }
+    }
+}
+
 #define REG_GATE_1(gate)                                                                                               \
     void QInterface::gate(bitLenInt start, bitLenInt length)                                                           \
     {                                                                                                                  \

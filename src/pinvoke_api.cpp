@@ -1230,6 +1230,45 @@ MICROSOFT_QUANTUM_DECL void OutKet(_In_ uintq sid, _In_ real1_s* ket)
 }
 
 /**
+ * (External API) Get reduced density matrix for the selected simulator ID and qubits.
+ */
+MICROSOFT_QUANTUM_DECL void OutReducedDensityMatrix(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, real1_s* rdm)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+
+    std::vector<bitLenInt> _q;
+    _q.reserve(n);
+    for (uintq i = 0U; i < n; ++i) {
+        _q.push_back(q[i]);
+    }
+
+#if (FPPOW == 5) || (FPPOW == 6)
+    try {
+        simulator->GetReducedDensityMatrix(_q, reinterpret_cast<complex*>(rdm));
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+#else
+    const size_t maxQPower = (size_t)pow2Ocl(n);
+    const size_t maxQPowerMult2 = maxQPower << 1U;
+    std::unique_ptr<complex[]> _rdm(new complex[maxQPower]);
+
+    try {
+        simulator->GetQuantumState(_q, _rdm.get());
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+
+        return;
+    }
+
+    real1* _rdm_comp = reinterpret_cast<real1*>(_rdm.get());
+    std::transform(_rdm_comp, _rdm_comp + maxQPowerMult2, rdm, [](real1 c) { return (real1_s)c; });
+#endif
+}
+
+/**
  * (External API) Get basis dimension probabilities for the selected simulator ID.
  */
 MICROSOFT_QUANTUM_DECL void OutProbs(_In_ uintq sid, _In_ real1_s* probs)
