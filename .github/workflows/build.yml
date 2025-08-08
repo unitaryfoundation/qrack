@@ -152,15 +152,7 @@ jobs:
 
       - name: Install vcpkg dependencies
         run: |
-          vcpkg install opencl
-
-      - name: Install Boost
-        uses: MarkusJx/install-boost@v1.0.1
-        id: install-boost
-        with:
-          boost_version: 1.72.0
-          toolset: msvc14.2
-          boost_install_dir: D:/a/qrack
+          vcpkg install opencl boost
 
       - name: Build Qrack Windows x86-64
         run: |
@@ -168,7 +160,7 @@ jobs:
           cd build
           powershell -c "Invoke-WebRequest -Uri 'https://github.com/ckormanyos/xxd/releases/download/v1.1/xxd-win64-msvc.zip' -OutFile 'xxd-win64-msvc.zip'"
           powershell -c "Expand-Archive -Path xxd-win64-msvc.zip -DestinationPath ."
-          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=9 -DCPP_STD=14 -DBoost_INCLUDE_DIR="D:/a/qrack" -DBoost_LIBRARY_DIRS="D:/a/qrack"
+          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=9 -DCPP_STD=14
           cmake --build . --config Release --target PACKAGE benchmarks
 
       - name: Upload Artifacts
