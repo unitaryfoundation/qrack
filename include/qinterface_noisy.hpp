@@ -213,11 +213,17 @@ public:
     {
         engine->MCMtrx(controls, mtrx, target);
         Apply1QbNoise(target);
+        for (const bitLenInt& control : controls) {
+            Apply1QbNoise(control);
+        }
     }
     void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
     {
         engine->MACMtrx(controls, mtrx, target);
         Apply1QbNoise(target);
+        for (const bitLenInt& control : controls) {
+            Apply1QbNoise(control);
+        }
     }
 
     using QInterface::UniformlyControlledSingleBit;
