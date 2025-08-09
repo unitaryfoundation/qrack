@@ -879,10 +879,11 @@ void QInterface::GetReducedDensityMatrix(const std::vector<bitLenInt>& qubits, c
     // We build a base index for each env state where kept qubits are all zero
     for (bitCapInt envState = ZERO_BCI; envState < dimEnv; ++envState) {
         bitCapInt envBaseIndex = ZERO_BCI;
-        for (bitLenInt e = 0U; e < envQubits; ++e)
+        for (bitLenInt e = 0U; e < envQubits; ++e) {
             if (bi_and_1(envState >> e)) {
                 envBaseIndex = envBaseIndex | pow2(envBitPos[e]);
             }
+        }
 
         // For each pair of kept basis states, accumulate contributions
         for (bitCapIntOcl kept_i = 0U; kept_i < dimKept; ++kept_i) {
