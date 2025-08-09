@@ -1,3 +1,27 @@
+libqrack (9.25.4) bionic; urgency=medium
+
+  * Optimized Clifford (Bionic 4/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Fri, 08 Aug 2025 21:50:10 -0400
+
+libqrack (9.25.3) focal; urgency=medium
+
+  * Optimized Clifford (Focal 3/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Fri, 08 Aug 2025 21:48:21 -0400
+
+libqrack (9.25.2) jammy; urgency=medium
+
+  * Optimized Clifford (Jammy 2/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Fri, 08 Aug 2025 21:46:24 -0400
+
+libqrack (9.25.1) noble; urgency=medium
+
+  * Optimized Clifford (Noble 1/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Fri, 08 Aug 2025 21:44:00 -0400
+
 libqrack (9.21.4) bionic; urgency=medium
 
   * QrackAceBackend support (Bionic 4/4)
