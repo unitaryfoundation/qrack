@@ -1,7 +1,7 @@
 Source: @CPACK_PACKAGE_NAME@
 Priority: optional
 Maintainer: Daniel Strano <dan@unitary.fund>
-Build-Depends: debhelper-compat (= @DEBHELPER_COMPAT_VERSION@), make, gcc, g++, cmake (>= 3), libc6-dev, @CPACK_DEBIAN_PACKAGE_BUILD_DEPENDS@
+Build-Depends: debhelper-compat (= @DEBHELPER_COMPAT_VERSION@), make, gcc, g++, cmake (>= 3), libc6-dev, libboost-dev, @CPACK_DEBIAN_PACKAGE_BUILD_DEPENDS@
 Standards-Version: 4.4.1
 Section: libs
 Homepage: https://github.com/unitaryfund/qrack
@@ -12,7 +12,7 @@ Package: @CPACK_PACKAGE_NAME@-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Built-Using: make, gcc, g++, cmake (>= 3), @CPACK_DEBIAN_PACKAGE_BUILD_DEPENDS@
+Built-Using: make, gcc, g++, cmake (>= 3), libboost-dev, @CPACK_DEBIAN_PACKAGE_BUILD_DEPENDS@
 Depends: @CPACK_PACKAGE_NAME@ (= @CMAKE_PROJECT_VERSION@), ${shlibs:Depends}, ${misc:Depends}, @CPACK_DEBIAN_PACKAGE_DEPENDS@
 Description: unitaryfund/qrack quantum computer simulator library
  unitaryfund/qrack (or vm6502q/qrack) quantum computer simulator library
@@ -20,7 +20,7 @@ Description: unitaryfund/qrack quantum computer simulator library
 Package: @CPACK_PACKAGE_NAME@
 Architecture: any
 Multi-Arch: same
-Built-Using: make, gcc, g++, cmake (>= 3), @CPACK_DEBIAN_PACKAGE_BUILD_DEPENDS@
+Built-Using: make, gcc, g++, cmake (>= 3), libboost-dev, @CPACK_DEBIAN_PACKAGE_BUILD_DEPENDS@
 Depends: ${shlibs:Depends}, ${misc:Depends}, @CPACK_DEBIAN_PACKAGE_DEPENDS@
 Description: unitaryfund/qrack quantum computer simulator library
  unitaryfund/qrack (or vm6502q/qrack) quantum computer simulator library
