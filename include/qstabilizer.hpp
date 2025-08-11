@@ -371,7 +371,7 @@ public:
      */
     bitLenInt gaussian(bool s = true);
 
-    bitCapInt PermCount() { return pow2(gaussian()); }
+    bitCapInt PermCount() { return pow2(gaussian(false)); }
 
     void SetQuantumState(const complex* inputState);
     void SetAmplitude(const bitCapInt& perm, const complex& amp)
