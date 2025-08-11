@@ -188,9 +188,7 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
     e1 ^= ~e0 & exp;
     e0 ^= exp;
 
-    for (bitLenInt j = 0U; j < qubitCount; ++j) {
-        e += (e0.test(j) ? 1U : 0U) + (e1.test(j) ? 2U : 0U);
-    }
+    e = e0.count() + (e1.count() << 1U);
 #else
     for (bitLenInt j = 0U; j < qubitCount; ++j) {
         // X
