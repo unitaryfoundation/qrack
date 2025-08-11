@@ -159,9 +159,38 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
     const BoolVector& xk = x[k];
     const BoolVector& zk = z[k];
 
+#if BOOST_AVAILABLE
     // Power to which i is raised
-    bitLenInt e = 0U;
+    BoolVector e0(r[0U].size());
+    BoolVector e1(r[1U].size());
 
+    BoolVector condition = xk & ~zk;
+    e0 = condition & xi & zi;
+    BoolVector exp = condition & ~xi & zi;
+    e1 = ~e0 & exp;
+    e0 ^= exp;
+
+    condition = xk & zk;
+    exp = condition & ~xi & zi;
+    e1 ^= e0 & exp;
+    e0 ^= exp;
+    exp = condition & xi & ~zi;
+    e1 ^= ~e0 & exp;
+    e0 ^= exp;
+
+    condition = ~xk & zk;
+    exp = condition & xi & ~zi;
+    e1 ^= e0 & exp;
+    e0 ^= exp;
+    exp = condition & xi & zi;
+    e1 ^= ~e0 & exp;
+    e0 ^= exp;
+
+    bitLenInt e = 0U;
+    for (bitLenInt j = 0U; j < qubitCount; ++j) {
+        e += (e0.test(j) ? 1U : 0U) + (e1.test(j) ? 2U : 0U);
+    }
+#else
     for (bitLenInt j = 0U; j < qubitCount; ++j) {
         // X
         if (xk[j] && !zk[j]) {
@@ -185,6 +214,7 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
             e -= xi[j] && zi[j];
         }
     }
+#endif
 
     e = (e + GetR(i) + GetR(k)) & 0x3U;
 
