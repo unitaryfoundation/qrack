@@ -43,6 +43,8 @@ QStabilizer::QStabilizer(bitLenInt n, const bitCapInt& perm, qrack_rand_gen_ptr 
     , rawRandBools(0U)
     , rawRandBoolsRemaining(0U)
     , phaseOffset(ZERO_R1)
+    , isGaussianCached(false)
+    , gaussianCached(0U)
 #if BOOST_AVAILABLE
     , isTransposed(false)
 #endif
@@ -83,6 +85,8 @@ QInterfacePtr QStabilizer::Clone()
     clone->z = z;
     clone->r = r;
     clone->phaseOffset = phaseOffset;
+    clone->isGaussianCached = isGaussianCached;
+    clone->gaussianCached = gaussianCached;
 #if BOOST_AVAILABLE
     clone->isTransposed = isTransposed;
 #endif
@@ -105,6 +109,8 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
 #else
     const bitLenInt rowCount = (qubitCount << 1U);
 #endif
+
+    isGaussianCached = false;
 
     if (phaseFac != CMPLX_DEFAULT_ARG) {
         phaseOffset = std::arg(phaseFac);
@@ -245,6 +251,14 @@ bitLenInt QStabilizer::gaussian(bool s)
     SetTransposeState(false);
 #endif
 
+    if (isGaussianCached) {
+        if (s) {
+            seed(gaussianCached);
+        }
+
+        return gaussianCached;
+    }
+
     // For brevity:
     const bitLenInt& n = qubitCount;
     const bitLenInt maxLcv = n << 1U;
@@ -301,6 +315,9 @@ bitLenInt QStabilizer::gaussian(bool s)
     if (s) {
         seed(g);
     }
+
+    isGaussianCached = true;
+    gaussianCached = g;
 
     return g;
 }
@@ -911,6 +928,8 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
         return H(t);
     }
 
+    isGaussianCached = false;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
     ValidateQubitIndex(t);
@@ -954,6 +973,8 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
         return H(t);
     }
 
+    isGaussianCached = false;
+
 #if BOOST_AVAILABLE
     SetTransposeState(true);
 
@@ -993,6 +1014,8 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
         CNOT(c, t);
         return S(t);
     }
+
+    isGaussianCached = false;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1041,6 +1064,8 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
         AntiCNOT(c, t);
         return S(t);
     }
+
+    isGaussianCached = false;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1095,6 +1120,8 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
     const AmplitudeEntry ampEntry =
         randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(c, false);
 
+    isGaussianCached = false;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
     ValidateQubitIndex(t);
@@ -1146,6 +1173,8 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
 
     const AmplitudeEntry ampEntry = randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(c, true);
 
+    isGaussianCached = false;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
     ValidateQubitIndex(t);
@@ -1194,6 +1223,8 @@ void QStabilizer::Swap(bitLenInt c, bitLenInt t)
         return QInterface::Swap(c, t);
     }
 
+    isGaussianCached = false;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
     ValidateQubitIndex(t);
@@ -1222,6 +1253,8 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
     if (!randGlobalPhase) {
         return QInterface::ISwap(c, t);
     }
+
+    isGaussianCached = false;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1285,6 +1318,8 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
         return QInterface::IISwap(c, t);
     }
 
+    isGaussianCached = false;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
     ValidateQubitIndex(t);
@@ -1340,6 +1375,8 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
 void QStabilizer::H(bitLenInt t)
 {
     const QStabilizerPtr clone = randGlobalPhase ? nullptr : std::dynamic_pointer_cast<QStabilizer>(Clone());
+
+    isGaussianCached = false;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
@@ -1411,6 +1448,8 @@ void QStabilizer::X(bitLenInt t)
         return H(t);
     }
 
+    isGaussianCached = false;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
     SetTransposeState(true);
@@ -1435,6 +1474,8 @@ void QStabilizer::Y(bitLenInt t)
         X(t);
         return S(t);
     }
+
+    isGaussianCached = false;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
@@ -1463,6 +1504,8 @@ void QStabilizer::Z(bitLenInt t)
 
     const AmplitudeEntry ampEntry =
         randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(t, false);
+
+    isGaussianCached = false;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
@@ -1497,6 +1540,8 @@ void QStabilizer::S(bitLenInt t)
 
     const AmplitudeEntry ampEntry =
         randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(t, false);
+
+    isGaussianCached = false;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
@@ -1540,6 +1585,8 @@ void QStabilizer::IS(bitLenInt t)
 
     const AmplitudeEntry ampEntry =
         randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(t, false);
+
+    isGaussianCached = false;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
@@ -1786,6 +1833,8 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
 
         const QStabilizerPtr clone = randGlobalPhase ? nullptr : std::dynamic_pointer_cast<QStabilizer>(Clone());
 
+        isGaussianCached = false;
+
         // Set Xbar_p := Zbar_p
         rowcopy(p, p + n);
         // Set Zbar_p := Z_b
@@ -1901,6 +1950,8 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
     toCopy->Finish();
     Finish();
 
+    isGaussianCached = false;
+
     SetPhaseOffset(phaseOffset + toCopy->phaseOffset);
 
     const bitLenInt length = toCopy->qubitCount;
@@ -1912,6 +1963,8 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
 
     QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
         false, randGlobalPhase, false, -1, !!hardware_rand_generator);
+
+    nQubits->isGaussianCached = false;
 
     nQubits->r[0U].reset();
     nQubits->r[1U].reset();
@@ -2150,6 +2203,8 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     QStabilizerPtr nQubits = std::make_shared<QStabilizer>(nQubitCount, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG,
         false, randGlobalPhase, false, -1, !!hardware_rand_generator);
 
+    nQubits->isGaussianCached = false;
+
     nQubits->r[0U].reset();
     nQubits->r[1U].reset();
     for (bitLenInt i = 0U; i < nQubits->x.size(); ++i) {
@@ -2289,6 +2344,8 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         zi.erase(zi.begin() + start, zi.begin() + end);
     }
 #endif
+
+    isGaussianCached = false;
 
     if (randGlobalPhase || dest) {
         return;

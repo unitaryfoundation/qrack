@@ -52,6 +52,8 @@ protected:
     unsigned rawRandBoolsRemaining;
     real1 phaseOffset;
     bitLenInt maxStateMapCacheQubitCount;
+    bool isGaussianCached;
+    bitLenInt gaussianCached;
 #if BOOST_AVAILABLE
     bool isTransposed;
 #endif
@@ -111,6 +113,8 @@ protected:
         rawRandBools = orig->rawRandBools;
         rawRandBoolsRemaining = orig->rawRandBoolsRemaining;
         phaseOffset = orig->phaseOffset;
+        isGaussianCached = orig->isGaussianCached;
+        gaussianCached = orig->gaussianCached;
 #if BOOST_AVAILABLE
         isTransposed = orig->isTransposed;
 #endif
