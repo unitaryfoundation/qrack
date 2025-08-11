@@ -163,30 +163,43 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
     bitLenInt e = 0U;
 
 #if BOOST_AVAILABLE
-    BoolVector e0(r[0U].size());
-    BoolVector e1(r[1U].size());
+    // Build the phase-bit-0 and phase-bit-1 masks directly
+    BoolVector e0, e1;
 
-    BoolVector condition = xk & ~zk;
-    e0 = condition & xi & zi;
-    BoolVector exp = condition & ~xi & zi;
-    e1 = ~e0 & exp;
-    e0 ^= exp;
+    // X & ~Z case
+    {
+        BoolVector cond = xk & ~zk;
+        BoolVector exp = cond & ~xi & zi;
+        // XY = iZ  → phase +1
+        e0 = cond & xi & zi;
+        // XZ = -iY → phase +2
+        e1 = ~e0 & exp;
+        e0 ^= exp;
+    }
 
-    condition = xk & zk;
-    exp = condition & ~xi & zi;
-    e1 ^= e0 & exp;
-    e0 ^= exp;
-    exp = condition & xi & ~zi;
-    e1 ^= ~e0 & exp;
-    e0 ^= exp;
+    // X & Z case (Y)
+    {
+        BoolVector cond = xk & zk;
+        BoolVector exp = cond & ~xi & zi;
+        e1 ^= e0 & exp;  // YZ = iX
+        e0 ^= exp;
 
-    condition = ~xk & zk;
-    exp = condition & xi & ~zi;
-    e1 ^= e0 & exp;
-    e0 ^= exp;
-    exp = condition & xi & zi;
-    e1 ^= ~e0 & exp;
-    e0 ^= exp;
+        exp = cond & xi & ~zi;
+        e1 ^= (~e0) & exp; // YX = -iZ
+        e0 ^= exp;
+    }
+
+    // ~X & Z case
+    {
+        BoolVector cond = ~xk & zk;
+        BoolVector exp = cond & xi & ~zi;
+        e1 ^= e0 & exp;  // ZX = iY
+        e0 ^= exp;
+
+        exp = cond & xi & zi;
+        e1 ^= (~e0) & exp; // ZY = -iX
+        e0 ^= exp;
+    }
 
     e = e0.count() + (e1.count() << 1U);
 #else
