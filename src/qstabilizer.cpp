@@ -181,7 +181,7 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
     {
         BoolVector cond = xk & zk;
         BoolVector exp = cond & ~xi & zi;
-        e1 ^= e0 & exp;  // YZ = iX
+        e1 ^= e0 & exp; // YZ = iX
         e0 ^= exp;
 
         exp = cond & xi & ~zi;
@@ -193,7 +193,7 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
     {
         BoolVector cond = ~xk & zk;
         BoolVector exp = cond & xi & ~zi;
-        e1 ^= e0 & exp;  // ZX = iY
+        e1 ^= e0 & exp; // ZX = iY
         e0 ^= exp;
 
         exp = cond & xi & zi;
@@ -1846,27 +1846,26 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
     // generators
 
     // pivot row in destabilizer
-    bitLenInt m;
 #if BOOST_AVAILABLE
     if (isTransposed) {
         const auto pos = x[t].find_first();
-        m = ((pos == BoolVector::npos) || (pos >= n)) ? n : (bitLenInt)pos;
+        p = ((pos == BoolVector::npos) || (pos >= n)) ? n : (bitLenInt)pos;
     } else {
-        for (m = 0U; m < n; ++m) {
-            if (x[m][t]) {
+        for (p = 0U; p < n; ++p) {
+            if (x[p][t]) {
                 break;
             }
         }
     }
 #else
-    for (m = 0U; m < n; ++m) {
-        if (x[m][t]) {
+    for (p = 0U; p < n; ++p) {
+        if (x[p][t]) {
             break;
         }
     }
 #endif
 
-    if (m >= n) {
+    if (p == n) {
         // For example, diagonal permutation state is |0>.
         return false;
     }
@@ -1875,8 +1874,8 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
     SetTransposeState(false);
 #endif
 
-    rowcopy(elemCount, m + n);
-    for (bitLenInt i = m + 1U; i < n; ++i) {
+    rowcopy(elemCount, p + n);
+    for (bitLenInt i = p + 1U; i < n; ++i) {
         if (x[i][t]) {
             rowmult(elemCount, i + n);
         }
