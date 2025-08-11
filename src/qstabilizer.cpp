@@ -159,8 +159,10 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
     const BoolVector& xk = x[k];
     const BoolVector& zk = z[k];
 
-#if BOOST_AVAILABLE
     // Power to which i is raised
+    bitLenInt e = 0U;
+
+#if BOOST_AVAILABLE
     BoolVector e0(r[0U].size());
     BoolVector e1(r[1U].size());
 
@@ -186,7 +188,6 @@ uint8_t QStabilizer::clifford(const bitLenInt& i, const bitLenInt& k)
     e1 ^= ~e0 & exp;
     e0 ^= exp;
 
-    bitLenInt e = 0U;
     for (bitLenInt j = 0U; j < qubitCount; ++j) {
         e += (e0.test(j) ? 1U : 0U) + (e1.test(j) ? 2U : 0U);
     }
