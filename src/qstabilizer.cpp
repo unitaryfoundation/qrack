@@ -1749,19 +1749,21 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
         const auto pos = x[t].find_next(n - 1U);
         p = (pos == BoolVector::npos) ? n : (bitLenInt)(pos - n);
     } else {
-        for (p = 0U; p < n; ++p) {
+        for (p = n; p < elemCount; ++p) {
             // if a Zbar does NOT commute with Z_b (the operator being measured), then outcome is random
-            if (x[p + n][t]) {
+            if (x[p][t]) {
                 // The outcome is random
+                p -= n;
                 break;
             }
         }
     }
 #else
-    for (p = 0U; p < n; ++p) {
+    for (p = n; p < elemCount; ++p) {
         // if a Zbar does NOT commute with Z_b (the operator being measured), then outcome is random
-        if (x[p + n][t]) {
+        if (x[p][t]) {
             // The outcome is random
+            p -= n;
             break;
         }
     }
@@ -1812,7 +1814,6 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
 
         const bitLenInt g = gaussian();
         const bitCapInt permCountMinus1 = pow2Mask(g);
-        const bitLenInt elemCount = qubitCount << 1U;
         const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
 
         const AmplitudeEntry entry = getBasisAmp(nrm);
