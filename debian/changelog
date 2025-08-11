@@ -1,3 +1,9 @@
+libqrack (9.25.5) jammy; urgency=medium
+
+  * Trigger build (Jammy)
+
+ -- Dan Strano <stranoj@gmail.com>  Sun, 10 Aug 2025 09:16:43 -0400
+
 libqrack (9.25.4) bionic; urgency=medium
 
   * Optimized Clifford (Bionic 4/4)

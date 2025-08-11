@@ -835,6 +835,7 @@ public:
         return q1 && q2;
     }
     std::vector<bitLenInt> MaxReduce(bitLenInt qubit);
+    void MaxReduce(const std::vector<bitLenInt>& qubits);
     void MaxReduce();
     bool SeparateBit(bool value, bitLenInt qubit);
 

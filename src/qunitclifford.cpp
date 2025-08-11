@@ -57,9 +57,7 @@ real1_f QUnitClifford::ExpVarBitsFactorized(
     ThrowIfQbIdArrayIsBad(bits, qubitCount,
         "QUnitClifford::ExpectationBitsAll parameter qubits vector values must be within allocated qubit bounds!");
 
-    for (size_t i = 0U; i < bits.size(); ++i) {
-        MaxReduce(bits[i]);
-    }
+    MaxReduce(bits);
 
     std::map<QStabilizerPtr, std::vector<bitLenInt>> qubitMap;
     std::map<QStabilizerPtr, std::vector<bitCapInt>> permMap;
@@ -96,9 +94,7 @@ real1_f QUnitClifford::ExpVarFloatsFactorized(
         "QUnitClifford::ExpectationFloatsFactorized parameter qubits vector values must be within allocated qubit "
         "bounds!");
 
-    for (size_t i = 0U; i < bits.size(); ++i) {
-        MaxReduce(bits[i]);
-    }
+    MaxReduce(bits);
 
     std::map<QStabilizerPtr, std::vector<bitLenInt>> qubitMap;
     std::map<QStabilizerPtr, std::vector<real1_f>> weightMap;
@@ -173,9 +169,7 @@ real1_f QUnitClifford::ProbMask(const bitCapInt& mask, const bitCapInt& perm)
         bits.push_back(log2((v ^ oldV) & oldV));
     }
 
-    for (size_t i = 0U; i < bits.size(); ++i) {
-        MaxReduce(bits[i]);
-    }
+    MaxReduce(bits);
 
     std::map<QStabilizerPtr, bitCapInt> maskMap;
     std::map<QStabilizerPtr, bitCapInt> permMap;
@@ -631,9 +625,7 @@ std::map<bitCapInt, int> QUnitClifford::MultiShotMeasureMask(const std::vector<b
     ThrowIfQbIdArrayIsBad(qIndices, qubitCount,
         "QUnitClifford::MultiShotMeasureMask parameter qPowers array values must be within allocated qubit bounds!");
 
-    for (size_t i = 0U; i < qIndices.size(); ++i) {
-        MaxReduce(qIndices[i]);
-    }
+    MaxReduce(qIndices);
 
     std::map<QStabilizerPtr, std::vector<bitCapInt>> subQPowers;
     std::map<QStabilizerPtr, std::vector<bitCapInt>> subIQPowers;
@@ -912,6 +904,20 @@ std::vector<bitLenInt> QUnitClifford::MaxReduce(bitLenInt qb)
     }
 
     return toReturn;
+}
+
+void QUnitClifford::MaxReduce(const std::vector<bitLenInt>& qbVec)
+{
+    std::set<bitLenInt> qubits;
+    for (const bitLenInt& i : qbVec) {
+        if (qubits.find(i) != qubits.end()) {
+            continue;
+        }
+        const std::vector<bitLenInt> removed = MaxReduce(i);
+        for (const bitLenInt& qb : removed) {
+            qubits.insert(qb);
+        }
+    }
 }
 
 void QUnitClifford::MaxReduce()
