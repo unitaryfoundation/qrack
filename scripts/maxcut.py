@@ -254,13 +254,8 @@ def evaluate_cut(G, bitstring_int):
 
 
 if __name__ == "__main__":
-    # Example: weighted graph
-    G = nx.Graph()
-    G.add_edge(0, 1, weight=1)
-    G.add_edge(1, 2, weight=1)
-    G.add_edge(2, 3, weight=1)
-    G.add_edge(3, 0, weight=1)
-
+    # Example: Peterson graph
+    G = nx.petersen_graph()
     # Qubit count
     n_qubits = G.number_of_nodes()
     # Trotter step count
