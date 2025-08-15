@@ -261,7 +261,7 @@ if __name__ == "__main__":
     # Trotter step count
     n_steps = 100
     # Simulated time per Trotter step
-    delta_t = 0.01
+    delta_t = 0.1
     J_func = lambda G: graph_to_J(G, n_qubits)
     h_func = lambda t: generate_ht(t, n_steps * delta_t)
     # Number of nearest neighbors:
