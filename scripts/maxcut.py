@@ -6,6 +6,21 @@ import math
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import Counter
+
+
+def factor_width(width, is_transpose=False):
+    col_len = math.floor(math.sqrt(width))
+    while ((width // col_len) * col_len) != width:
+        col_len -= 1
+    row_len = width // col_len
+
+    return (col_len, row_len) if is_transpose else (row_len, col_len)
+
+
+# By Gemini (Google Search AI)
+def get_highest_duplicate_count_value(input_list):
+    return Counter(input_list).most_common(1)[0][0]
 
 
 # Calculate various statistics based on comparison between ideal (Trotterized) and approximate (continuum) measurement distributions.
@@ -200,6 +215,7 @@ def hamming_distance(s1, s2, n):
         ch1 != ch2 for ch1, ch2 in zip(int_to_bitstring(s1, n), int_to_bitstring(s2, n))
     )
 
+
 def get_hamming_probabilities(J, h, theta, z, t):
     t2 = 1
     omega = 3 * math.pi / 2
@@ -267,19 +283,19 @@ def simulate_tfim(
     delta_t=0.1,
     theta=[],
     z=[],
+    shots=1000,
 ):
-    magnetizations = []
-
+    qubits = list(range(n_qubits))
+    n_rows, n_cols = factor_width(n_qubits, False)
     hamming_probabilities = []
+    measurements = []
 
     for step in range(n_steps):
         t = step * delta_t
         J_t = J_func(t)
         h_t = h_func(t)
 
-        # compute magnetization per qubit, then average
-        mag_per_qubit = []
-
+        samples = []
         for q in range(n_qubits):
             # gather local couplings for qubit q
             J_eff = sum(J_t[q, j] for j in range(n_qubits) if (j != q)) / z[q]
@@ -297,52 +313,61 @@ def simulate_tfim(
                 for i in range(len(bias)):
                     hamming_probabilities[i] /= tot_n
                 last_bias = bias.copy()
+            
+            thresholds = []
+            tot_prob = 0
+            for q in range(n_qubits + 1):
+                tot_prob += bias[q]
+                thresholds.append(tot_prob)
+            thresholds[-1] = 1
 
-            m_i = 0.0
-            for i in range(len(hamming_probabilities)):
-                m_i += hamming_probabilities[i] * (n_qubits - (i << 1)) / n_qubits
+            for s in range(shots):
+                # First dimension: Hamming weight
+                mag_prob = random.random()
+                m = 0
+                while thresholds[m] < mag_prob:
+                    m += 1
 
-            mag_per_qubit.append(m_i)
+                # Second dimension: permutation within Hamming weight
+                # (Written with help from Elara, the custom OpenAI GPT)
+                closeness_prob = random.random()
+                tot_prob = 0
+                state_int = 0
+                for combo in itertools.combinations(qubits, m):
+                    state_int = sum(1 << pos for pos in combo)
+                    tot_prob += (1.0 + closeness_like_bits(state_int, n_rows, n_cols)) / (
+                        1.0 + expected_closeness_weight(n_rows, n_cols, m)
+                    )
+                    if closeness_prob <= tot_prob:
+                        break
 
-        # combine per-qubit magnetizations (e.g., average)
-        step_mag = float(np.mean(mag_per_qubit))
-        magnetizations.append(step_mag)
+                samples.append(state_int)
+    
+        measurements.append(get_highest_duplicate_count_value(samples))
 
-    return magnetizations
+    return measurements
 
 
 # Dynamic J(t) generator
-def generate_Jt(n_nodes, t):
+def generate_Jt(n_nodes):
     J = np.zeros((n_nodes, n_nodes))
 
-    # Base ring topology
+    # Base topology
     for i in range(n_nodes):
-        J[i, (i + 1) % n_nodes] = -1.0
-        J[(i + 1) % n_nodes, i] = -1.0
-
-    # Simulate disruption:
-    if t >= 0.5 and t < 1.5:
-        # "Port 3" temporarily fails → remove its coupling
-        J[2, 3] = J[3, 2] = 0
-        J[3, 4] = J[4, 3] = 0
-    if t >= 1.0 and t < 1.5:
-        # Alternate weak link opens between 1 and 4
-        J[1, 4] = J[4, 1] = -0.3
-    # Restoration: after step 15, port 3 recovers
+        for j in range(n_nodes):
+            J[i, j] = 0.0 if i == j else 1.0
 
     return J
 
 
-def generate_ht(n_nodes, t):
+def generate_ht(n_nodes, t, max_t):
     # We can program h(q, t) for spatial-temporal locality.
     h = np.zeros(n_nodes)
     # Time-varying transverse field
-    c = 0.5 + 0.5 * np.cos(t * math.pi / 10)
+    c = 2.0 * (max_t - t / 2) / max_t
     # We can program for spatial locality, but we don't.
     #  n_sqrt = math.sqrt(n_nodes)
     for i in range(n_nodes):
-        # "Longitude"-dependent severity (arbitrary)
-        # h[i] = ((i % n_sqrt) / n_sqrt) * c
         h[i] = c
 
     return h
@@ -352,30 +377,19 @@ if __name__ == "__main__":
     # Example usage
 
     # Qubit count
-    n_qubits = 64
+    n_qubits = 3
     # Trotter step count
-    n_steps = 40
+    n_steps = 100
     # Simulated time per Trotter step
-    delta_t = 0.1
+    delta_t = 0.0001
     # Initial temperatures (per qubit)
-    theta = [math.pi / 18] * n_qubits
+    theta = [0] * n_qubits
     # Number of nearest neighbors:
     z = [2] * n_qubits
-    J_func = lambda t: generate_Jt(n_qubits, t)
-    h_func = lambda t: generate_ht(n_qubits, t)
+    J_func = lambda t: generate_Jt(n_qubits)
+    h_func = lambda t: generate_ht(n_qubits, t, n_steps * delta_t)
 
-    mag = simulate_tfim(J_func, h_func, n_qubits, n_steps, delta_t, theta, z)
-    ylim = ((min(mag) * 100) // 10) / 10
-    plt.figure(figsize=(14, 14))
-    plt.plot(list(range(1, n_steps + 1)), mag, marker="o", linestyle="-")
-    plt.title(
-        "Supply Chain Resilience over Time (Magnetization vs Trotter Depth, "
-        + str(n_qubits)
-        + " Qubits)"
-    )
-    plt.xlabel("Trotter Depth")
-    plt.ylabel("Magnetization")
-    plt.ylim(ylim, 1.0)
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+    meas = set(simulate_tfim(J_func, h_func, n_qubits, n_steps, delta_t, theta, z))
+    meas.discard(0)
+    meas.discard((1 << n_qubits) - 1)
+    print(meas)
