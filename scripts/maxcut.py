@@ -212,10 +212,13 @@ def simulate_tfim(
     delta_t,
     theta,
     z,
+    n_rows = 0,
+    n_cols = 0,
     shots=1024,
 ):
     qubits = list(range(n_qubits))
-    n_rows, n_cols = factor_width(n_qubits, False)
+    if n_rows == 0 or n_cols == 0:
+        n_rows, n_cols = factor_width(n_qubits, False)
     hamming_probabilities = []
     measurements = []
 
@@ -244,7 +247,7 @@ def simulate_tfim(
     thresholds = []
     tot_prob = 0
     for q in range(n_qubits + 1):
-        tot_prob += bias[q]
+        tot_prob += hamming_probabilities[q]
         thresholds.append(tot_prob)
     thresholds[-1] = 1
 
@@ -302,8 +305,9 @@ if __name__ == "__main__":
     # Example: weighted graph
     G = nx.Graph()
     G.add_edge(0, 1, weight=1)
-    G.add_edge(0, 2, weight=1)
     G.add_edge(1, 2, weight=1)
+    G.add_edge(2, 3, weight=1)
+    G.add_edge(3, 0, weight=1)
 
     # Qubit count
     n_qubits = G.number_of_nodes()
