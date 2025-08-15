@@ -241,7 +241,7 @@ def graph_to_J(G, n_nodes):
 
 def generate_ht(t, max_t):
     # Time-varying transverse field
-    return 2.0 * t / max_t
+    return 2.0 * (max_t - t) / max_t
 
 
 def evaluate_cut(G, bitstring_int):
