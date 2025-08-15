@@ -71,22 +71,13 @@ def separation_metric(bitstring, adjacency):
     Rewards unlike bits across edges; penalizes like bits.
     Result is normalized to [-1, 1].
     """
-    like_count = 0.0
-    total_edges = 0.0
-
-    if isinstance(adjacency, dict):
-        for i, neighbors in adjacency.items():
-            for j in neighbors:
-                if j > i:
-                    like_count += -1 if bitstring[i] == bitstring[j] else 1
-                    total_edges += 1
-    else:
-        N = len(adjacency)
-        for i in range(N):
-            for j in range(i + 1, N):
-                if adjacency[i][j] != 0:
-                    like_count += -1 if bitstring[i] == bitstring[j] else 1
-                    total_edges += 1
+    like_count = 0
+    total_edges = 0
+    for i, neighbors in adjacency.items():
+        for j in neighbors:
+            if j > i:
+                like_count += -1 if bitstring[i] == bitstring[j] else 1
+                total_edges += 1
 
     return like_count / total_edges if total_edges > 0 else 0.0
 
