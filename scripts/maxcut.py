@@ -129,13 +129,13 @@ def get_hamming_probabilities(J, h, theta, z, t):
             # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
             tot_n = 0
             for q in range(n_qubits + 1):
-                n = 1 / ((n_qubits + 1) * (2 ** (p * q)))
-                if n == float("inf"):
+                if (p * q) >= 1024:
                     tot_n = 1
                     bias = []
                     bias.append(1)
                     bias += n_qubits * [0]
                     break
+                n = 1 / ((n_qubits + 1) * (2 ** (p * q)))
                 bias.append(n)
                 tot_n += n
             # Normalize the results for 1.0 total marginal probability.
