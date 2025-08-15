@@ -65,76 +65,30 @@ def closeness_like_bits(perm, n_rows, n_cols):
 
 
 # By Elara (OpenAI custom GPT)
-def closeness_like_bits_arbitrary(bitstring, adjacency):
+def separation_metric(bitstring, adjacency):
     """
-    Compute closeness metric for a given bitstring on an arbitrary graph.
-
-    Parameters:
-        bitstring: list/array of 0/1 states, length N
-        adjacency: dict or list of neighbor lists, or NxN weight matrix
-                   For weighted graphs, nonzero entry means there's an edge.
-
-    Returns:
-        closeness in [-1, 1]
+    Compute 'separation' metric for a given bitstring on an arbitrary graph.
+    Rewards unlike bits across edges; penalizes like bits.
+    Result is normalized to [-1, 1].
     """
-    n = len(bitstring)
     like_count = 0.0
     total_edges = 0.0
 
-    # Handle adjacency as dict of neighbors or as full matrix
     if isinstance(adjacency, dict):
         for i, neighbors in adjacency.items():
             for j in neighbors:
-                if j > i:  # avoid double-counting undirected edges
-                    like_count += 1 if bitstring[i] == bitstring[j] else -1
+                if j > i:
+                    like_count += -1 if bitstring[i] == bitstring[j] else 1
                     total_edges += 1
     else:
-        # assume 2D square matrix
         N = len(adjacency)
         for i in range(N):
             for j in range(i + 1, N):
-                if adjacency[i][j] != 0:  # there’s a coupling
-                    like_count += 1 if bitstring[i] == bitstring[j] else -1
+                if adjacency[i][j] != 0:
+                    like_count += -1 if bitstring[i] == bitstring[j] else 1
                     total_edges += 1
 
     return like_count / total_edges if total_edges > 0 else 0.0
-
-
-# By Elara (OpenAI custom GPT)
-def expected_closeness_weight(n_rows, n_cols, hamming_weight):
-    L = n_rows * n_cols
-    same_pairs = math.comb(hamming_weight, 2) + math.comb(L - hamming_weight, 2)
-    total_pairs = math.comb(L, 2)
-    mu_k = same_pairs / total_pairs
-    return 2 * mu_k - 1  # normalized closeness in [-1,1]
-
-
-# By Elara (OpenAI custom GPT)
-def expected_closeness_weight_arbitrary(n, adjacency, hamming_weight, samples=5000):
-    """
-    Approximate expected closeness over all n-bit states with given Hamming weight.
-
-    Parameters:
-        n: number of qubits
-        adjacency: same format as above
-        hamming_weight: number of 1s
-        samples: how many random bitstrings to sample (approximation)
-
-    Returns:
-        expected closeness in [-1, 1]
-    """
-    if hamming_weight == 0 or hamming_weight == n:
-        # trivial all-zero or all-one case
-        return 1.0
-
-    total = 0.0
-    for _ in range(samples):
-        # sample random bitstring with given Hamming weight
-        ones_positions = random.sample(range(n), hamming_weight)
-        bitstring = [1 if i in ones_positions else 0 for i in range(n)]
-        total += closeness_like_bits(bitstring, adjacency)
-
-    return total / samples
 
 
 # By Elara (OpenAI custom GPT)
@@ -266,9 +220,10 @@ def simulate_tfim(
         state_int = 0
         for combo in itertools.combinations(qubits, m):
             state_int = sum((1 << pos) for pos in combo)
-            tot_prob += (1.0 + closeness_like_bits(state_int, n_rows, n_cols)) / (
-                1.0 + expected_closeness_weight(n_rows, n_cols, m)
-            )
+            tot_prob += (1.0 + separation_metric(
+                [int(x) for x in int_to_bitstring(state_int, n_qubits)],
+                nx.to_dict_of_lists(G)
+            )) / 2.0
             if closeness_prob <= tot_prob:
                 break
 
@@ -325,6 +280,7 @@ if __name__ == "__main__":
     meas = set(simulate_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z))
     meas.discard(0)
     meas.discard((1 << n_qubits) - 1)
+
 
     best_value = -1
     best_solution = None
