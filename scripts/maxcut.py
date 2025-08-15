@@ -159,7 +159,7 @@ def simulate_tfim(
     z,
     n_rows = 0,
     n_cols = 0,
-    shots=1024,
+    shots=128,
 ):
     qubits = list(range(n_qubits))
     if n_rows == 0 or n_cols == 0:
