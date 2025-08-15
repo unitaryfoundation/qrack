@@ -37,15 +37,16 @@ def get_indices_of_top_n(data_list, n):
 def best_separation(adjacency, qubits, m):
     n_qubits = len(qubits)
     state_ints = [sum((1 << pos) for pos in combo) for combo in itertools.combinations(qubits, m)]
-    bit_strings = [list(int_to_bitstring(x, n_qubits)) for x in state_ints]
-    like_count = [0] * len(bit_strings)
+    like_count = [0] * len(state_ints)
     total_edges = 0
     for i, neighbors in adjacency.items():
         for j in neighbors:
             if j > i:
-                for k in range(len(bit_strings)):
-                    bit_string = bit_strings[k]
-                    like_count[k] += -1 if bit_string[i] == bit_string[j] else 1
+                for k in range(len(state_ints)):
+                    state_int = state_ints[k]
+                    bit_i = (state_int >> (n_qubits - 1 - i)) & 1
+                    bit_j = (state_int >> (n_qubits - 1 - j)) & 1
+                    like_count[k] += -1 if bit_i == bit_j else 1
                 total_edges += 1
 
     return state_ints[like_count.index(max(like_count))]
