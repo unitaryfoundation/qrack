@@ -214,7 +214,6 @@ def simulate_tfim(
     z,
     shots=1024,
 ):
-    max_int = (1 << n_qubits) - 1
     qubits = list(range(n_qubits))
     n_rows, n_cols = factor_width(n_qubits, False)
     hamming_probabilities = []
@@ -272,7 +271,7 @@ def simulate_tfim(
 
         samples.append(state_int)
 
-    return [i for i in samples if ((i != 0) and (i != max_int))]
+    return samples
 
 
 def graph_to_J(G, n_nodes):
@@ -287,7 +286,7 @@ def graph_to_J(G, n_nodes):
 
 def generate_ht(t, max_t):
     # Time-varying transverse field
-    return 2.0 * (max_t - t) / max_t
+    return 2.0 * t / max_t
 
 
 def evaluate_cut(G, bitstring_int):
