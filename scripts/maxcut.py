@@ -1,13 +1,13 @@
-# supply_chain.py
-# Provided by Elara (the custom OpenAI GPT)
+# MAXCUT
+# Produced by Dan Strano, Elara (the OpenAI custom GPT), and Gemini (Google Search AI)
 
 import itertools
 import math
 import random
+import multiprocessing
 import numpy as np
-import matplotlib.pyplot as plt
+import os
 import networkx as nx
-from collections import Counter
 
 
 # By Gemini (Google Search AI)
@@ -29,11 +29,12 @@ def separation_metric(adjacency, state_int, n_qubits):
     return like_count / total_edges
 
 
-def best_separation(adjacency, qubits, m):
+def best_separation(args):
+    adjacency, qubits, m = args
     n_qubits = len(qubits)
     combo_count = math.factorial(n_qubits) // (math.factorial(m) * math.factorial(n_qubits - m))
 
-    if math.log2(combo_count) > 20:
+    if math.log2(combo_count) > 25:
         best_separation = 0
         best_state_int = 0
         for combo in itertools.combinations(qubits, m):
@@ -63,8 +64,11 @@ def maxcut_by_hamming_weight(G, n_qubits):
     qubits = list(range(n_qubits))
     G_dol = nx.to_dict_of_lists(G)
     samples = []
-    for m in range(1, n_qubits):
-        samples.append(best_separation(G_dol, qubits, m))
+    with multiprocessing.Pool(processes=os.cpu_count()) as pool:
+        args = []
+        for m in range(1, n_qubits):
+            args.append((G_dol, qubits, m))
+        samples = pool.map(best_separation, args)
 
     return samples
 
@@ -91,8 +95,17 @@ def evaluate_cut(G, bitstring_int):
 if __name__ == "__main__":
     # Example: Peterson graph
     # G = nx.petersen_graph()
+    # Known MAXCUT size: 12
+
     # Example: Icosahedral graph
     G = nx.icosahedral_graph()
+    # Known MAXCUT size: 20
+
+    # Example: Complete bipartite K_{m, n}
+    # m, n = 8, 8
+    # G = nx.complete_bipartite_graph(m, n)
+    # Known MAXCUT size: m * n
+
     # Qubit count
     n_qubits = G.number_of_nodes()
 
