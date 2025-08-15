@@ -283,7 +283,7 @@ def simulate_tfim(
     n_qubits=64,
     n_steps=20,
     delta_t=0.1,
-    theta=[],
+    theta=0,
     z=[],
     shots=1024,
 ):
@@ -303,11 +303,11 @@ def simulate_tfim(
             # gather local couplings for qubit q
             J_eff = sum(J_G[q, j] for j in range(n_qubits) if (j != q)) / z[q]
 
-            bias = get_hamming_probabilities(J_eff, h_t, theta[q], z[q], t)
+            bias = get_hamming_probabilities(J_eff, h_t, theta, z[q], t)
             if step == 0:
                 hamming_probabilities = bias.copy()
             else:
-                last_bias = get_hamming_probabilities(J_eff, h_t, theta[q], z[q], delta_t * (step - 1))
+                last_bias = get_hamming_probabilities(J_eff, h_t, theta, z[q], delta_t * (step - 1))
                 tot_n = 0
                 for i in range(len(bias)):
                     hamming_probabilities[i] += bias[i] - last_bias[i]
@@ -336,7 +336,7 @@ def simulate_tfim(
                 tot_prob = 0
                 state_int = 0
                 for combo in itertools.combinations(qubits, m):
-                    state_int = sum(1 << pos for pos in combo)
+                    state_int = sum((1 << pos) for pos in combo)
                     tot_prob += (1.0 + closeness_like_bits(state_int, n_rows, n_cols)) / (
                         1.0 + expected_closeness_weight(n_rows, n_cols, m)
                     )
@@ -357,7 +357,7 @@ def graph_to_J(G, n_nodes):
     J = np.zeros((n_nodes, n_nodes))
     for u, v, data in G.edges(data=True):
         weight = data.get("weight", 1.0)  # Default weight = 1.0
-        J[u, v] = weight
+        J[u, v] = -weight
 
     return J
 
@@ -394,8 +394,8 @@ if __name__ == "__main__":
     h_func = lambda t: generate_ht(t, n_steps * delta_t)
     # Number of nearest neighbors:
     z = [G.degree[i] for i in range(G.number_of_nodes())]
-    # Initial temperatures (per qubit)
-    theta = [0] * n_qubits
+    # Initial temperature
+    theta = 0
 
     meas = set(simulate_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z))
     meas.discard(0)
