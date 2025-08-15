@@ -216,19 +216,19 @@ def simulate_tfim(
 
         # Second dimension: permutation within Hamming weight
         # (Written with help from Elara, the custom OpenAI GPT)
-        closeness_prob = random.random()
-        tot_prob = 0
-        state_int = 0
+        best_state_int = 0
+        best_separation_metric = 0
         for combo in itertools.combinations(qubits, m):
             state_int = sum((1 << pos) for pos in combo)
-            tot_prob += (1.0 + separation_metric(
+            sep_metric = (1.0 + separation_metric(
                 [int(x) for x in int_to_bitstring(state_int, n_qubits)],
                 G_dol
             )) / 2.0
-            if closeness_prob <= tot_prob:
-                break
+            if sep_metric > best_separation_metric:
+                best_separation_metric = sep_metric
+                best_state_int = state_int
 
-        samples.append(state_int)
+        samples.append(best_state_int)
 
     return samples
 
