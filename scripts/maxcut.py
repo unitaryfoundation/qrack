@@ -26,7 +26,8 @@ def int_to_bitstring(integer, length):
 
 def best_separation(adjacency, qubits, m):
     n_qubits = len(qubits)
-    bit_strings = [sum((1 << pos) for pos in combo) for combo in itertools.combinations(qubits, m)]
+    state_ints = [sum((1 << pos) for pos in combo) for combo in itertools.combinations(qubits, m)]
+    bit_strings = [list(int_to_bitstring(x, n_qubits)) for x in state_ints]
     like_count = [0] * len(bit_strings)
     total_edges = 0
     for i, neighbors in adjacency.items():
@@ -34,10 +35,10 @@ def best_separation(adjacency, qubits, m):
             if j > i:
                 for k in range(len(bit_strings)):
                     bit_string = bit_strings[k]
-                    like_count[k] += -1 if ((bit_string >> i) & 1) == ((bit_string >> j) & 1) else 1
+                    like_count[k] += -1 if bit_string[i] == bit_string[j] else 1
                 total_edges += 1
 
-    return bit_strings[like_count.index(max(like_count))]
+    return state_ints[like_count.index(max(like_count))]
 
 
 def get_hamming_probabilities(J, h, theta, z, t):
