@@ -206,6 +206,7 @@ def simulate_tfim(
     thresholds[-1] = 1
 
     samples = []
+    G_dol = nx.to_dict_of_lists(G)
     for s in range(shots):
         # First dimension: Hamming weight
         mag_prob = random.random()
@@ -222,7 +223,7 @@ def simulate_tfim(
             state_int = sum((1 << pos) for pos in combo)
             tot_prob += (1.0 + separation_metric(
                 [int(x) for x in int_to_bitstring(state_int, n_qubits)],
-                nx.to_dict_of_lists(G)
+                G_dol
             )) / 2.0
             if closeness_prob <= tot_prob:
                 break
