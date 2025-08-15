@@ -155,7 +155,7 @@ def simulate_tfim(
         tot_prob += hamming_probabilities[q]
     for q in range(1, n_qubits):
         hamming_probabilities[q] /= tot_prob
-    top_m = get_indices_of_top_n(hamming_probabilities, (n_qubits + 1) // 2)
+    top_m = get_indices_of_top_n(hamming_probabilities, n_qubits // 2)
 
     G_dol = nx.to_dict_of_lists(G)
     samples = []
