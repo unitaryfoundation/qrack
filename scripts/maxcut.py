@@ -302,13 +302,12 @@ def simulate_tfim(
         for q in range(n_qubits):
             # gather local couplings for qubit q
             J_eff = sum(J_G[q, j] for j in range(n_qubits) if (j != q)) / z[q]
-            h_eff = h_t[q]
 
-            bias = get_hamming_probabilities(J_eff, h_eff, theta[q], z[q], t)
+            bias = get_hamming_probabilities(J_eff, h_t, theta[q], z[q], t)
             if step == 0:
                 hamming_probabilities = bias.copy()
             else:
-                last_bias = get_hamming_probabilities(J_eff, h_eff, theta[q], z[q], delta_t * (step - 1))
+                last_bias = get_hamming_probabilities(J_eff, h_t, theta[q], z[q], delta_t * (step - 1))
                 tot_n = 0
                 for i in range(len(bias)):
                     hamming_probabilities[i] += bias[i] - last_bias[i]
@@ -363,17 +362,9 @@ def graph_to_J(G, n_nodes):
     return J
 
 
-def generate_ht(n_nodes, t, max_t):
-    # We can program h(q, t) for spatial-temporal locality.
-    h = np.zeros(n_nodes)
+def generate_ht(t, max_t):
     # Time-varying transverse field
-    c = 2.0 * (max_t - t) / max_t
-    # We can program for spatial locality, but we don't.
-    #  n_sqrt = math.sqrt(n_nodes)
-    for i in range(n_nodes):
-        h[i] = c
-
-    return h
+    return 2.0 * (max_t - t) / max_t
 
 
 def evaluate_cut(G, bitstring_int):
@@ -386,7 +377,12 @@ def evaluate_cut(G, bitstring_int):
 
 
 if __name__ == "__main__":
-    # Example usage
+    # Example: weighted graph
+    G = nx.Graph()
+    G.add_edge(0, 1, weight=1)
+    G.add_edge(1, 2, weight=1)
+    G.add_edge(2, 3, weight=1)
+    G.add_edge(3, 0, weight=1)
 
     # Qubit count
     n_qubits = 4
@@ -394,19 +390,12 @@ if __name__ == "__main__":
     n_steps = 100
     # Simulated time per Trotter step
     delta_t = 0.01
+    J_func = lambda G: graph_to_J(G, n_qubits)
+    h_func = lambda t: generate_ht(t, n_steps * delta_t)
+    # Number of nearest neighbors:
+    z = [G.degree[i] for i in range(G.number_of_nodes())]
     # Initial temperatures (per qubit)
     theta = [0] * n_qubits
-    # Number of nearest neighbors:
-    z = [2] * n_qubits
-    J_func = lambda G: graph_to_J(G, n_qubits)
-    h_func = lambda t: generate_ht(n_qubits, t, n_steps * delta_t)
-
-    # Example: weighted graph
-    G = nx.Graph()
-    G.add_edge(0, 1, weight=1)
-    G.add_edge(1, 2, weight=1)
-    G.add_edge(2, 3, weight=1)
-    G.add_edge(3, 0, weight=1)
 
     meas = set(simulate_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z))
     meas.discard(0)
