@@ -6,6 +6,7 @@ import math
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import networkx as nx
 from collections import Counter
 
 
@@ -229,7 +230,7 @@ def get_hamming_probabilities(J, h, theta, z, t):
         bias = (n_qubits + 1) * [1 / (n_qubits + 1)]
     else:
         # compute p_i using formula for globally uniform J, h, and theta
-        delta_theta = theta - math.asin(h / (z * J))
+        delta_theta = theta - math.asin(min(max(h / (z * J), -1), 1))
         # ChatGPT o3 suggested this cos_theta correction.
         sin_delta_theta = math.sin(delta_theta)
         # "p" is the exponent of the geometric series weighting, for (n+1) dimensions of Hamming weight.
@@ -276,6 +277,7 @@ def get_hamming_probabilities(J, h, theta, z, t):
 
 
 def simulate_tfim(
+    G,
     J_func,
     h_func,
     n_qubits=64,
@@ -285,6 +287,7 @@ def simulate_tfim(
     z=[],
     shots=1000,
 ):
+    max_int = (1 << n_qubits) - 1
     qubits = list(range(n_qubits))
     n_rows, n_cols = factor_width(n_qubits, False)
     hamming_probabilities = []
@@ -292,13 +295,13 @@ def simulate_tfim(
 
     for step in range(n_steps):
         t = step * delta_t
-        J_t = J_func(t)
+        J_G = J_func(G)
         h_t = h_func(t)
 
         samples = []
         for q in range(n_qubits):
             # gather local couplings for qubit q
-            J_eff = sum(J_t[q, j] for j in range(n_qubits) if (j != q)) / z[q]
+            J_eff = sum(J_G[q, j] for j in range(n_qubits) if (j != q)) / z[q]
             h_eff = h_t[q]
 
             bias = get_hamming_probabilities(J_eff, h_eff, theta[q], z[q], t)
@@ -342,29 +345,27 @@ def simulate_tfim(
                         break
 
                 samples.append(state_int)
-    
-        measurements.append(get_highest_duplicate_count_value(samples))
+
+        samples = [i for i in samples if ((i != 0) and (i != max_int))]
+        if len(samples):
+            measurements.append(get_highest_duplicate_count_value(samples))
 
     return measurements
 
-
-# Dynamic J(t) generator
-def generate_Jt(n_nodes):
+def graph_to_J(G, n_nodes):
+    """Convert networkx.Graph to J dictionary for TFIM."""
     J = np.zeros((n_nodes, n_nodes))
-
-    # Base topology
-    for i in range(n_nodes):
-        for j in range(n_nodes):
-            J[i, j] = 0.0 if i == j else 1.0
+    for u, v, data in G.edges(data=True):
+        weight = data.get("weight", 1.0)  # Default weight = 1.0
+        J[u, v] = weight
 
     return J
-
 
 def generate_ht(n_nodes, t, max_t):
     # We can program h(q, t) for spatial-temporal locality.
     h = np.zeros(n_nodes)
     # Time-varying transverse field
-    c = 2.0 * (max_t - t / 2) / max_t
+    c = 2.0 * (max_t - t) / max_t
     # We can program for spatial locality, but we don't.
     #  n_sqrt = math.sqrt(n_nodes)
     for i in range(n_nodes):
@@ -377,19 +378,26 @@ if __name__ == "__main__":
     # Example usage
 
     # Qubit count
-    n_qubits = 3
+    n_qubits = 4
     # Trotter step count
     n_steps = 100
     # Simulated time per Trotter step
-    delta_t = 0.0001
+    delta_t = 0.001
     # Initial temperatures (per qubit)
     theta = [0] * n_qubits
     # Number of nearest neighbors:
     z = [2] * n_qubits
-    J_func = lambda t: generate_Jt(n_qubits)
+    J_func = lambda G: graph_to_J(G, n_qubits)
     h_func = lambda t: generate_ht(n_qubits, t, n_steps * delta_t)
 
-    meas = set(simulate_tfim(J_func, h_func, n_qubits, n_steps, delta_t, theta, z))
+    # Example: weighted graph
+    G = nx.Graph()
+    G.add_edge(0, 1, weight=1)
+    G.add_edge(1, 2, weight=1)
+    G.add_edge(2, 3, weight=1)
+    G.add_edge(3, 0, weight=1)
+
+    meas = set(simulate_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z))
     meas.discard(0)
     meas.discard((1 << n_qubits) - 1)
     print(meas)
