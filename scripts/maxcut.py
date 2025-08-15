@@ -111,7 +111,7 @@ def simulate_tfim(
     z,
     n_rows = 0,
     n_cols = 0,
-    shots=128,
+    shots=32,
 ):
     qubits = list(range(n_qubits))
     if n_rows == 0 or n_cols == 0:
@@ -155,6 +155,7 @@ def simulate_tfim(
 
     samples = []
     G_dol = nx.to_dict_of_lists(G)
+    used_m = set()
     for s in range(shots):
         # First dimension: Hamming weight
         mag_prob = random.random()
@@ -162,6 +163,10 @@ def simulate_tfim(
         while thresholds[m] < mag_prob:
             m += 1
 
+        if m in used_m:
+            continue
+
+        used_m.add(m)
         samples.append(best_separation(G_dol, qubits, m))
 
     return samples
