@@ -200,6 +200,63 @@ def hamming_distance(s1, s2, n):
         ch1 != ch2 for ch1, ch2 in zip(int_to_bitstring(s1, n), int_to_bitstring(s2, n))
     )
 
+def get_hamming_probabilities(J, h, theta, z, t):
+    t2 = 1
+    omega = 3 * math.pi / 2
+    bias = []
+    if np.isclose(h, 0):
+        # This agrees with small perturbations away from h = 0.
+        bias.append(1)
+        bias += n_qubits * [0]
+    elif np.isclose(J, 0):
+        # This agrees with small perturbations away from J = 0.
+        bias = (n_qubits + 1) * [1 / (n_qubits + 1)]
+    else:
+        # compute p_i using formula for globally uniform J, h, and theta
+        delta_theta = theta - math.asin(h / (z * J))
+        # ChatGPT o3 suggested this cos_theta correction.
+        sin_delta_theta = math.sin(delta_theta)
+        # "p" is the exponent of the geometric series weighting, for (n+1) dimensions of Hamming weight.
+        # Notice that the expected symmetries are respected under reversal of signs of J and/or h.
+        p = (
+            (
+                (2 ** (abs(J / h) - 1))
+                * (
+                    1
+                    + sin_delta_theta
+                    * math.cos(J * omega * t + theta)
+                    / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
+                )
+                - 1 / 2
+            )
+            if t2 > 0
+            else (2 ** abs(J / h))
+        )
+        if p >= 1024:
+            # This is approaching J / h -> infinity.
+            bias.append(1)
+            bias += n_qubits * [0]
+        else:
+            # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
+            tot_n = 0
+            for q in range(n_qubits + 1):
+                n = 1 / ((n_qubits + 1) * (2 ** (p * q)))
+                if n == float("inf"):
+                    tot_n = 1
+                    bias = []
+                    bias.append(1)
+                    bias += n_qubits * [0]
+                    break
+                bias.append(n)
+                tot_n += n
+            # Normalize the results for 1.0 total marginal probability.
+            for q in range(n_qubits + 1):
+                bias[q] /= tot_n
+    if J > 0:
+        # This is antiferromagnetism.
+        bias.reverse()
+
+    return bias
 
 def simulate_tfim(
     J_func,
@@ -210,12 +267,8 @@ def simulate_tfim(
     theta=[],
     z=[],
 ):
-    t2 = 1
-    omega = 3 * math.pi / 2
-
     magnetizations = []
 
-    last_bias = []
     hamming_probabilities = []
 
     for step in range(n_steps):
@@ -228,66 +281,14 @@ def simulate_tfim(
 
         for q in range(n_qubits):
             # gather local couplings for qubit q
-            J = sum(J_t[q, j] for j in range(n_qubits) if (j != q)) / z[q]
-            h = h_t[q]
+            J_eff = sum(J_t[q, j] for j in range(n_qubits) if (j != q)) / z[q]
+            h_eff = h_t[q]
                 
-            bias = []
-            if np.isclose(h, 0):
-                # This agrees with small perturbations away from h = 0.
-                bias.append(1)
-                bias += n_qubits * [0]
-            elif np.isclose(J, 0):
-                # This agrees with small perturbations away from J = 0.
-                bias = (n_qubits + 1) * [1 / (n_qubits + 1)]
-            else:
-                # compute p_i using formula for globally uniform J, h, and theta
-                delta_theta = theta[q] - math.asin(h / (z[q] * J))
-                # ChatGPT o3 suggested this cos_theta correction.
-                sin_delta_theta = math.sin(delta_theta)
-                # "p" is the exponent of the geometric series weighting, for (n+1) dimensions of Hamming weight.
-                # Notice that the expected symmetries are respected under reversal of signs of J and/or h.
-                p = (
-                    (
-                        (2 ** (abs(J / h) - 1))
-                        * (
-                            1
-                            + sin_delta_theta
-                            * math.cos(J * omega * t + theta[q])
-                            / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
-                        )
-                        - 1 / 2
-                    )
-                    if t2 > 0
-                    else (2 ** abs(J / h))
-                )
-                if p >= 1024:
-                    # This is approaching J / h -> infinity.
-                    bias.append(1)
-                    bias += n_qubits * [0]
-                else:
-                    # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
-                    tot_n = 0
-                    for q in range(n_qubits + 1):
-                        n = 1 / ((n_qubits + 1) * (2 ** (p * q)))
-                        if n == float("inf"):
-                            tot_n = 1
-                            bias = []
-                            bias.append(1)
-                            bias += n_qubits * [0]
-                            break
-                        bias.append(n)
-                        tot_n += n
-                    # Normalize the results for 1.0 total marginal probability.
-                    for q in range(n_qubits + 1):
-                        bias[q] /= tot_n
-            if J > 0:
-                # This is antiferromagnetism.
-                bias.reverse()
-
-            if len(last_bias) == 0:
-                last_bias = bias.copy()
+            bias = get_hamming_probabilities(J_eff, h_eff, theta[q], z[q], t)
+            if step == 0:
                 hamming_probabilities = bias.copy()
             else:
+                last_bias = get_hamming_probabilities(J_eff, h_eff, theta[q], z[q], delta_t * (step - 1))
                 tot_n = 0
                 for i in range(len(bias)):
                     hamming_probabilities[i] += bias[i] - last_bias[i]
