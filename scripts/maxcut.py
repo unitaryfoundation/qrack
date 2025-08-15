@@ -285,7 +285,7 @@ def simulate_tfim(
     delta_t=0.1,
     theta=[],
     z=[],
-    shots=1000,
+    shots=1024,
 ):
     max_int = (1 << n_qubits) - 1
     qubits = list(range(n_qubits))
@@ -352,6 +352,7 @@ def simulate_tfim(
 
     return measurements
 
+
 def graph_to_J(G, n_nodes):
     """Convert networkx.Graph to J dictionary for TFIM."""
     J = np.zeros((n_nodes, n_nodes))
@@ -360,6 +361,7 @@ def graph_to_J(G, n_nodes):
         J[u, v] = weight
 
     return J
+
 
 def generate_ht(n_nodes, t, max_t):
     # We can program h(q, t) for spatial-temporal locality.
@@ -374,6 +376,15 @@ def generate_ht(n_nodes, t, max_t):
     return h
 
 
+def evaluate_cut(G, bitstring_int):
+    bitstring = list(map(int, int_to_bitstring(bitstring_int, G.number_of_nodes())))
+    cut_edges = []
+    for u, v in G.edges():
+        if bitstring[u] != bitstring[v]:
+            cut_edges.append((u, v))
+    return len(cut_edges), cut_edges
+
+
 if __name__ == "__main__":
     # Example usage
 
@@ -382,7 +393,7 @@ if __name__ == "__main__":
     # Trotter step count
     n_steps = 100
     # Simulated time per Trotter step
-    delta_t = 0.001
+    delta_t = 0.01
     # Initial temperatures (per qubit)
     theta = [0] * n_qubits
     # Number of nearest neighbors:
@@ -400,4 +411,18 @@ if __name__ == "__main__":
     meas = set(simulate_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z))
     meas.discard(0)
     meas.discard((1 << n_qubits) - 1)
-    print(meas)
+
+    best_value = -1
+    best_solution = None
+    best_cut_edges = None
+
+    for val in meas:
+        cut_size, cut_edges = evaluate_cut(G, val)
+        if cut_size > best_value:
+            best_value = cut_size
+            best_solution = val
+            best_cut_edges = cut_edges
+
+    best_solution_bits = int_to_bitstring(best_solution, n_qubits) if best_solution is not None else None
+
+    print((best_value, best_solution_bits, best_cut_edges))
