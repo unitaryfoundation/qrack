@@ -24,6 +24,16 @@ def int_to_bitstring(integer, length):
     return bin(integer)[2:].zfill(length)
 
 
+# By Gemini (Google Search AI)
+def get_indices_of_top_n(data_list, n):
+    np_array = np.array(data_list)
+    # Get indices that would sort the array in ascending order
+    sorted_indices = np.argsort(np_array)
+    # Get the last N indices (corresponding to the largest values)
+    top_n_indices = sorted_indices[-n:][::-1] # Reverse to get in descending order of value
+    return top_n_indices
+
+
 def best_separation(adjacency, qubits, m):
     n_qubits = len(qubits)
     state_ints = [sum((1 << pos) for pos in combo) for combo in itertools.combinations(qubits, m)]
@@ -111,7 +121,6 @@ def simulate_tfim(
     z,
     n_rows = 0,
     n_cols = 0,
-    shots=32,
 ):
     qubits = list(range(n_qubits))
     if n_rows == 0 or n_cols == 0:
@@ -146,27 +155,11 @@ def simulate_tfim(
         tot_prob += hamming_probabilities[q]
     for q in range(1, n_qubits):
         hamming_probabilities[q] /= tot_prob
-    thresholds = []
-    tot_prob = 0
-    for q in range(1, n_qubits):
-        tot_prob += hamming_probabilities[q]
-        thresholds.append(tot_prob)
-    thresholds[-1] = 1
+    top_m = get_indices_of_top_n(hamming_probabilities, (n_qubits + 1) // 2)
 
-    samples = []
     G_dol = nx.to_dict_of_lists(G)
-    used_m = set()
-    for s in range(shots):
-        # First dimension: Hamming weight
-        mag_prob = random.random()
-        m = 0
-        while thresholds[m] < mag_prob:
-            m += 1
-
-        if m in used_m:
-            continue
-
-        used_m.add(m)
+    samples = []
+    for m in top_m:
         samples.append(best_separation(G_dol, qubits, m))
 
     return samples
