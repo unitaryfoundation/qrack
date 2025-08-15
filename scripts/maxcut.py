@@ -24,69 +24,20 @@ def int_to_bitstring(integer, length):
     return bin(integer)[2:].zfill(length)
 
 
-# Drafted by Elara (OpenAI custom GPT), improved by Dan Strano
-def closeness_like_bits(perm, n_rows, n_cols):
-    """
-    Compute closeness-of-like-bits metric C(state) for a given bitstring on an LxL toroidal grid.
-
-    Parameters:
-        perm: integer representing basis state, bit-length n_rows * n_cols
-        n_rows: row count of torus
-        n_cols: column count of torus
-
-    Returns:
-        normalized_closeness: float, in [-1, +1]
-            +1 means all neighbors are like-like, -1 means all neighbors are unlike
-    """
-    # reshape the bitstring into LxL grid
-    bitstring = list(int_to_bitstring(perm, n_rows * n_cols))
-    grid = np.array(bitstring).reshape((n_rows, n_cols))
-    total_edges = 0
-    like_count = 0
-
-    # iterate over each site, count neighbors (right and down to avoid double-count)
-    for i in range(n_rows):
-        for j in range(n_cols):
-            s = grid[i, j]
-
-            # right neighbor (wrap around)
-            s_right = grid[i, (j + 1) % n_cols]
-            like_count += 1 if s == s_right else -1
-            total_edges += 1
-
-            # down neighbor (wrap around)
-            s_down = grid[(i + 1) % n_rows, j]
-            like_count += 1 if s == s_down else -1
-            total_edges += 1
-
-    # normalize
-    normalized_closeness = like_count / total_edges
-    return normalized_closeness
-
-
-# By Elara (OpenAI custom GPT)
-def separation_metric(bitstring, adjacency):
-    """
-    Compute 'separation' metric for a given bitstring on an arbitrary graph.
-    Rewards unlike bits across edges; penalizes like bits.
-    Result is normalized to [-1, 1].
-    """
-    like_count = 0
+def best_separation(adjacency, qubits, m):
+    n_qubits = len(qubits)
+    bit_strings = [sum((1 << pos) for pos in combo) for combo in itertools.combinations(qubits, m)]
+    like_count = [0] * len(bit_strings)
     total_edges = 0
     for i, neighbors in adjacency.items():
         for j in neighbors:
             if j > i:
-                like_count += -1 if bitstring[i] == bitstring[j] else 1
+                for k in range(len(bit_strings)):
+                    bit_string = bit_strings[k]
+                    like_count[k] += -1 if ((bit_string >> i) & 1) == ((bit_string >> j) & 1) else 1
                 total_edges += 1
 
-    return like_count / total_edges if total_edges > 0 else 0.0
-
-
-# By Elara (OpenAI custom GPT)
-def hamming_distance(s1, s2, n):
-    return sum(
-        ch1 != ch2 for ch1, ch2 in zip(int_to_bitstring(s1, n), int_to_bitstring(s2, n))
-    )
+    return bit_strings[like_count.index(max(like_count))]
 
 
 def get_hamming_probabilities(J, h, theta, z, t):
@@ -210,21 +161,7 @@ def simulate_tfim(
         while thresholds[m] < mag_prob:
             m += 1
 
-        # Second dimension: permutation within Hamming weight
-        # (Written with help from Elara, the custom OpenAI GPT)
-        best_state_int = 0
-        best_separation_metric = 0
-        for combo in itertools.combinations(qubits, m):
-            state_int = sum((1 << pos) for pos in combo)
-            sep_metric = (1.0 + separation_metric(
-                [int(x) for x in int_to_bitstring(state_int, n_qubits)],
-                G_dol
-            )) / 2.0
-            if sep_metric > best_separation_metric:
-                best_separation_metric = sep_metric
-                best_state_int = state_int
-
-        samples.append(best_state_int)
+        samples.append(best_separation(G_dol, qubits, m))
 
     return samples
 
