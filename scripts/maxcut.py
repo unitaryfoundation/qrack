@@ -189,6 +189,11 @@ def simulate_tfim(
                     hamming_probabilities[i] /= tot_n
                 last_bias = bias.copy()
 
+    tot_prob = 0
+    for q in range(1, n_qubits):
+        tot_prob += hamming_probabilities[q]
+    for q in range(1, n_qubits):
+        hamming_probabilities[q] /= tot_prob
     thresholds = []
     tot_prob = 0
     for q in range(1, n_qubits):
