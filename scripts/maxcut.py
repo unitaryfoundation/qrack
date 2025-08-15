@@ -20,79 +20,6 @@ def factor_width(width, is_transpose=False):
 
 
 # By Gemini (Google Search AI)
-def get_highest_duplicate_count_value(input_list):
-    return Counter(input_list).most_common(1)[0][0]
-
-
-# Calculate various statistics based on comparison between ideal (Trotterized) and approximate (continuum) measurement distributions.
-def calc_stats(n_rows, n_cols, ideal_probs, counts, bias, model, shots, depth):
-    # For QV, we compare probabilities of (ideal) "heavy outputs."
-    # If the probability is above 2/3, the protocol certifies/passes the qubit width.
-    n = n_rows * n_cols
-    n_pow = 2**n
-    threshold = statistics.median(ideal_probs)
-    u_u = statistics.mean(ideal_probs)
-    numer = 0
-    denom = 0
-    diff_sqr = 0
-    sum_hog_counts = 0
-    experiment = [0] * n_pow
-    # total = 0
-    for i in range(n_pow):
-        ideal = ideal_probs[i]
-
-        count = counts[i] if i in counts else 0
-        count /= shots
-
-        # How many bits are 1, in the basis state?
-        hamming_weight = hamming_distance(i, 0, n)
-        # How closely grouped are "like" bits to "like"?
-        expected_closeness = expected_closeness_weight(n_rows, n_cols, hamming_weight)
-        # When we add all "closeness" possibilities for the particular Hamming weight, we should maintain the (n+1) mean probability dimensions.
-        normed_closeness = (1 + closeness_like_bits(i, n_rows, n_cols)) / (
-            1 + expected_closeness
-        )
-        # If we're also using conventional simulation, use a normalized weighted average that favors the (n+1)-dimensional model at later times.
-        # The (n+1)-dimensional marginal probability is the product of a function of Hamming weight and "closeness," split among all basis states with that specific Hamming weight.
-        count = (1 - model) * count + model * normed_closeness * bias[
-            hamming_weight
-        ] / math.comb(n, hamming_weight)
-
-        # You can make sure this still adds up to 1.0, to show the distribution is normalized:
-        # total += count
-
-        experiment[i] = int(count * shots)
-
-        # QV / HOG
-        if ideal > threshold:
-            sum_hog_counts += count * shots
-
-        # L2 distance
-        diff_sqr += (ideal - count) ** 2
-
-        # XEB / EPLG
-        ideal_centered = ideal - u_u
-        denom += ideal_centered * ideal_centered
-        numer += ideal_centered * (count - u_u)
-
-    l2_similarity = 1 - diff_sqr ** (1 / 2)
-    hog_prob = sum_hog_counts / shots
-
-    xeb = numer / denom
-
-    # This should be ~1.0, if we're properly normalized.
-    # print("Distribution total: " + str(total))
-
-    return {
-        "qubits": n,
-        "depth": depth,
-        "l2_similarity": float(l2_similarity),
-        "hog_prob": hog_prob,
-        "xeb": xeb,
-    }
-
-
-# By Gemini (Google Search AI)
 def int_to_bitstring(integer, length):
     return bin(integer)[2:].zfill(length)
 
@@ -280,11 +207,11 @@ def simulate_tfim(
     G,
     J_func,
     h_func,
-    n_qubits=64,
-    n_steps=20,
-    delta_t=0.1,
-    theta=0,
-    z=[],
+    n_qubits,
+    n_steps,
+    delta_t,
+    theta,
+    z,
     shots=1024,
 ):
     max_int = (1 << n_qubits) - 1
@@ -298,7 +225,6 @@ def simulate_tfim(
         J_G = J_func(G)
         h_t = h_func(t)
 
-        samples = []
         for q in range(n_qubits):
             # gather local couplings for qubit q
             J_eff = sum(J_G[q, j] for j in range(n_qubits) if (j != q)) / z[q]
@@ -315,41 +241,38 @@ def simulate_tfim(
                 for i in range(len(bias)):
                     hamming_probabilities[i] /= tot_n
                 last_bias = bias.copy()
-            
-            thresholds = []
-            tot_prob = 0
-            for q in range(n_qubits + 1):
-                tot_prob += bias[q]
-                thresholds.append(tot_prob)
-            thresholds[-1] = 1
 
-            for s in range(shots):
-                # First dimension: Hamming weight
-                mag_prob = random.random()
-                m = 0
-                while thresholds[m] < mag_prob:
-                    m += 1
+    thresholds = []
+    tot_prob = 0
+    for q in range(n_qubits + 1):
+        tot_prob += bias[q]
+        thresholds.append(tot_prob)
+    thresholds[-1] = 1
 
-                # Second dimension: permutation within Hamming weight
-                # (Written with help from Elara, the custom OpenAI GPT)
-                closeness_prob = random.random()
-                tot_prob = 0
-                state_int = 0
-                for combo in itertools.combinations(qubits, m):
-                    state_int = sum((1 << pos) for pos in combo)
-                    tot_prob += (1.0 + closeness_like_bits(state_int, n_rows, n_cols)) / (
-                        1.0 + expected_closeness_weight(n_rows, n_cols, m)
-                    )
-                    if closeness_prob <= tot_prob:
-                        break
+    samples = []
+    for s in range(shots):
+        # First dimension: Hamming weight
+        mag_prob = random.random()
+        m = 0
+        while thresholds[m] < mag_prob:
+            m += 1
 
-                samples.append(state_int)
+        # Second dimension: permutation within Hamming weight
+        # (Written with help from Elara, the custom OpenAI GPT)
+        closeness_prob = random.random()
+        tot_prob = 0
+        state_int = 0
+        for combo in itertools.combinations(qubits, m):
+            state_int = sum((1 << pos) for pos in combo)
+            tot_prob += (1.0 + closeness_like_bits(state_int, n_rows, n_cols)) / (
+                1.0 + expected_closeness_weight(n_rows, n_cols, m)
+            )
+            if closeness_prob <= tot_prob:
+                break
 
-        samples = [i for i in samples if ((i != 0) and (i != max_int))]
-        if len(samples):
-            measurements.append(get_highest_duplicate_count_value(samples))
+        samples.append(state_int)
 
-    return measurements
+    return [i for i in samples if ((i != 0) and (i != max_int))]
 
 
 def graph_to_J(G, n_nodes):
@@ -380,12 +303,11 @@ if __name__ == "__main__":
     # Example: weighted graph
     G = nx.Graph()
     G.add_edge(0, 1, weight=1)
+    G.add_edge(0, 2, weight=1)
     G.add_edge(1, 2, weight=1)
-    G.add_edge(2, 3, weight=1)
-    G.add_edge(3, 0, weight=1)
 
     # Qubit count
-    n_qubits = 4
+    n_qubits = G.number_of_nodes()
     # Trotter step count
     n_steps = 100
     # Simulated time per Trotter step
