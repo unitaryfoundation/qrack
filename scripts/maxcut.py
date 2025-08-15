@@ -34,11 +34,38 @@ def get_indices_of_top_n(data_list, n):
     return top_n_indices
 
 
+def separation_metric(adjacency, state_int, n_qubits):
+    like_count = 0
+    total_edges = 0
+    for i, neighbors in adjacency.items():
+        for j in neighbors:
+            if j > i:
+                bit_i = (state_int >> (n_qubits - 1 - i)) & 1
+                bit_j = (state_int >> (n_qubits - 1 - j)) & 1
+                like_count += -1 if bit_i == bit_j else 1
+                total_edges += 1
+
+    return like_count / total_edges
+
+
 def best_separation(adjacency, qubits, m):
     n_qubits = len(qubits)
+    combo_count = math.factorial(n_qubits) // (math.factorial(m) * math.factorial(n_qubits - m))
+
+    if math.log2(combo_count) > 20:
+        best_separation = 0
+        best_state_int = 0
+        for combo in itertools.combinations(qubits, m):
+            state_int = sum((1 << pos) for pos in combo)
+            sep = (1.0 + separation_metric(adjacency, state_int, n_qubits)) / 2.0
+            if sep > best_separation:
+                best_separation = sep
+                best_state_int = state_int
+
+        return best_state_int
+
     state_ints = [sum((1 << pos) for pos in combo) for combo in itertools.combinations(qubits, m)]
     like_count = [0] * len(state_ints)
-    total_edges = 0
     for i, neighbors in adjacency.items():
         for j in neighbors:
             if j > i:
@@ -47,7 +74,6 @@ def best_separation(adjacency, qubits, m):
                     bit_i = (state_int >> (n_qubits - 1 - i)) & 1
                     bit_j = (state_int >> (n_qubits - 1 - j)) & 1
                     like_count[k] += -1 if bit_i == bit_j else 1
-                total_edges += 1
 
     return state_ints[like_count.index(max(like_count))]
 
