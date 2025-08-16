@@ -224,6 +224,8 @@ if __name__ == "__main__":
     mult_log2 = 6
     # Qubit count
     n_qubits = G.number_of_nodes()
+    # Number of measurement shots
+    n_shots = n_qubits << mult_log2
     # Trotter step count
     n_steps = G.number_of_edges() << mult_log2
     # Simulated time per Trotter step
@@ -235,4 +237,4 @@ if __name__ == "__main__":
     # Initial temperature
     theta = 0
 
-    print(maxcut_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z, n_steps))
+    print(maxcut_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z, n_shots))
