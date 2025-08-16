@@ -40,7 +40,7 @@ def best_cut_in_weight(args):
     return best_state
 
 
-def maxcut_by_hamming_weight(G):
+def maxcut(G):
     nodes = G.nodes
     edges = G.edges()
     n_qubits = len(nodes)
@@ -51,7 +51,18 @@ def maxcut_by_hamming_weight(G):
             args.append((nodes, edges, m))
         samples = pool.map(best_cut_in_weight, args)
 
-    return samples
+    best_value = -1
+    best_solution = None
+    best_cut_edges = None
+
+    for val in samples:
+        cut_size, cut_edges = evaluate_cut(G, val)
+        if cut_size > best_value:
+            best_value = cut_size
+            best_solution = val
+            best_cut_edges = cut_edges
+
+    return best_value, best_solution, best_cut_edges
 
 
 def evaluate_cut(G, bitstring_int):
@@ -80,19 +91,6 @@ if __name__ == "__main__":
     # Qubit count
     n_qubits = G.number_of_nodes()
 
-    meas = maxcut_by_hamming_weight(G)
-
-    best_value = -1
-    best_solution = None
-    best_cut_edges = None
-
-    for val in meas:
-        cut_size, cut_edges = evaluate_cut(G, val)
-        if cut_size > best_value:
-            best_value = cut_size
-            best_solution = val
-            best_cut_edges = cut_edges
-
-    best_solution_bits = int_to_bitstring(best_solution, n_qubits) if best_solution is not None else None
-
+    best_value, best_solution, best_cut_edges = maxcut(G)
+    best_solution_bits = int_to_bitstring(best_solution, n_qubits)
     print((best_value, best_solution_bits, best_cut_edges))
