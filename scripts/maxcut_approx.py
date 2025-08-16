@@ -95,13 +95,13 @@ def get_hamming_probabilities(J, h, theta, z, t):
             # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
             tot_n = 0
             for q in range(n_qubits + 1):
-                n = 1 / ((n_qubits + 1) * (2 ** (p * q)))
-                if n == float("inf"):
+                if (p * q) >= 1024:
                     tot_n = 1
                     bias = []
                     bias.append(1)
                     bias += n_qubits * [0]
                     break
+                n = 1 / ((n_qubits + 1) * (2 ** (p * q)))
                 bias.append(n)
                 tot_n += n
             # Normalize the results for 1.0 total marginal probability.
@@ -162,7 +162,7 @@ def maxcut_tfim(
     thresholds[-1] = 1
 
     if shots == 0:
-        shots = n_qubits << 2
+        shots = n_qubits << 1
     G_dol = nx.to_dict_of_lists(G)
     separation_values = [0] * len(hamming_probabilities)
     separation_states = [0] * len(hamming_probabilities)
@@ -182,7 +182,7 @@ def maxcut_tfim(
             if (not is_caught_up) and state_int != separation_states[m]:
                  continue
             is_caught_up = True
-            separation_value = (1.0 + separation_metric(G_dol, state_int, n_qubits)) / 2.0
+            separation_value = separation_metric(G_dol, state_int, n_qubits)
             if separation_value > separation_values[m]:
                 separation_values[m] = separation_value
                 separation_states[m] = state_int
