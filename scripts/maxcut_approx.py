@@ -160,31 +160,34 @@ def maxcut_tfim(
 
     if shots == 0:
         shots = n_qubits << 2
-    G_dol = [(int(key), tuple(value)) for key, value in nx.to_dict_of_lists(G).items()]
-    separation_values = [0] * len(hamming_probabilities)
-    separation_states = [0] * len(hamming_probabilities)
-    samples = []
+    samples_m = [0] * len(hamming_probabilities)
     for s in range(shots):
         # First dimension: Hamming weight
         mag_prob = random.random()
         m = 0
         while thresholds[m] < mag_prob:
             m += 1
+        samples_m[m] += 1
 
+    G_dol = [(int(key), tuple(value)) for key, value in nx.to_dict_of_lists(G).items()]
+    separation_values = [0] * len(hamming_probabilities)
+    separation_states = [0] * len(hamming_probabilities)
+    samples = []
+    for m in range(len(samples_m)):
+        sample_m = samples_m[m]
         # Second dimension: permutation within Hamming weight
+        if sample_m == 0:
+            continue
         state_int = 0
-        is_caught_up = (separation_states[m] == 0)
         for combo in itertools.combinations(qubits, m + 1):
             state_int = sum((1 << pos) for pos in combo)
-            if (not is_caught_up) and state_int != separation_states[m]:
-                 continue
-            is_caught_up = True
             separation_value = separation_metric(G_dol, state_int, n_qubits)
             if separation_value > separation_values[m]:
                 separation_values[m] = separation_value
                 separation_states[m] = state_int
-                break
-
+                sample_m -= 1
+                if sample_m == 0:
+                    break
         samples.append(state_int)
 
     flat_edges = [int(item) for tup in G.edges() for item in tup]
