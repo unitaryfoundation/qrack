@@ -231,7 +231,7 @@ def graph_to_J(G, n_nodes):
 
 def generate_ht(t, max_t):
     # Time-varying transverse field
-    return 2.0 * t / max_t
+    return 8.0 * t / max_t
 
 
 if __name__ == "__main__":
@@ -258,7 +258,7 @@ if __name__ == "__main__":
     # Cut value is approximately 63 for this example.
 
     # Multiplicity (power of 2) of shots and steps
-    mult_log2 = 9
+    mult_log2 = 8
     # Qubit count
     n_qubits = G.number_of_nodes()
     # Number of measurement shots
