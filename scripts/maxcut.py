@@ -17,6 +17,16 @@ def int_to_bitstring(integer, length):
 
 
 @njit
+def evaluate_cut_edges_numba(state, edges):
+    cut_edges = []
+    for (u, v) in edges:
+        if ((state >> u) & 1) != ((state >> v) & 1):
+            cut_edges.append((u, v))
+
+    return len(cut_edges), state, cut_edges
+
+
+@njit
 def evaluate_cut_numba(combo, edges):
     state = 0
     for pos in combo:
@@ -47,34 +57,24 @@ def maxcut(G):
     nodes = G.nodes
     edges = [(int(u), int(v)) for u, v in G.edges()]
     n_qubits = len(nodes)
-    samples = []
+    best_by_hamming = []
     with multiprocessing.Pool(processes=os.cpu_count()) as pool:
         args = []
         for m in range(1, n_qubits):
             args.append((nodes, edges, m))
-        samples = pool.starmap(best_cut_in_weight, args)
+        best_by_hamming = pool.starmap(best_cut_in_weight, args)
 
     best_value = -1
     best_solution = None
     best_cut_edges = None
-
-    for val in samples:
-        cut_size, cut_edges = evaluate_cut(G, val)
+    for state in best_by_hamming:
+        cut_size, state, cut_edges = evaluate_cut_edges_numba(state, edges)
         if cut_size > best_value:
             best_value = cut_size
-            best_solution = val
+            best_solution = state
             best_cut_edges = cut_edges
 
     return best_value, best_solution, best_cut_edges
-
-
-def evaluate_cut(G, bitstring_int):
-    bitstring = list(map(int, int_to_bitstring(bitstring_int, G.number_of_nodes())))
-    cut_edges = []
-    for u, v in G.edges():
-        if bitstring[u] != bitstring[v]:
-            cut_edges.append((u, v))
-    return len(cut_edges), cut_edges
 
 
 if __name__ == "__main__":
