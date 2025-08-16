@@ -125,7 +125,7 @@ def maxcut_tfim(
     z,
     n_rows = 0,
     n_cols = 0,
-    shots=64,
+    shots=0,
 ):
     qubits = list(range(n_qubits))
     if n_rows == 0 or n_cols == 0:
@@ -161,6 +161,8 @@ def maxcut_tfim(
         thresholds.append(tot_prob)
     thresholds[-1] = 1
 
+    if shots == 0:
+        shots = n_qubits << 2
     G_dol = nx.to_dict_of_lists(G)
     separation_values = [0] * len(hamming_probabilities)
     separation_states = [0] * len(hamming_probabilities)
