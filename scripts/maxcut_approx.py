@@ -74,20 +74,65 @@ def random_bitmask(n, m):
     return chunks_to_int(chunks)
 
 
+# Written by Elara (OpenAI custom GPT)
+def repulsion_choice(adjacency, n, m):
+    """
+    Pick m nodes (bit positions) out of n with repulsion bias:
+    - High-degree nodes are already less likely
+    - After choosing a node, its neighbors' probabilities are further reduced
+    """
+
+    # Base weights: inverse degree
+    degrees = np.array([len(adjacency.get(i, [])) for i in range(n)], dtype=np.float64)
+    weights = 1.0 / (degrees + 1.0)
+
+    chosen = []
+    available = set(range(n))
+
+    for _ in range(m):
+        if not available:
+            break
+
+        # Normalize weights over remaining nodes
+        sub_weights = np.array([weights[i] for i in available], dtype=np.float64)
+        sub_weights /= sub_weights.sum()
+        sub_nodes = list(available)
+
+        # Sample one node
+        idx = np.random.choice(len(sub_nodes), p=sub_weights)
+        node = sub_nodes[idx]
+        chosen.append(node)
+
+        # Remove node from available
+        available.remove(node)
+
+        # Repulsion: penalize neighbors
+        for nbr in adjacency.get(node, []):
+            if nbr in available:
+                weights[nbr] *= 0.5  # halve neighbor's weight (tunable!)
+
+    # Build integer mask
+    mask = 0
+    for pos in chosen:
+        mask |= (1 << pos)
+
+    return mask
+
+@njit
 def get_hamming_probabilities(J, h, theta, z, t):
     t2 = 1
     omega = 3 * math.pi / 2
     bias = []
-    if np.isclose(h, 0):
+    if np.isclose(h, 0.0):
         # This agrees with small perturbations away from h = 0.
-        bias.append(1)
-        bias += n_qubits * [0]
-    elif np.isclose(J, 0):
+        bias.append(1.0)
+        bias += n_qubits * [0.0]
+    elif np.isclose(J, 0.0):
         # This agrees with small perturbations away from J = 0.
-        bias = (n_qubits + 1) * [1 / (n_qubits + 1)]
+        bias = (n_qubits + 1) * [1.0 / (n_qubits + 1.0)]
     else:
         # compute p_i using formula for globally uniform J, h, and theta
-        delta_theta = theta - math.asin(min(max(h / (z * J), -1), 1))
+        delta_theta = theta - math.asin(min(max(h / (z * J), -1.0), 1.0))
         # ChatGPT o3 suggested this cos_theta correction.
         sin_delta_theta = math.sin(delta_theta)
         # "p" is the exponent of the geometric series weighting, for (n+1) dimensions of Hamming weight.
@@ -95,42 +140,42 @@ def get_hamming_probabilities(J, h, theta, z, t):
         p = (
                 (
                 (
-                    (2 ** (abs(J / h) - 1))
+                    (2.0 ** (abs(J / h) - 1.0))
                     * (
-                        1
+                        1.0
                         + sin_delta_theta
                         * math.cos(J * omega * t + theta)
-                        / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
+                        / ((1.0 + math.sqrt(t / t2)) if t2 > 0.0 else 1.0)
                     )
-                    - 1 / 2
+                    - 0.5
                 )
-                if t2 > 0
-                else (2 ** abs(J / h))
+                if t2 > 0.0
+                else (2.0 ** abs(J / h))
             )
-            if (abs(J / h) - 1) < 1024
-            else 1024
+            if (abs(J / h) - 1.0) < 1024.0
+            else 1024.0
         )
-        if p >= 1024:
+        if p >= 1024.0:
             # This is approaching J / h -> infinity.
-            bias.append(1)
-            bias += n_qubits * [0]
+            bias.append(1.0)
+            bias += n_qubits * [0.0]
         else:
             # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
-            tot_n = 0
+            tot_n = 0.0
             for q in range(n_qubits + 1):
-                if ((p * q) + math.log2(n_qubits + 1)) >= 1024:
+                if ((p * q) + math.log2(n_qubits + 1)) >= 1024.0:
                     tot_n = 1
                     bias = []
-                    bias.append(1)
-                    bias += n_qubits * [0]
+                    bias.append(1.0)
+                    bias += n_qubits * [0.0]
                     break
-                n = 1 / ((n_qubits + 1) * (2 ** (p * q)))
+                n = 1.0 / ((n_qubits + 1.0) * (2.0 ** (p * q)))
                 bias.append(n)
                 tot_n += n
             # Normalize the results for 1.0 total marginal probability.
             for q in range(n_qubits + 1):
                 bias[q] /= tot_n
-    if J > 0:
+    if J > 0.0:
         # This is antiferromagnetism.
         bias.reverse()
 
@@ -179,7 +224,17 @@ def maxcut_tfim(
         thresholds.append(tot_prob)
     thresholds[-1] = 1.0
 
-    samples = set(random_shots(thresholds, n_qubits, shots))
+    # samples = set(random_shots(thresholds, n_qubits, shots))
+    G_dict = nx.to_dict_of_lists(G)
+    samples = []
+    for s in range(shots):
+        # First dimension: Hamming weight
+        mag_prob = np.random.random()
+        m = 0
+        while thresholds[m] < mag_prob:
+            m += 1
+        # Second dimension: permutation within Hamming weight
+        samples.append(repulsion_choice(G_dict, n_qubits, m))
 
     flat_edges = [int(item) for tup in G.edges() for item in tup]
     best_value = -1
@@ -214,15 +269,24 @@ if __name__ == "__main__":
     # Example: Peterson graph
     # G = nx.petersen_graph()
     # Known MAXCUT size: 12
+    # We typically find about 11 or 12.
 
     # Example: Icosahedral graph
     G = nx.icosahedral_graph()
     # Known MAXCUT size: 20
+    # We mostly get exactly 20.
 
     # Example: Complete bipartite K_{m, n}
     # m, n = 16, 16
     # G = nx.complete_bipartite_graph(m, n)
     # Known MAXCUT size: m * n
+    # We typically get m * n
+
+    # Generate a "harder" test case: Erdős–Rényi random graph with 20 nodes, edge probability 0.5
+    # n_nodes = 20
+    # edge_prob = 0.5
+    # G = nx.erdos_renyi_graph(n_nodes, edge_prob, seed=42)
+    # Cut value is approximately 63 for this example.
 
     # Multiplicity (power of 2) of shots and steps
     mult_log2 = 6
