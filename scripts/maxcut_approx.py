@@ -159,7 +159,7 @@ def maxcut_tfim(
     thresholds[-1] = 1
 
     if shots == 0:
-        shots = n_qubits << 1
+        shots = n_qubits << 2
     G_dol = [(int(key), tuple(value)) for key, value in nx.to_dict_of_lists(G).items()]
     separation_values = [0] * len(hamming_probabilities)
     separation_states = [0] * len(hamming_probabilities)
@@ -221,11 +221,11 @@ def generate_ht(t, max_t):
 
 if __name__ == "__main__":
     # Example: Peterson graph
-    # G = nx.petersen_graph()
+    G = nx.petersen_graph()
     # Known MAXCUT size: 12
 
     # Example: Icosahedral graph
-    G = nx.icosahedral_graph()
+    # G = nx.icosahedral_graph()
     # Known MAXCUT size: 20
 
     # Example: Complete bipartite K_{m, n}
