@@ -179,7 +179,7 @@ def maxcut_tfim(
 
     if shots == 0:
         shots = n_qubits << 3
-    samples = random_shots(thresholds, n_qubits, shots)
+    samples = set(random_shots(thresholds, n_qubits, shots))
 
     flat_edges = [int(item) for tup in G.edges() for item in tup]
     best_value = -1
