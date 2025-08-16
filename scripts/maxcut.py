@@ -8,11 +8,21 @@ import multiprocessing
 import numpy as np
 import os
 import networkx as nx
+from numba import njit
 
 
 # By Gemini (Google Search AI)
 def int_to_bitstring(integer, length):
     return (bin(integer)[2:].zfill(length))[::-1]
+
+
+@njit
+def evaluate_cut_numba(bitstring_int, n_nodes, edges):
+    cut_size = 0
+    for (u, v) in edges:
+        if ((bitstring_int >> u) & 1) != ((bitstring_int >> v) & 1):
+            cut_size += 1
+    return cut_size
 
 
 def best_cut_in_weight(nodes, edges, m):
@@ -26,11 +36,8 @@ def best_cut_in_weight(nodes, edges, m):
         for pos in combo:
             state |= 1 << pos
 
-        # Compute cut size using bitwise ops
-        cut_val = 0
-        for u, v in edges:
-            if ((state >> u) & 1) != ((state >> v) & 1):
-                cut_val += 1
+        # Compute cut size using bitwise ops with Numba JIT
+        cut_val = evaluate_cut_numba(state, n, edges)
 
         if cut_val > best_val:
             best_val = cut_val
@@ -41,7 +48,7 @@ def best_cut_in_weight(nodes, edges, m):
 
 def maxcut(G):
     nodes = G.nodes
-    edges = G.edges()
+    edges = [(int(u), int(v)) for u, v in G.edges()]
     n_qubits = len(nodes)
     samples = []
     with multiprocessing.Pool(processes=os.cpu_count()) as pool:
