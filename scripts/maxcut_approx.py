@@ -54,7 +54,7 @@ def evaluate_cut_edges_numba(state, flat_edges):
 # Made with help from Elara (OpenAI custom GPT)
 @njit
 def random_shots(thresholds, n, shots):
-    samples = np.empty(shots, dtype=np.int64)
+    samples = []
     for s in range(shots):
         mag_prob = np.random.random()
         m = 0
@@ -66,7 +66,7 @@ def random_shots(thresholds, n, shots):
         for i in range(m):
             mask |= (1 << perm[i])
 
-        samples[s] = mask
+        samples.append(mask)
 
     return samples
 
