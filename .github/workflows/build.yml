@@ -152,10 +152,7 @@ jobs:
 
       - name: Install vcpkg dependencies
         run: |
-          vcpkg install opencl
-
-      - name: Install Boost using Chocolatey
-        run: choco install boost-msvc-14.3 -y
+          vcpkg install opencl boost
 
       - name: Build Qrack Windows x86-64
         run: |

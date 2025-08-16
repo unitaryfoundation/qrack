@@ -196,18 +196,21 @@ def main():
         for s in range(hs):
             rands.append(random.random())
         rands.sort()
-        tot_prob = 0
         state_int = 0
+        tot_prob = 0
+        s = 0
         for combo in itertools.combinations(qubits, m):
             state_int = sum(1 << pos for pos in combo)
             tot_prob += (1.0 + closeness_like_bits(state_int, n_rows, n_cols)) / (
                 1.0 + expected_closeness_weight(n_rows, n_cols, m)
             )
-            while len(rands) and rands[0] <= tot_prob:
-                rands.pop(0)
+            while (s < hs) and (rands[s] <= tot_prob):
                 samples.append(state_int)
-            if len(rands) == 0:
+                s += 1
+            if s == hs:
                 break
+        for r in range(hs - s):
+            samples.append(state_int)
 
     random.shuffle(samples)
 
