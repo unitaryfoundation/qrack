@@ -146,7 +146,7 @@ def maxcut_tfim(
     shots,
 ):
     qubits = list(range(n_qubits))
-    hamming_probabilities = []
+    hamming_probabilities = (n_qubits - 1) * [0.0]
     for step in range(n_steps):
         t = step * delta_t
         J_G = J_func(G)
@@ -155,25 +155,26 @@ def maxcut_tfim(
         for q in range(n_qubits):
             # gather local couplings for qubit q
             J_eff = sum(J_G[q, j] for j in range(n_qubits) if (j != q)) / z[q]
-
             bias = get_hamming_probabilities(J_eff, h_t, theta, z[q], t)
-            if step == 0:
-                hamming_probabilities = bias.copy()
-            else:
-                last_bias = get_hamming_probabilities(J_eff, h_t, theta, z[q], delta_t * (step - 1))
-                tot_n = 0
-                for i in range(len(bias)):
-                    hamming_probabilities[i] += bias[i] - last_bias[i]
-                    tot_n += hamming_probabilities[i]
-                for i in range(len(bias)):
-                    hamming_probabilities[i] /= tot_n
-                last_bias = bias.copy()
 
-    thresholds = []
-    tot_prob = 0
-    for q in range(n_qubits + 1):
-        tot_prob += hamming_probabilities[q]
-        thresholds.append(tot_prob)
+            if step == 0:
+                for i in range(1, n_qubits):
+                    hamming_probabilities[i - 1] += bias[i]
+                continue
+
+            last_bias = get_hamming_probabilities(J_eff, h_t, theta, z[q], delta_t * (step - 1))
+            for i in range(1, n_qubits):
+                hamming_probabilities[i - 1] += bias[i] - last_bias[i]
+
+    norm_prob = 0.0
+    for i in range(len(hamming_probabilities)):
+        norm_prob += hamming_probabilities[i]
+
+    thresholds = len(hamming_probabilities) * [0.0]
+    tot_prob = 0.0
+    for i in range(len(hamming_probabilities)):
+        tot_prob += hamming_probabilities[i] / norm_prob
+        thresholds[i - 1] = tot_prob
     thresholds[-1] = 1.0
 
     # samples = set(random_shots(thresholds, n_qubits, shots))
@@ -187,6 +188,7 @@ def maxcut_tfim(
         m = 0
         while thresholds[m] < mag_prob:
             m += 1
+        m += 1
         # Second dimension: permutation within Hamming weight
         samples.append(local_repulsion_choice(G_dict, degrees, weights, n_qubits, m))
 
@@ -216,7 +218,7 @@ def graph_to_J(G, n_nodes):
 
 def generate_ht(t, max_t):
     # Time-varying transverse field
-    return 2.0 * t / max_t
+    return 8.0 * t / max_t
 
 
 if __name__ == "__main__":
@@ -231,7 +233,7 @@ if __name__ == "__main__":
     # We mostly get exactly 20.
 
     # Example: Complete bipartite K_{m, n}
-    # m, n = 16, 16
+    # m, n = 8, 8
     # G = nx.complete_bipartite_graph(m, n)
     # Known MAXCUT size: m * n
     # We typically get m * n
@@ -243,7 +245,7 @@ if __name__ == "__main__":
     # Cut value is approximately 63 for this example.
 
     # Multiplicity (power of 2) of shots and steps
-    mult_log2 = 7
+    mult_log2 = 6
     # Qubit count
     n_qubits = G.number_of_nodes()
     # Number of measurement shots
