@@ -10,33 +10,9 @@ import networkx as nx
 from numba import njit, prange
 
 
-def factor_width(width, is_transpose=False):
-    col_len = math.floor(math.sqrt(width))
-    while ((width // col_len) * col_len) != width:
-        col_len -= 1
-    row_len = width // col_len
-
-    return (col_len, row_len) if is_transpose else (row_len, col_len)
-
-
 # By Gemini (Google Search AI)
 def int_to_bitstring(integer, length):
     return (bin(integer)[2:].zfill(length))[::-1]
-
-
-# By Elara (OpenAI custom GPT)
-@njit(parallel=True)
-def separation_metric(adjacency, state_int, n_qubits):
-    like_count = 0
-    total_edges = 0
-    for x in prange(len(adjacency)):
-        i, neighbors = adjacency[x]
-        for j in neighbors:
-            if j > i:
-                like_count += -1 if ((state_int >> i) & 1) == ((state_int >> j) & 1) else 1
-                total_edges += 1
-
-    return like_count / total_edges if total_edges > 0 else 0.0
 
 
 @njit(parallel=True)
@@ -52,23 +28,50 @@ def evaluate_cut_edges_numba(state, flat_edges):
 
 
 # Made with help from Elara (OpenAI custom GPT)
-@njit
+@njit(parallel=True)
 def random_shots(thresholds, n, shots):
     samples = [0] * shots
-    for s in range(shots):
+    for s in prange(shots):
         mag_prob = np.random.random()
         m = 0
         while thresholds[m] < mag_prob:
             m += 1
-
-        perm = np.random.permutation(n)
-        mask = 0
-        for i in range(m):
-            mask |= (1 << perm[i])
-
-        samples[s] = mask
+        samples[s] = random_bitmask(n, m)
 
     return samples
+
+
+# Fisher-Yates subset sampler
+@njit
+def fisher_yates_sample(n, m):
+    arr = np.arange(n)
+    for i in range(m):
+        j = np.random.randint(i, n)
+        arr[i], arr[j] = arr[j], arr[i]
+    return arr[:m]
+
+# Build mask in chunks of 64 bits
+@njit
+def fisher_yates_mask(n, m):
+    chunks = np.zeros(((n + 63) // 64,), dtype=np.uint64)
+    positions = fisher_yates_sample(n, m)
+    for pos in positions:
+        chunks[pos // 64] |= np.uint64(1) << (pos % 64)
+    return chunks
+
+# Convert chunks -> Python int (arbitrary precision)
+@njit
+def chunks_to_int(chunks):
+    result = 0
+    for i, chunk in enumerate(chunks):
+        result |= int(chunk) << (64 * i)
+    return result
+
+# Full random bitstring generator
+@njit
+def random_bitmask(n, m):
+    chunks = fisher_yates_mask(n, m)
+    return chunks_to_int(chunks)
 
 
 def get_hamming_probabilities(J, h, theta, z, t):
