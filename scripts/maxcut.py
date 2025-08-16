@@ -17,11 +17,21 @@ def int_to_bitstring(integer, length):
 
 
 @njit
+def construct_state_numba(combo):
+    state = 0
+    for pos in combo:
+        state |= 1 << pos
+
+    return state
+
+
+@njit
 def evaluate_cut_numba(bitstring_int, n_nodes, edges):
     cut_size = 0
     for (u, v) in edges:
         if ((bitstring_int >> u) & 1) != ((bitstring_int >> v) & 1):
             cut_size += 1
+
     return cut_size
 
 
@@ -32,9 +42,7 @@ def best_cut_in_weight(nodes, edges, m):
 
     for combo in itertools.combinations(nodes, m):
         # Represent state as an integer
-        state = 0
-        for pos in combo:
-            state |= 1 << pos
+        state = construct_state_numba(combo)
 
         # Compute cut size using bitwise ops with Numba JIT
         cut_val = evaluate_cut_numba(state, n, edges)
