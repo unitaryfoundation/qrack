@@ -15,8 +15,7 @@ def int_to_bitstring(integer, length):
     return (bin(integer)[2:].zfill(length))[::-1]
 
 
-def best_cut_in_weight(args):
-    nodes, edges, m = args
+def best_cut_in_weight(nodes, edges, m):
     n = len(nodes)
     best_val = -1
     best_state = None
@@ -49,7 +48,7 @@ def maxcut(G):
         args = []
         for m in range(1, n_qubits):
             args.append((nodes, edges, m))
-        samples = pool.map(best_cut_in_weight, args)
+        samples = pool.starmap(best_cut_in_weight, args)
 
     best_value = -1
     best_solution = None
