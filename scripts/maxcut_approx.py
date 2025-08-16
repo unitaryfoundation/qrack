@@ -93,18 +93,22 @@ def get_hamming_probabilities(J, h, theta, z, t):
         # "p" is the exponent of the geometric series weighting, for (n+1) dimensions of Hamming weight.
         # Notice that the expected symmetries are respected under reversal of signs of J and/or h.
         p = (
-            (
-                (2 ** (abs(J / h) - 1))
-                * (
-                    1
-                    + sin_delta_theta
-                    * math.cos(J * omega * t + theta)
-                    / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
+                (
+                (
+                    (2 ** (abs(J / h) - 1))
+                    * (
+                        1
+                        + sin_delta_theta
+                        * math.cos(J * omega * t + theta)
+                        / ((1 + math.sqrt(t / t2)) if t2 > 0 else 1)
+                    )
+                    - 1 / 2
                 )
-                - 1 / 2
+                if t2 > 0
+                else (2 ** abs(J / h))
             )
-            if t2 > 0
-            else (2 ** abs(J / h))
+            if (abs(J / h) - 1) < 1024
+            else 1024
         )
         if p >= 1024:
             # This is approaching J / h -> infinity.
