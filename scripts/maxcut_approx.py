@@ -174,7 +174,7 @@ def maxcut_tfim(
 
         # Second dimension: permutation within Hamming weight
         state_int = 0
-        is_caught_up = False
+        is_caught_up = (separation_states[m] == 0)
         for combo in itertools.combinations(qubits, m + 1):
             state_int = sum((1 << pos) for pos in combo)
             if (not is_caught_up) and state_int != separation_states[m]:
