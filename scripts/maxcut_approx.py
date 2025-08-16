@@ -3,7 +3,6 @@
 
 import itertools
 import math
-import random
 import multiprocessing
 import numpy as np
 import os
@@ -52,14 +51,24 @@ def evaluate_cut_edges_numba(state, flat_edges):
     return len(cut_edges), state, cut_edges
 
 
-# By Elara (OpenAI custom GPT)
-def random_bitmask(n, k):
-    """Generate a random integer of length n bits with Hamming weight k."""
-    ones_positions = random.sample(range(n), k)
-    mask = 0
-    for pos in ones_positions:
-        mask |= (1 << pos)
-    return mask
+# Made with help from Elara (OpenAI custom GPT)
+@njit
+def random_shots(thresholds, n, shots):
+    samples = np.empty(shots, dtype=np.int64)
+    for s in range(shots):
+        mag_prob = np.random.random()
+        m = 0
+        while thresholds[m] < mag_prob:
+            m += 1
+
+        perm = np.random.permutation(n)
+        mask = 0
+        for i in range(m):
+            mask |= (1 << perm[i])
+
+        samples[s] = mask
+
+    return samples
 
 
 def get_hamming_probabilities(J, h, theta, z, t):
@@ -166,20 +175,11 @@ def maxcut_tfim(
     for q in range(n_qubits + 1):
         tot_prob += hamming_probabilities[q]
         thresholds.append(tot_prob)
-    thresholds[-1] = 1
+    thresholds[-1] = 1.0
 
     if shots == 0:
         shots = n_qubits << 3
-    G_dol = [(int(key), tuple(value)) for key, value in nx.to_dict_of_lists(G).items()]
-    samples = []
-    for s in range(shots):
-        # First dimension: Hamming weight
-        mag_prob = random.random()
-        m = 0
-        while thresholds[m] < mag_prob:
-            m += 1
-        # Second dimension: permutation within Hamming weight
-        samples.append(random_bitmask(n_qubits, m))
+    samples = random_shots(thresholds, n_qubits, shots)
 
     flat_edges = [int(item) for tup in G.edges() for item in tup]
     best_value = -1
