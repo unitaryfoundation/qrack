@@ -178,17 +178,24 @@ def main():
         thresholds.append(tot_prob)
     thresholds[-1] = 1
 
-    samples = []
+    hamming_samples = [0] * len(thresholds)
     for s in range(shots):
         # First dimension: Hamming weight
         mag_prob = random.random()
         m = 0
         while thresholds[m] < mag_prob:
             m += 1
+        hamming_samples[m] += 1
 
+    samples = []
+    for m in range(len(hamming_samples)):
         # Second dimension: permutation within Hamming weight
         # (Written with help from Elara, the custom OpenAI GPT)
-        closeness_prob = random.random()
+        hs = hamming_samples[m]
+        rands = []
+        for s in range(hs):
+            rands.append(random.random())
+        rands.sort()
         tot_prob = 0
         state_int = 0
         for combo in itertools.combinations(qubits, m):
@@ -196,10 +203,13 @@ def main():
             tot_prob += (1.0 + closeness_like_bits(state_int, n_rows, n_cols)) / (
                 1.0 + expected_closeness_weight(n_rows, n_cols, m)
             )
-            if closeness_prob <= tot_prob:
+            while len(rands) and rands[0] <= tot_prob:
+                rands.pop(0)
+                samples.append(state_int)
+            if len(rands) == 0:
                 break
 
-        samples.append(state_int)
+    random.shuffle(samples)
 
     seconds = time.perf_counter() - start
 
