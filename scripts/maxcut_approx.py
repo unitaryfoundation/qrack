@@ -26,15 +26,12 @@ def int_to_bitstring(integer, length):
 
 
 # By Elara (OpenAI custom GPT)
+@njit(parallel=True)
 def separation_metric(adjacency, state_int, n_qubits):
-    """
-    Compute 'separation' metric for a given bitstring on an arbitrary graph.
-    Rewards unlike bits across edges; penalizes like bits.
-    Result is normalized to [-1, 1].
-    """
     like_count = 0
     total_edges = 0
-    for i, neighbors in adjacency.items():
+    for x in prange(len(adjacency)):
+        i, neighbors = adjacency[x]
         for j in neighbors:
             if j > i:
                 like_count += -1 if ((state_int >> i) & 1) == ((state_int >> j) & 1) else 1
@@ -163,7 +160,7 @@ def maxcut_tfim(
 
     if shots == 0:
         shots = n_qubits << 1
-    G_dol = nx.to_dict_of_lists(G)
+    G_dol = [(int(key), tuple(value)) for key, value in nx.to_dict_of_lists(G).items()]
     separation_values = [0] * len(hamming_probabilities)
     separation_states = [0] * len(hamming_probabilities)
     samples = []
