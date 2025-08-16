@@ -44,6 +44,7 @@ def evaluate_cut_numba(combo, edges):
 
 def best_cut_in_weight(nodes, edges, m):
     n = len(nodes)
+    edge_count = len(edges)
     best_val = -1
     best_state = None
     for combo in itertools.combinations(nodes, m):
@@ -52,6 +53,8 @@ def best_cut_in_weight(nodes, edges, m):
         if cut_val > best_val:
             best_val = cut_val
             best_state = state
+            if best_val == edge_count:
+                break
 
     return best_state
 
