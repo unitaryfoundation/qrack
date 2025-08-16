@@ -7,7 +7,7 @@ import multiprocessing
 import numpy as np
 import os
 import networkx as nx
-from numba import njit, prange
+from numba import njit
 
 
 # By Gemini (Google Search AI)
@@ -15,10 +15,10 @@ def int_to_bitstring(integer, length):
     return (bin(integer)[2:].zfill(length))[::-1]
 
 
-@njit(parallel=True)
+@njit
 def evaluate_cut_edges_numba(state, flat_edges):
     cut_edges = []
-    for i in prange(len(flat_edges) // 2):
+    for i in range(len(flat_edges) // 2):
         i2 = i << 1
         u, v = flat_edges[i2], flat_edges[i2 + 1]
         if ((state >> u) & 1) != ((state >> v) & 1):
@@ -115,17 +115,18 @@ def get_hamming_probabilities(J, h, theta, z, t):
         else:
             # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
             tot_n = 0.0
-            for q in range(n_qubits + 1):
+            for q in range(len(bias)):
                 if ((p * q) + math.log2(n_qubits + 1)) >= 1024.0:
                     tot_n = 1
-                    bias = (n_qubits + 1) * [0.0]
                     bias[0] = 1.0
+                    for i in range(1, len(bias)):
+                        bias[i] = 0.0
                     break
                 n = 1.0 / ((n_qubits + 1.0) * (2.0 ** (p * q)))
                 bias[q] = n
                 tot_n += n
             # Normalize the results for 1.0 total marginal probability.
-            for q in range(n_qubits + 1):
+            for q in range(len(bias)):
                 bias[q] /= tot_n
     if J > 0.0:
         # This is antiferromagnetism.
@@ -158,13 +159,25 @@ def maxcut_tfim(
             bias = get_hamming_probabilities(J_eff, h_t, theta, z[q], t)
 
             if step == 0:
-                for i in range(1, n_qubits):
-                    hamming_probabilities[i - 1] += bias[i]
+                for i in range(len(hamming_probabilities)):
+                    hamming_probabilities[i] += bias[i + 1]
                 continue
 
             last_bias = get_hamming_probabilities(J_eff, h_t, theta, z[q], delta_t * (step - 1))
-            for i in range(1, n_qubits):
-                hamming_probabilities[i - 1] += bias[i] - last_bias[i]
+            for i in range(len(hamming_probabilities)):
+                hamming_probabilities[i] += bias[i + 1] - last_bias[i + 1]
+
+        if step == 0:
+            continue
+
+        # Precision might suffer if we don't normalize, each step.
+        tot_prob = sum(hamming_probabilities)
+
+        if np.isclose(tot_prob, 0):
+            continue
+
+        for i in range(len(hamming_probabilities)):
+            hamming_probabilities[i] /= tot_prob
 
     norm_prob = 0.0
     for i in range(len(hamming_probabilities)):
@@ -218,7 +231,7 @@ def graph_to_J(G, n_nodes):
 
 def generate_ht(t, max_t):
     # Time-varying transverse field
-    return 8.0 * t / max_t
+    return 2.0 * t / max_t
 
 
 if __name__ == "__main__":
@@ -245,7 +258,7 @@ if __name__ == "__main__":
     # Cut value is approximately 63 for this example.
 
     # Multiplicity (power of 2) of shots and steps
-    mult_log2 = 6
+    mult_log2 = 9
     # Qubit count
     n_qubits = G.number_of_nodes()
     # Number of measurement shots
