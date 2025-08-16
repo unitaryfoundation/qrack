@@ -74,7 +74,7 @@ def maxcut(G):
             best_solution = state
             best_cut_edges = cut_edges
 
-    return best_value, best_solution, best_cut_edges
+    return best_value, int_to_bitstring(best_solution, n_qubits), best_cut_edges
 
 
 if __name__ == "__main__":
@@ -91,9 +91,4 @@ if __name__ == "__main__":
     # G = nx.complete_bipartite_graph(m, n)
     # Known MAXCUT size: m * n
 
-    # Qubit count
-    n_qubits = G.number_of_nodes()
-
-    best_value, best_solution, best_cut_edges = maxcut(G)
-    best_solution_bits = int_to_bitstring(best_solution, n_qubits)
-    print((best_value, best_solution_bits, best_cut_edges))
+    print(maxcut(G))
