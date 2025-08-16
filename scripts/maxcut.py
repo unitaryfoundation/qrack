@@ -8,7 +8,7 @@ import multiprocessing
 import numpy as np
 import os
 import networkx as nx
-from numba import njit
+from numba import njit, prange
 
 
 # By Gemini (Google Search AI)
@@ -16,28 +16,28 @@ def int_to_bitstring(integer, length):
     return (bin(integer)[2:].zfill(length))[::-1]
 
 
-@njit
+@njit(parallel=True)
 def evaluate_cut_edges_numba(state, edges):
     cut_edges = []
-    for (u, v) in edges:
+    for i in prange(len(edges)):
+        u, v = edges[i]
         if ((state >> u) & 1) != ((state >> v) & 1):
             cut_edges.append((u, v))
 
     return len(cut_edges), state, cut_edges
 
 
-@njit
+@njit(parallel=True)
 def evaluate_cut_numba(combo, edges):
     edge_count = len(edges)
     state = 0
     for pos in combo:
         state |= 1 << pos
     cut_size = 0
-    for (u, v) in edges:
+    for i in prange(len(edges)):
+        u, v = edges[i]
         if ((state >> u) & 1) != ((state >> v) & 1):
             cut_size += 1
-            if cut_size == edge_count:
-                break
 
     return cut_size, state
 
