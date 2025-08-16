@@ -52,6 +52,16 @@ def evaluate_cut_edges_numba(state, flat_edges):
     return len(cut_edges), state, cut_edges
 
 
+# By Elara (OpenAI custom GPT)
+def random_bitmask(n, k):
+    """Generate a random integer of length n bits with Hamming weight k."""
+    ones_positions = random.sample(range(n), k)
+    mask = 0
+    for pos in ones_positions:
+        mask |= (1 << pos)
+    return mask
+
+
 def get_hamming_probabilities(J, h, theta, z, t):
     t2 = 1
     omega = 3 * math.pi / 2
@@ -160,35 +170,16 @@ def maxcut_tfim(
 
     if shots == 0:
         shots = n_qubits << 3
-    samples_m = [0] * len(hamming_probabilities)
+    G_dol = [(int(key), tuple(value)) for key, value in nx.to_dict_of_lists(G).items()]
+    samples = []
     for s in range(shots):
         # First dimension: Hamming weight
         mag_prob = random.random()
         m = 0
         while thresholds[m] < mag_prob:
             m += 1
-        samples_m[m] += 1
-
-    G_dol = [(int(key), tuple(value)) for key, value in nx.to_dict_of_lists(G).items()]
-    separation_values = [0] * len(hamming_probabilities)
-    separation_states = [0] * len(hamming_probabilities)
-    samples = []
-    for m in range(len(samples_m)):
-        sample_m = samples_m[m]
         # Second dimension: permutation within Hamming weight
-        if sample_m == 0:
-            continue
-        state_int = 0
-        for combo in itertools.combinations(qubits, m + 1):
-            state_int = sum((1 << pos) for pos in combo)
-            separation_value = separation_metric(G_dol, state_int, n_qubits)
-            if separation_value > separation_values[m]:
-                separation_values[m] = separation_value
-                separation_states[m] = state_int
-                sample_m -= 1
-                if sample_m == 0:
-                    break
-        samples.append(state_int)
+        samples.append(random_bitmask(n_qubits, m))
 
     flat_edges = [int(item) for tup in G.edges() for item in tup]
     best_value = -1
