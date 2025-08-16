@@ -28,6 +28,7 @@ def evaluate_cut_edges_numba(state, edges):
 
 @njit
 def evaluate_cut_numba(combo, edges):
+    edge_count = len(edges)
     state = 0
     for pos in combo:
         state |= 1 << pos
@@ -35,6 +36,8 @@ def evaluate_cut_numba(combo, edges):
     for (u, v) in edges:
         if ((state >> u) & 1) != ((state >> v) & 1):
             cut_size += 1
+            if cut_size == edge_count:
+                break
 
     return cut_size, state
 
@@ -56,6 +59,7 @@ def best_cut_in_weight(nodes, edges, m):
 def maxcut(G):
     nodes = G.nodes
     edges = [(int(u), int(v)) for u, v in G.edges()]
+    edge_count = len(edges)
     n_qubits = len(nodes)
     best_by_hamming = []
     with multiprocessing.Pool(processes=os.cpu_count()) as pool:
@@ -73,6 +77,8 @@ def maxcut(G):
             best_value = cut_size
             best_solution = state
             best_cut_edges = cut_edges
+            if best_value == edge_count:
+                break
 
     return best_value, int_to_bitstring(best_solution, n_qubits), best_cut_edges
 
