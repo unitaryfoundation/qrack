@@ -139,14 +139,9 @@ def maxcut_tfim(
     delta_t,
     theta,
     z,
-    n_rows = 0,
-    n_cols = 0,
-    shots=0,
+    shots,
 ):
     qubits = list(range(n_qubits))
-    if n_rows == 0 or n_cols == 0:
-        n_rows, n_cols = factor_width(n_qubits, False)
-
     hamming_probabilities = []
     for step in range(n_steps):
         t = step * delta_t
@@ -177,8 +172,6 @@ def maxcut_tfim(
         thresholds.append(tot_prob)
     thresholds[-1] = 1.0
 
-    if shots == 0:
-        shots = n_qubits << 3
     samples = set(random_shots(thresholds, n_qubits, shots))
 
     flat_edges = [int(item) for tup in G.edges() for item in tup]
@@ -220,16 +213,18 @@ if __name__ == "__main__":
     # Known MAXCUT size: 20
 
     # Example: Complete bipartite K_{m, n}
-    # m, n = 8, 8
+    # m, n = 16, 16
     # G = nx.complete_bipartite_graph(m, n)
     # Known MAXCUT size: m * n
 
+    # Multiplicity (power of 2) of shots and steps
+    mult_log2 = 6
     # Qubit count
     n_qubits = G.number_of_nodes()
     # Trotter step count
-    n_steps = G.number_of_edges() << 3
+    n_steps = G.number_of_edges() << mult_log2
     # Simulated time per Trotter step
-    delta_t = 1 / (n_steps << 3)
+    delta_t = 1 / (n_steps << mult_log2)
     J_func = lambda G: graph_to_J(G, n_qubits)
     h_func = lambda t: generate_ht(t, n_steps * delta_t)
     # Number of nearest neighbors:
@@ -237,4 +232,4 @@ if __name__ == "__main__":
     # Initial temperature
     theta = 0
 
-    print(maxcut_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z))
+    print(maxcut_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z, n_steps))
