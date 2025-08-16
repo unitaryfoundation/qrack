@@ -77,11 +77,10 @@ def local_repulsion_choice(adjacency, degrees, weights, n, m):
 def get_hamming_probabilities(J, h, theta, z, t):
     t2 = 1
     omega = 3 * math.pi / 2
-    bias = []
+    bias = (n_qubits + 1) * [0.0]
     if np.isclose(h, 0.0):
         # This agrees with small perturbations away from h = 0.
-        bias.append(1.0)
-        bias += n_qubits * [0.0]
+        bias[0] = 1.0
     elif np.isclose(J, 0.0):
         # This agrees with small perturbations away from J = 0.
         bias = (n_qubits + 1) * [1.0 / (n_qubits + 1.0)]
@@ -112,20 +111,18 @@ def get_hamming_probabilities(J, h, theta, z, t):
         )
         if p >= 1024.0:
             # This is approaching J / h -> infinity.
-            bias.append(1.0)
-            bias += n_qubits * [0.0]
+            bias[0] = 1.0
         else:
             # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
             tot_n = 0.0
             for q in range(n_qubits + 1):
                 if ((p * q) + math.log2(n_qubits + 1)) >= 1024.0:
                     tot_n = 1
-                    bias = []
-                    bias.append(1.0)
-                    bias += n_qubits * [0.0]
+                    bias = (n_qubits + 1) * [0.0]
+                    bias[0] = 1.0
                     break
                 n = 1.0 / ((n_qubits + 1.0) * (2.0 ** (p * q)))
-                bias.append(n)
+                bias[q] = n
                 tot_n += n
             # Normalize the results for 1.0 total marginal probability.
             for q in range(n_qubits + 1):
@@ -240,21 +237,21 @@ if __name__ == "__main__":
     # We typically get m * n
 
     # Generate a "harder" test case: Erdős–Rényi random graph with 20 nodes, edge probability 0.5
-    # n_nodes = 20
-    # edge_prob = 0.5
-    # G = nx.erdos_renyi_graph(n_nodes, edge_prob, seed=42)
+    n_nodes = 20
+    edge_prob = 0.5
+    G = nx.erdos_renyi_graph(n_nodes, edge_prob, seed=42)
     # Cut value is approximately 63 for this example.
 
     # Multiplicity (power of 2) of shots and steps
-    mult_log2 = 6
+    mult_log2 = 7
     # Qubit count
     n_qubits = G.number_of_nodes()
     # Number of measurement shots
     n_shots = n_qubits << mult_log2
     # Trotter step count
-    n_steps = G.number_of_edges() << mult_log2
+    n_steps = n_shots
     # Simulated time per Trotter step
-    delta_t = 1 / (n_steps << mult_log2)
+    delta_t = 1 / (n_steps << 3)
     J_func = lambda G: graph_to_J(G, n_qubits)
     h_func = lambda t: generate_ht(t, n_steps * delta_t)
     # Number of nearest neighbors:
