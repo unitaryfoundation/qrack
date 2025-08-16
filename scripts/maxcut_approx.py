@@ -92,7 +92,7 @@ def get_hamming_probabilities(J, h, theta, z, t):
             # The magnetization components are weighted by (n+1) symmetric "bias" terms over possible Hamming weights.
             tot_n = 0
             for q in range(n_qubits + 1):
-                if (p * q) >= 1024:
+                if ((p * q) + math.log2(n_qubits + 1)) >= 1024:
                     tot_n = 1
                     bias = []
                     bias.append(1)
@@ -159,7 +159,7 @@ def maxcut_tfim(
     thresholds[-1] = 1
 
     if shots == 0:
-        shots = n_qubits << 2
+        shots = n_qubits << 3
     samples_m = [0] * len(hamming_probabilities)
     for s in range(shots):
         # First dimension: Hamming weight
@@ -191,7 +191,6 @@ def maxcut_tfim(
         samples.append(state_int)
 
     flat_edges = [int(item) for tup in G.edges() for item in tup]
-    edge_count = len(flat_edges) >> 1
     best_value = -1
     best_solution = None
     best_cut_edges = None
@@ -201,8 +200,6 @@ def maxcut_tfim(
             best_value = cut_size
             best_solution = state
             best_cut_edges = cut_edges
-            if best_value == edge_count:
-                break
 
     return best_value, int_to_bitstring(best_solution, n_qubits), best_cut_edges
 
@@ -224,11 +221,11 @@ def generate_ht(t, max_t):
 
 if __name__ == "__main__":
     # Example: Peterson graph
-    G = nx.petersen_graph()
+    # G = nx.petersen_graph()
     # Known MAXCUT size: 12
 
     # Example: Icosahedral graph
-    # G = nx.icosahedral_graph()
+    G = nx.icosahedral_graph()
     # Known MAXCUT size: 20
 
     # Example: Complete bipartite K_{m, n}
@@ -239,9 +236,9 @@ if __name__ == "__main__":
     # Qubit count
     n_qubits = G.number_of_nodes()
     # Trotter step count
-    n_steps = G.number_of_edges() << 2
+    n_steps = G.number_of_edges() << 3
     # Simulated time per Trotter step
-    delta_t = 1 / (n_steps << 2)
+    delta_t = 1 / (n_steps << 3)
     J_func = lambda G: graph_to_J(G, n_qubits)
     h_func = lambda t: generate_ht(t, n_steps * delta_t)
     # Number of nearest neighbors:
