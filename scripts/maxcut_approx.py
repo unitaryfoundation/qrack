@@ -225,12 +225,12 @@ if __name__ == "__main__":
     # Known MAXCUT size: 12
 
     # Example: Icosahedral graph
-    G = nx.icosahedral_graph()
+    # G = nx.icosahedral_graph()
     # Known MAXCUT size: 20
 
     # Example: Complete bipartite K_{m, n}
-    # m, n = 8, 8
-    # G = nx.complete_bipartite_graph(m, n)
+    m, n = 8, 8
+    G = nx.complete_bipartite_graph(m, n)
     # Known MAXCUT size: m * n
 
     # Qubit count
@@ -238,7 +238,7 @@ if __name__ == "__main__":
     # Trotter step count
     n_steps = 100
     # Simulated time per Trotter step
-    delta_t = 0.01
+    delta_t = 0.001
     J_func = lambda G: graph_to_J(G, n_qubits)
     h_func = lambda t: generate_ht(t, n_steps * delta_t)
     # Number of nearest neighbors:
