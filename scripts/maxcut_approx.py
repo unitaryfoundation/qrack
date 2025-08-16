@@ -27,55 +27,8 @@ def evaluate_cut_edges_numba(state, flat_edges):
     return len(cut_edges), state, cut_edges
 
 
-# Made with help from Elara (OpenAI custom GPT)
-@njit(parallel=True)
-def random_shots(thresholds, n, shots):
-    samples = [0] * shots
-    for s in prange(shots):
-        mag_prob = np.random.random()
-        m = 0
-        while thresholds[m] < mag_prob:
-            m += 1
-        samples[s] = random_bitmask(n, m)
-
-    return samples
-
-
-# Fisher-Yates subset sampler
-@njit
-def fisher_yates_sample(n, m):
-    arr = np.arange(n)
-    for i in range(m):
-        j = np.random.randint(i, n)
-        arr[i], arr[j] = arr[j], arr[i]
-    return arr[:m]
-
-# Build mask in chunks of 64 bits
-@njit
-def fisher_yates_mask(n, m):
-    chunks = np.zeros(((n + 63) // 64,), dtype=np.uint64)
-    positions = fisher_yates_sample(n, m)
-    for pos in positions:
-        chunks[pos // 64] |= np.uint64(1) << (pos % 64)
-    return chunks
-
-# Convert chunks -> Python int (arbitrary precision)
-@njit
-def chunks_to_int(chunks):
-    result = 0
-    for i, chunk in enumerate(chunks):
-        result |= int(chunk) << (64 * i)
-    return result
-
-# Full random bitstring generator
-@njit
-def random_bitmask(n, m):
-    chunks = fisher_yates_mask(n, m)
-    return chunks_to_int(chunks)
-
-
 # Written by Elara (OpenAI custom GPT)
-def repulsion_choice(adjacency, n, m):
+def local_repulsion_choice(adjacency, degrees, weights, n, m):
     """
     Pick m nodes (bit positions) out of n with repulsion bias:
     - High-degree nodes are already less likely
@@ -83,8 +36,10 @@ def repulsion_choice(adjacency, n, m):
     """
 
     # Base weights: inverse degree
-    degrees = np.array([len(adjacency.get(i, [])) for i in range(n)], dtype=np.float64)
-    weights = 1.0 / (degrees + 1.0)
+    # degrees = np.array([len(adjacency.get(i, [])) for i in range(n)], dtype=np.float64)
+    # weights = 1.0 / (degrees + 1.0)
+    degrees = degrees.copy()
+    weights = weights.copy()
 
     chosen = []
     available = set(range(n))
@@ -226,6 +181,8 @@ def maxcut_tfim(
 
     # samples = set(random_shots(thresholds, n_qubits, shots))
     G_dict = nx.to_dict_of_lists(G)
+    degrees = np.array([len(G_dict.get(i, [])) for i in range(n_qubits)], dtype=np.float64)
+    weights = 1.0 / (degrees + 1.0)
     samples = []
     for s in range(shots):
         # First dimension: Hamming weight
@@ -234,7 +191,7 @@ def maxcut_tfim(
         while thresholds[m] < mag_prob:
             m += 1
         # Second dimension: permutation within Hamming weight
-        samples.append(repulsion_choice(G_dict, n_qubits, m))
+        samples.append(local_repulsion_choice(G_dict, degrees, weights, n_qubits, m))
 
     flat_edges = [int(item) for tup in G.edges() for item in tup]
     best_value = -1
@@ -267,12 +224,12 @@ def generate_ht(t, max_t):
 
 if __name__ == "__main__":
     # Example: Peterson graph
-    # G = nx.petersen_graph()
+    G = nx.petersen_graph()
     # Known MAXCUT size: 12
     # We typically find about 11 or 12.
 
     # Example: Icosahedral graph
-    G = nx.icosahedral_graph()
+    # G = nx.icosahedral_graph()
     # Known MAXCUT size: 20
     # We mostly get exactly 20.
 
