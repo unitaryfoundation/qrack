@@ -239,21 +239,22 @@ def generate_ht(t, max_t):
 
 
 if __name__ == "__main__":
+    # We usually achieve the exact value
+    # (or optimal, for Erdős–Rényi, with unknown exact value)
+    # for each of the following examples.
+
     # Example: Peterson graph
     # G = nx.petersen_graph()
     # Known MAXCUT size: 12
-    # We typically find about 11 or 12.
 
     # Example: Icosahedral graph
     # G = nx.icosahedral_graph()
     # Known MAXCUT size: 20
-    # We mostly get exactly 20.
 
     # Example: Complete bipartite K_{m, n}
     # m, n = 8, 8
     # G = nx.complete_bipartite_graph(m, n)
     # Known MAXCUT size: m * n
-    # We typically get m * n
 
     # Generate a "harder" test case: Erdős–Rényi random graph with 20 nodes, edge probability 0.5
     n_nodes = 20
