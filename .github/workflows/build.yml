@@ -152,20 +152,19 @@ jobs:
 
       - name: Install vcpkg dependencies
         run: |
-          vcpkg install opencl boost
+          vcpkg install opencl boost-dynamic-bitset
 
       - name: Build Qrack Windows x86-64
         env:
-          BOOST_TOOLCHAIN_FILE: C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-          BOOST_ROOT: C:/vcpkg/installed/x64-window"
-          BOOST_INCLUDEDIR: C:/vcpkg/installed/x64-windows/include
-          BOOST_LIBRARYDIR: C:/vcpkg/installed/x64-windows/lib
+          BOOST_ROOT: ${{ env.VCPKG_INSTALLATION_ROOT }}installed/x64-windows
+          BOOST_INCLUDEDIR: ${{ env.VCPKG_INSTALLATION_ROOT }}/installed/x64-windows/include
+          BOOST_LIBRARYDIR: ${{ env.VCPKG_INSTALLATION_ROOT }}/installed/x64-windows/lib
         run: |
           mkdir build
           cd build
           powershell -c "Invoke-WebRequest -Uri 'https://github.com/ckormanyos/xxd/releases/download/v1.1/xxd-win64-msvc.zip' -OutFile 'xxd-win64-msvc.zip'"
           powershell -c "Expand-Archive -Path xxd-win64-msvc.zip -DestinationPath ."
-          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DXXD_BIN="xxd.exe" -DQBCAPPOW=9 -DCPP_STD=14
+          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DBoost_NO_SYSTEM_PATHS=TRUE -DXXD_BIN="xxd.exe" -DQBCAPPOW=9 -DCPP_STD=14
           cmake --build . --config Release --target PACKAGE qrack_pinvoke
           cmake --build . --config Release --target PACKAGE benchmarks
 
