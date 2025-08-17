@@ -153,9 +153,9 @@ def graph_to_J(G, n_nodes):
     return J
 
 
-def generate_ht(t, max_t):
+def generate_ht(t, max_t, mult_log2):
     # Time-varying transverse field
-    return 8.0 * t / max_t
+    return (1 << (mult_log2 >> 1)) * t / max_t
 
 
 # By Gemini (Google Search AI)
@@ -176,13 +176,13 @@ def maxcut_tfim(
     # Number of qubits/nodes
     n_qubits = G.number_of_nodes()
     # Multiplicity (power of 2) of shots and steps
-    mult_log2 = 8
+    mult_log2 = 10
     if J_func is None:
         # Coupling interaction
         J_func = lambda G: graph_to_J(G, n_qubits)
     if h_func is None:
         # Transverse field
-        h_func = lambda t: generate_ht(t, n_steps * delta_t)
+        h_func = lambda t: generate_ht(t, n_steps * delta_t, mult_log2)
     if z is None:
         # Number of nearest neighbors:
         z = [G.degree[i] for i in range(n_qubits)]
@@ -194,7 +194,7 @@ def maxcut_tfim(
         n_steps = n_qubits << mult_log2
     if delta_t is None:
         # Simulated time per Trotter step
-        delta_t = 1 / (n_steps << 3)
+        delta_t = 1 / (n_steps << (mult_log2 >> 1))
     if shots is None:
         # Number of measurement shots
         shots = n_qubits << mult_log2
@@ -268,22 +268,22 @@ if __name__ == "__main__":
     # for each of the following examples.
 
     # Example: Peterson graph
-    # G = nx.petersen_graph()
+    G = nx.petersen_graph()
     # Known MAXCUT size: 12
 
     # Example: Icosahedral graph
-    # G = nx.icosahedral_graph()
+    #  G = nx.icosahedral_graph()
     # Known MAXCUT size: 20
 
     # Example: Complete bipartite K_{m, n}
-    # m, n = 8, 8
+    # m, n = 16, 16
     # G = nx.complete_bipartite_graph(m, n)
     # Known MAXCUT size: m * n
 
     # Generate a "harder" test case: Erdős–Rényi random graph with 20 nodes, edge probability 0.5
-    n_nodes = 20
-    edge_prob = 0.5
-    G = nx.erdos_renyi_graph(n_nodes, edge_prob, seed=42)
+    # n_nodes = 20
+    # edge_prob = 0.5
+    # G = nx.erdos_renyi_graph(n_nodes, edge_prob, seed=42)
     # Cut value is approximately 63 for this example.
 
     # Create a Barabási–Albert (BA) graph with 20 nodes and 2 edges to attach from a new node to existing nodes
