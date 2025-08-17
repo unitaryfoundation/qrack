@@ -35,51 +35,6 @@ def evaluate_cut_edges_numba(samples, flat_edges):
     return best_value, best_solution, best_cut_edges
 
 
-# Written by Elara (OpenAI custom GPT)
-def local_repulsion_choice(adjacency, degrees, weights, n, m):
-    """
-    Pick m nodes (bit positions) out of n with repulsion bias:
-    - High-degree nodes are already less likely
-    - After choosing a node, its neighbors' probabilities are further reduced
-    """
-
-    # Base weights: inverse degree
-    # degrees = np.array([len(adjacency.get(i, [])) for i in range(n)], dtype=np.float64)
-    # weights = 1.0 / (degrees + 1.0)
-    weights = weights.copy()
-
-    chosen = []
-    available = set(range(n))
-
-    for _ in range(m):
-        if not available:
-            break
-
-        # Normalize weights over remaining nodes
-        sub_weights = np.array([weights[i] for i in available], dtype=np.float64)
-        sub_weights /= sub_weights.sum()
-        sub_nodes = list(available)
-
-        # Sample one node
-        idx = np.random.choice(len(sub_nodes), p=sub_weights)
-        node = sub_nodes[idx]
-        chosen.append(node)
-
-        # Remove node from available
-        available.remove(node)
-
-        # Repulsion: penalize neighbors
-        for nbr in adjacency.get(node, []):
-            if nbr in available:
-                weights[nbr] *= 0.5  # halve neighbor's weight (tunable!)
-
-    # Build integer mask
-    mask = 0
-    for pos in chosen:
-        mask |= (1 << pos)
-
-    return mask
-
 @njit
 def get_hamming_probabilities(n_qubits, J, h, theta, z, t):
     t2 = 1
@@ -140,6 +95,52 @@ def get_hamming_probabilities(n_qubits, J, h, theta, z, t):
         bias.reverse()
 
     return bias
+
+
+# Written by Elara (OpenAI custom GPT)
+def local_repulsion_choice(adjacency, degrees, weights, n, m):
+    """
+    Pick m nodes (bit positions) out of n with repulsion bias:
+    - High-degree nodes are already less likely
+    - After choosing a node, its neighbors' probabilities are further reduced
+    """
+
+    # Base weights: inverse degree
+    # degrees = np.array([len(adjacency.get(i, [])) for i in range(n)], dtype=np.float64)
+    # weights = 1.0 / (degrees + 1.0)
+    weights = weights.copy()
+
+    chosen = []
+    available = set(range(n))
+
+    for _ in range(m):
+        if not available:
+            break
+
+        # Normalize weights over remaining nodes
+        sub_weights = np.array([weights[i] for i in available], dtype=np.float64)
+        sub_weights /= sub_weights.sum()
+        sub_nodes = list(available)
+
+        # Sample one node
+        idx = np.random.choice(len(sub_nodes), p=sub_weights)
+        node = sub_nodes[idx]
+        chosen.append(node)
+
+        # Remove node from available
+        available.remove(node)
+
+        # Repulsion: penalize neighbors
+        for nbr in adjacency.get(node, []):
+            if nbr in available:
+                weights[nbr] *= 0.5  # halve neighbor's weight (tunable!)
+
+    # Build integer mask
+    mask = 0
+    for pos in chosen:
+        mask |= (1 << pos)
+
+    return mask
 
 
 def graph_to_J(G, n_nodes):
