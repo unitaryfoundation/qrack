@@ -42,7 +42,6 @@ def local_repulsion_choice(adjacency, degrees, weights, n, m):
     # Base weights: inverse degree
     # degrees = np.array([len(adjacency.get(i, [])) for i in range(n)], dtype=np.float64)
     # weights = 1.0 / (degrees + 1.0)
-    degrees = degrees.copy()
     weights = weights.copy()
 
     chosen = []
@@ -78,7 +77,7 @@ def local_repulsion_choice(adjacency, degrees, weights, n, m):
     return mask
 
 @njit
-def get_hamming_probabilities(J, h, theta, z, t):
+def get_hamming_probabilities(n_qubits, J, h, theta, z, t):
     t2 = 1
     omega = 3 * math.pi / 2
     bias = (n_qubits + 1) * [0.0]
@@ -139,17 +138,57 @@ def get_hamming_probabilities(J, h, theta, z, t):
     return bias
 
 
+def graph_to_J(G, n_nodes):
+    """Convert networkx.Graph to J dictionary for TFIM."""
+    J = np.zeros((n_nodes, n_nodes))
+    for u, v, data in G.edges(data=True):
+        weight = data.get("weight", 1.0)  # Default weight = 1.0
+        J[u, v] = -weight
+
+    return J
+
+
+def generate_ht(t, max_t):
+    # Time-varying transverse field
+    return 8.0 * t / max_t
+
+
 def maxcut_tfim(
     G,
-    J_func,
-    h_func,
-    n_qubits,
-    n_steps,
-    delta_t,
-    theta,
-    z,
-    shots,
+    J_func = None,
+    h_func = None,
+    z = None,
+    theta = None,
+    n_steps = None,
+    delta_t = None,
+    shots = None,
 ):
+    # Number of qubits/nodes
+    n_qubits = G.number_of_nodes()
+    # Multiplicity (power of 2) of shots and steps
+    mult_log2 = 8
+    if J_func is None:
+        # Coupling interaction
+        J_func = lambda G: graph_to_J(G, n_qubits)
+    if h_func is None:
+        # Transverse field
+        h_func = lambda t: generate_ht(t, n_steps * delta_t)
+    if z is None:
+        # Number of nearest neighbors:
+        z = [G.degree[i] for i in range(n_qubits)]
+    if theta is None:
+        # Initial temperature
+        theta = [0] * n_qubits
+    if n_steps is None:
+        # Trotter step count
+        n_steps = n_qubits << mult_log2
+    if delta_t is None:
+        # Simulated time per Trotter step
+        delta_t = 1 / (n_steps << 3)
+    if shots is None:
+        # Number of measurement shots
+        shots = n_qubits << mult_log2
+
     qubits = list(range(n_qubits))
     hamming_probabilities = (n_qubits - 1) * [0.0]
     for step in range(n_steps):
@@ -160,14 +199,14 @@ def maxcut_tfim(
         for q in range(n_qubits):
             # gather local couplings for qubit q
             J_eff = sum(J_G[q, j] for j in range(n_qubits) if (j != q)) / z[q]
-            bias = get_hamming_probabilities(J_eff, h_t, theta, z[q], t)
+            bias = get_hamming_probabilities(n_qubits, J_eff, h_t, theta[q], z[q], t)
 
             if step == 0:
                 for i in range(len(hamming_probabilities)):
                     hamming_probabilities[i] += bias[i + 1]
                 continue
 
-            last_bias = get_hamming_probabilities(J_eff, h_t, theta, z[q], delta_t * (step - 1))
+            last_bias = get_hamming_probabilities(n_qubits, J_eff, h_t, theta[q], z[q], delta_t * (step - 1))
             for i in range(len(hamming_probabilities)):
                 hamming_probabilities[i] += bias[i + 1] - last_bias[i + 1]
 
@@ -194,7 +233,6 @@ def maxcut_tfim(
         thresholds[i - 1] = tot_prob
     thresholds[-1] = 1.0
 
-    # samples = set(random_shots(thresholds, n_qubits, shots))
     G_dict = nx.to_dict_of_lists(G)
     degrees = np.array([sum(edge_attributes.get('weight', 1.0) for neighbor, edge_attributes in G.adj[i].items()) for i in range(n_qubits)], dtype=np.float64)
     weights = 1.0 / (degrees + 1.0)
@@ -221,21 +259,6 @@ def maxcut_tfim(
             best_cut_edges = cut_edges
 
     return best_value, int_to_bitstring(best_solution, n_qubits), best_cut_edges
-
-
-def graph_to_J(G, n_nodes):
-    """Convert networkx.Graph to J dictionary for TFIM."""
-    J = np.zeros((n_nodes, n_nodes))
-    for u, v, data in G.edges(data=True):
-        weight = data.get("weight", 1.0)  # Default weight = 1.0
-        J[u, v] = -weight
-
-    return J
-
-
-def generate_ht(t, max_t):
-    # Time-varying transverse field
-    return 8.0 * t / max_t
 
 
 if __name__ == "__main__":
@@ -273,22 +296,4 @@ if __name__ == "__main__":
     # G.add_edge(0, 4, weight=4.01)
     # G.add_edge(0, 5, weight=1.29)
 
-
-    # Multiplicity (power of 2) of shots and steps
-    mult_log2 = 8
-    # Qubit count
-    n_qubits = G.number_of_nodes()
-    # Number of measurement shots
-    n_shots = n_qubits << mult_log2
-    # Trotter step count
-    n_steps = n_shots
-    # Simulated time per Trotter step
-    delta_t = 1 / (n_steps << 3)
-    J_func = lambda G: graph_to_J(G, n_qubits)
-    h_func = lambda t: generate_ht(t, n_steps * delta_t)
-    # Number of nearest neighbors:
-    z = [G.degree[i] for i in range(G.number_of_nodes())]
-    # Initial temperature
-    theta = 0
-
-    print(maxcut_tfim(G, J_func, h_func, n_qubits, n_steps, delta_t, theta, z, n_shots))
+    print(maxcut_tfim(G))
