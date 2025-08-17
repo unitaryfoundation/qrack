@@ -14,21 +14,25 @@ import networkx as nx
 from numba import njit
 
 
-# By Gemini (Google Search AI)
-def int_to_bitstring(integer, length):
-    return (bin(integer)[2:].zfill(length))[::-1]
-
-
 @njit
-def evaluate_cut_edges_numba(state, flat_edges):
-    cut_edges = []
-    for i in range(len(flat_edges) // 2):
-        i2 = i << 1
-        u, v = flat_edges[i2], flat_edges[i2 + 1]
-        if ((state >> u) & 1) != ((state >> v) & 1):
-            cut_edges.append((u, v))
+def evaluate_cut_edges_numba(samples, flat_edges):
+    best_value = -1
+    best_solution = None
+    best_cut_edges = None
+    for state in samples:
+        cut_edges = []
+        for i in range(len(flat_edges) // 2):
+            i2 = i << 1
+            u, v = flat_edges[i2], flat_edges[i2 + 1]
+            if ((state >> u) & 1) != ((state >> v) & 1):
+                cut_edges.append((u, v))
+        cut_size = len(cut_edges)
+        if cut_size > best_value:
+            best_value = cut_size
+            best_solution = state
+            best_cut_edges = cut_edges
 
-    return len(cut_edges), state, cut_edges
+    return best_value, best_solution, best_cut_edges
 
 
 # Written by Elara (OpenAI custom GPT)
@@ -153,6 +157,11 @@ def generate_ht(t, max_t):
     return 8.0 * t / max_t
 
 
+# By Gemini (Google Search AI)
+def int_to_bitstring(integer, length):
+    return (bin(integer)[2:].zfill(length))[::-1]
+
+
 def maxcut_tfim(
     G,
     J_func = None,
@@ -247,16 +256,7 @@ def maxcut_tfim(
         # Second dimension: permutation within Hamming weight
         samples.append(local_repulsion_choice(G_dict, degrees, weights, n_qubits, m))
 
-    flat_edges = [int(item) for tup in G.edges() for item in tup]
-    best_value = -1
-    best_solution = None
-    best_cut_edges = None
-    for state in samples:
-        cut_size, state, cut_edges = evaluate_cut_edges_numba(state, flat_edges)
-        if cut_size > best_value:
-            best_value = cut_size
-            best_solution = state
-            best_cut_edges = cut_edges
+    best_value, best_solution, best_cut_edges = evaluate_cut_edges_numba(samples, [int(item) for tup in G.edges() for item in tup])
 
     return best_value, int_to_bitstring(best_solution, n_qubits), best_cut_edges
 
