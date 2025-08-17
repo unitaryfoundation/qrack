@@ -196,7 +196,7 @@ def maxcut_tfim(
 
     # samples = set(random_shots(thresholds, n_qubits, shots))
     G_dict = nx.to_dict_of_lists(G)
-    degrees = np.array([len(G_dict.get(i, [])) for i in range(n_qubits)], dtype=np.float64)
+    degrees = np.array([sum(edge_attributes.get('weight', 1.0) for neighbor, edge_attributes in G.adj[i].items()) for i in range(n_qubits)], dtype=np.float64)
     weights = 1.0 / (degrees + 1.0)
     samples = []
     for s in range(shots):
