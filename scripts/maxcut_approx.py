@@ -262,9 +262,17 @@ if __name__ == "__main__":
     G = nx.erdos_renyi_graph(n_nodes, edge_prob, seed=42)
     # Cut value is approximately 63 for this example.
 
-    # Seed for reproducibility
     # Create a Barabási–Albert (BA) graph with 20 nodes and 2 edges to attach from a new node to existing nodes
     # G = nx.barabasi_albert_graph(n=20, m=2, seed=42)
+
+    # Non-uniform edge weights
+    # G = nx.Graph()
+    # G.add_edge(0, 1, weight=3.69)
+    # G.add_edge(0, 2, weight=2.2)
+    # G.add_edge(0, 3, weight=2.26)
+    # G.add_edge(0, 4, weight=4.01)
+    # G.add_edge(0, 5, weight=1.29)
+
 
     # Multiplicity (power of 2) of shots and steps
     mult_log2 = 8
