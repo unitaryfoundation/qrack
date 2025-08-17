@@ -156,9 +156,9 @@ jobs:
 
       - name: Build Qrack Windows x86-64
         env:
-          BOOST_ROOT: ${{ env.VCPKG_INSTALLATION_ROOT }}installed/x64-windows
-          BOOST_INCLUDEDIR: ${{ env.VCPKG_INSTALLATION_ROOT }}/installed/x64-windows/include
-          BOOST_LIBRARYDIR: ${{ env.VCPKG_INSTALLATION_ROOT }}/installed/x64-windows/lib
+          BOOST_ROOT: C:/vcpkg/installed/x64-windows
+          BOOST_INCLUDEDIR: C:/vcpkg/installed/x64-windows/include
+          BOOST_LIBRARYDIR: C:/vcpkg/installed/x64-windows/lib
         run: |
           mkdir build
           cd build
