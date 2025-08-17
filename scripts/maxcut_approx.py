@@ -15,27 +15,6 @@ from numba import njit
 
 
 @njit
-def evaluate_cut_edges_numba(samples, flat_edges):
-    best_value = -1
-    best_solution = None
-    best_cut_edges = None
-    for state in samples:
-        cut_edges = []
-        for i in range(len(flat_edges) // 2):
-            i2 = i << 1
-            u, v = flat_edges[i2], flat_edges[i2 + 1]
-            if ((state >> u) & 1) != ((state >> v) & 1):
-                cut_edges.append((u, v))
-        cut_size = len(cut_edges)
-        if cut_size > best_value:
-            best_value = cut_size
-            best_solution = state
-            best_cut_edges = cut_edges
-
-    return best_value, best_solution, best_cut_edges
-
-
-@njit
 def get_hamming_probabilities(n_qubits, J, h, theta, z, t):
     t2 = 1
     omega = 3 * math.pi / 2
@@ -95,6 +74,26 @@ def get_hamming_probabilities(n_qubits, J, h, theta, z, t):
         bias.reverse()
 
     return bias
+
+
+def evaluate_cut_edges_numba(samples, flat_edges):
+    best_value = -1
+    best_solution = None
+    best_cut_edges = None
+    for state in samples:
+        cut_edges = []
+        for i in range(len(flat_edges) // 2):
+            i2 = i << 1
+            u, v = flat_edges[i2], flat_edges[i2 + 1]
+            if ((state >> u) & 1) != ((state >> v) & 1):
+                cut_edges.append((u, v))
+        cut_size = len(cut_edges)
+        if cut_size > best_value:
+            best_value = cut_size
+            best_solution = state
+            best_cut_edges = cut_edges
+
+    return best_value, best_solution, best_cut_edges
 
 
 # Written by Elara (OpenAI custom GPT)
@@ -272,7 +271,7 @@ if __name__ == "__main__":
     # Known MAXCUT size: 12
 
     # Example: Icosahedral graph
-    #  G = nx.icosahedral_graph()
+    # G = nx.icosahedral_graph()
     # Known MAXCUT size: 20
 
     # Example: Complete bipartite K_{m, n}
