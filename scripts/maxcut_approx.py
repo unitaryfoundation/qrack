@@ -270,13 +270,21 @@ def generate_spin_glass_graph(n_nodes=16, degree=3, seed=None):
     return G
 
 
+def verify_spin_glass_solution(G, spins, E_claim):
+    E = 0
+    for u, v, data in G.edges(data=True):
+        J = -data.get('weight', 1)
+        E += J * spins[u] * spins[v]
+    return E == E_claim
+
+
 if __name__ == "__main__":
     # We usually achieve the exact value
     # (or optimal, for Erdős–Rényi, with unknown exact value)
     # for each of the following examples.
 
     # Example: Peterson graph
-    G = nx.petersen_graph()
+    # G = nx.petersen_graph()
     # Known MAXCUT size: 12
 
     # Example: Icosahedral graph
@@ -306,6 +314,16 @@ if __name__ == "__main__":
     # G.add_edge(0, 5, weight=1.29)
 
     # NP-complete spin glass
-    # G = generate_spin_glass_graph(seed=42)
+    G = generate_spin_glass_graph(seed=42)
 
-    print(maxcut_tfim(G))
+    cut_value, bitstring, cut_edges = maxcut_tfim(G)
+
+    print((cut_value, bitstring, cut_edges))
+
+    # Convert bitstring to spins
+    spins = {i: 1 if bitstring[i] == '1' else -1 for i in range(len(bitstring))}
+
+    # Reconstruct Ising energy (note: MAXCUT flips sign!)
+    E_claim = -sum(G[u][v].get("weight", 1) * spins[u] * spins[v] for u, v in G.edges())
+
+    print("Passes verification: " + str(verify_spin_glass_solution(G, spins, E_claim)))
