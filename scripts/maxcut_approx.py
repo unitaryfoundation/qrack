@@ -314,7 +314,7 @@ if __name__ == "__main__":
     # G.add_edge(0, 5, weight=1.29)
 
     # NP-complete spin glass
-    G = generate_spin_glass_graph(seed=42)
+    G = generate_spin_glass_graph(n_nodes=64, seed=42)
 
     cut_value, bitstring, cut_edges = maxcut_tfim(G)
 

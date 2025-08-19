@@ -421,6 +421,9 @@ public:
     /// Measure qubit t
     bool ForceM(bitLenInt t, bool result, bool doForce = true, bool doApply = true);
 
+    /// Get the highest-probability basis dimension in the Hilbert space
+    bitCapInt HighestProbAll();
+
     /// Convert the state to ket notation
     void GetQuantumState(complex* stateVec);
 

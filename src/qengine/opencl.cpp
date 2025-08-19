@@ -2981,6 +2981,41 @@ void QEngineOCL::SetQuantumState(const complex* inputState)
     UpdateRunningNorm();
 }
 
+bitCapInt QEngineOCL::HighestProbAll()
+{
+    clFinish(false);
+
+    if (!stateBuffer) {
+        return ZERO_BCI;
+    }
+
+    LockSync(CL_MAP_READ);
+
+    const unsigned numCores = GetConcurrencyLevel();
+    std::unique_ptr<real1[]> highestProbs(new real1[numCores]());
+    std::unique_ptr<bitCapIntOcl[]> bestPerms(new bitCapIntOcl[numCores]());
+    par_for(0U, maxQPowerOcl, [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+        real1_f prob = norm(stateVec.get()[lcv]);
+        if (prob > highestProbs[cpu]) {
+            highestProbs[cpu] = prob;
+            bestPerms[cpu] = lcv;
+        }
+    });
+
+    real1 highestProb = ZERO_R1;
+    bitCapIntOcl bestPerm = 0U;
+    for (unsigned i = 0U; i < numCores; ++i) {
+        if (highestProbs[i] > highestProb) {
+            highestProb = highestProbs[i];
+            bestPerm = bestPerms[i];
+        }
+    }
+
+    UnlockSync();
+
+    return bestPerm;
+}
+
 bitCapInt QEngineOCL::MAll()
 {
     if (!stateBuffer) {

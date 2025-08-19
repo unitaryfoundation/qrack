@@ -470,6 +470,19 @@ public:
         return prob;
     }
 
+    bitCapInt HighestProbAll()
+    {
+        if (engine) {
+            return engine->HighestProbAll();
+        }
+
+        if (!ancillaCount && !deadAncillaCount && !IsLogicalProbBuffered()) {
+            return stabilizer->HighestProbAll();
+        }
+
+        return QInterface::HighestProbAll();
+    }
+
     /**
      * Switches between CPU and GPU used modes. (This will not incur a performance penalty, if the chosen mode matches
      * the current mode.) Mode switching happens automatically when qubit counts change, but Compose() and Decompose()

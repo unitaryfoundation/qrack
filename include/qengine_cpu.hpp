@@ -219,6 +219,7 @@ public:
     real1_f ProbReg(bitLenInt start, bitLenInt length, const bitCapInt& permutation);
     real1_f ProbMask(const bitCapInt& mask, const bitCapInt& permutation);
     real1_f ProbParity(const bitCapInt& mask);
+    bitCapInt HighestProbAll();
     bitCapInt MAll();
     bool ForceMParity(const bitCapInt& mask, bool result, bool doForce = true);
     void NormalizeState(

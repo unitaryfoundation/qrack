@@ -430,6 +430,7 @@ public:
     void SetQuantumState(const complex* inputState);
     void GetQuantumState(complex* outputState);
     void GetProbs(real1* outputProbs);
+    bitCapInt HighestProbAll();
     bitCapInt MAll();
     complex GetAmplitude(const bitCapInt& perm);
     void SetAmplitude(const bitCapInt& perm, const complex& amp);
