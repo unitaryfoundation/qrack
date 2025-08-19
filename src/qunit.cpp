@@ -1489,9 +1489,16 @@ bitCapInt QUnit::HighestProbAll()
     bitCapInt toRet = ZERO_BCI;
     for (bitLenInt i = 0U; i < shards.size(); ++i) {
         const QEngineShard& shard = shards[i];
-        const bitCapInt& p = perms[shard.unit];
-        if (bi_compare_1(p >> shard.mapped) == 0) {
-            toRet = toRet | pow2(i);
+        if (!shard.unit) {
+            real1_f prob = norm(shards[i].amp1);
+            if (prob >= 0.5) {
+                toRet = toRet | pow2(i);
+            }
+        } else {
+            const bitCapInt& p = perms[shard.unit];
+            if (bi_compare_1(p >> shard.mapped) == 0) {
+                toRet = toRet | pow2(i);
+            }
         }
     }
 
