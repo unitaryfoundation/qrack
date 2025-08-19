@@ -320,8 +320,12 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_setconcurrency")
 
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_highestproball")
 {
-    qftReg->SetPermutation(42U);
-    REQUIRE((bitCapIntOcl)qftReg->HighestProbAll() == 42U);
+    qftReg->SetPermutation(42);
+    REQUIRE((bitCapIntOcl)qftReg->HighestProbAll() == 42);
+
+    qftReg->RX(0.1, 1);
+    qftReg->CNOT(1, 6);
+    REQUIRE((bitCapIntOcl)qftReg->HighestProbAll() == 106);
 }
 
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_global_phase")

@@ -1496,7 +1496,7 @@ bitCapInt QUnit::HighestProbAll()
                 toRet = toRet | pow2(i);
             }
         } else {
-            if (bi_compare_1(perms[unit] >> shard.mapped) == 0) {
+            if (bi_compare_1((perms[unit] >> shard.mapped) & 1) == 0) {
                 toRet = toRet | pow2(i);
             }
         }
