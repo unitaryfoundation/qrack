@@ -1472,6 +1472,32 @@ bitCapInt QUnit::ForceMReg(bitLenInt start, bitLenInt length, const bitCapInt& r
     return QInterface::ForceMReg(start, length, result, doForce, doApply);
 }
 
+bitCapInt QUnit::HighestProbAll()
+{
+    ToPermBasisProb();
+
+    std::vector<QInterfacePtr> units;
+    std::map<QInterfacePtr, bitCapInt> perms;
+    for (const QEngineShard& shard : shards) {
+        const QInterfacePtr& toFind = shard.unit;
+        if (toFind && (find(units.begin(), units.end(), toFind) == units.end())) {
+            units.push_back(toFind);
+            perms[toFind] = toFind->HighestProbAll();
+        }
+    }
+
+    bitCapInt toRet = ZERO_BCI;
+    for (bitLenInt i = 0U; i < shards.size(); ++i) {
+        const QEngineShard& shard = shards[i];
+        const bitCapInt& p = perms[shard.unit];
+        if (bi_compare_1(p >> shard.mapped) == 0) {
+            toRet = toRet | pow2(i);
+        }
+    }
+
+    return toRet;
+}
+
 bitCapInt QUnit::MAll()
 {
     for (bitLenInt i = 0U; i < qubitCount; ++i) {

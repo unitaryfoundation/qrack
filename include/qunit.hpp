@@ -353,6 +353,7 @@ public:
     using QInterface::ForceMReg;
     virtual bitCapInt ForceMReg(
         bitLenInt start, bitLenInt length, const bitCapInt& result, bool doForce = true, bool doApply = true);
+    virtual bitCapInt HighestProbAll();
     virtual bitCapInt MAll();
     virtual std::map<bitCapInt, int> MultiShotMeasureMask(const std::vector<bitCapInt>& qPowers, unsigned shots);
     virtual void MultiShotMeasureMask(
