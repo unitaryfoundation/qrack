@@ -2603,6 +2603,28 @@ MICROSOFT_QUANTUM_DECL void CLXNOR(_In_ uintq sid, _In_ bool ci, _In_ uintq qi, 
     }
 }
 
+/**
+ * (External API) Get the permutation with the highest probability
+ */
+MICROSOFT_QUANTUM_DECL void HighestProbAll(_In_ uintq sid, uintq* r)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        bitCapInt _r = simulator->HighestProbAll();
+        constexpr bitLenInt bitsPerWord = (bitLenInt)(sizeof(bitCapIntOcl) << 3U);
+        const bitLenInt maxWords = (simulator->GetQubitCount() + bitsPerWord - 1) / bitsPerWord;
+        const bitCapInt mask = pow2(bitsPerWord) - 1U;
+        for (bitLenInt w = 0U; w < maxWords; ++w) {
+            r[w] = (bitCapIntOcl)(mask & _r);
+            _r = _r >> bitsPerWord;
+        }
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
+
 double _Prob(_In_ uintq sid, _In_ uintq q, bool isRdm)
 {
     SIMULATOR_LOCK_GUARD_DOUBLE(sid)
