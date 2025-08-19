@@ -323,6 +323,7 @@ public:
         bi_div_mod(perm, pageMaxQPower(), &p, &a);
         return qPages[(bitCapIntOcl)p]->ProbAll(a);
     }
+    bitCapInt HighestProbAll();
 
     void SetPermutation(const bitCapInt& perm, const complex& phaseFac = CMPLX_DEFAULT_ARG);
 

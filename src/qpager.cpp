@@ -915,6 +915,23 @@ void QPager::GetProbs(real1* outputProbs)
 #endif
 }
 
+bitCapInt QPager::HighestProbAll()
+{
+    const bitCapIntOcl pagePower = (bitCapIntOcl)pageMaxQPower();
+    real1_f highestProb = ZERO_R1_F;
+    bitCapInt bestPerm = ZERO_BCI;
+    for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
+        bitCapInt highestPageProb = qPages[i]->HighestProbAll();
+        real1_f prob = qPages[i]->ProbAll(highestPageProb);
+        if (prob > highestProb) {
+            highestProb = prob;
+            bestPerm = highestPageProb + (i * pagePower);
+        }
+    }
+
+    return bestPerm;
+}
+
 void QPager::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
 {
     const bitCapIntOcl pagePower = (bitCapIntOcl)pageMaxQPower();
