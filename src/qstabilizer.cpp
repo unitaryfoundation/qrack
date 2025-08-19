@@ -475,8 +475,18 @@ real1_f QStabilizer::getVariance(const real1_f& mean, const real1_f& nrm, const 
     return diff * diff * norm(entry.amplitude);
 }
 
-#define C_SQRT1_2 complex(M_SQRT1_2, ZERO_R1)
-#define C_I_SQRT1_2 complex(ZERO_R1, M_SQRT1_2)
+/// Get all probabilities corresponding to ket notation
+bitCapInt QStabilizer::HighestProbAll()
+{
+    Finish();
+
+    // log_2 of number of nonzero basis states
+    const bitLenInt g = gaussian();
+    const real1_f nrm = sqrt(ONE_R1_F / (real1_f)bi_to_double(pow2(g)));
+    const AmplitudeEntry entry = getBasisAmp(nrm);
+
+    return entry.permutation;
+}
 
 /// Convert the state to ket notation (warning: could be huge!)
 void QStabilizer::GetQuantumState(complex* stateVec)
