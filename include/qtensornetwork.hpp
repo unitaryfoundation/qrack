@@ -171,6 +171,13 @@ public:
         return toRet;
     }
 
+    bitCapInt HighestProbAll()
+    {
+        bitCapInt toRet;
+        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->HighestProbAll(); });
+        return toRet;
+    }
+
     void SetDevice(int64_t dID) { devID = dID; }
     void SetDeviceList(std::vector<int64_t> dIDs) { deviceIDs = dIDs; }
     int64_t GetDevice() { return devID; }
