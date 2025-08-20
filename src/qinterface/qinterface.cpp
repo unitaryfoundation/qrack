@@ -947,14 +947,16 @@ std::vector<bitCapInt> QInterface::HighestProbAll(size_t n)
         real1_f prob = ProbAll(p);
         totProb += prob;
         for (size_t t = 0U; t < n; ++t) {
-            if (prob > highestProbs[t].prob) {
-                if ((t + 1U) < n) {
-                    std::copy(highestProbs.begin() + t, highestProbs.end() - 1U, highestProbs.begin() + t + 1U);
-                }
-                highestProbs[t] = _PermProb(p, prob);
-                std::sort(highestProbs.begin(), highestProbs.end(), sortFn);
-                break;
+            if (prob <= highestProbs[t].prob) {
+                continue;
             }
+            _PermProb orig = highestProbs[t];
+            for (size_t i = t + 1U; i < n; ++i) {
+                std::swap(orig, highestProbs[i]);
+            }
+            highestProbs[t] = _PermProb(p, prob);
+            std::sort(highestProbs.begin(), highestProbs.end(), sortFn);
+            break;
         }
         if (highestProbs.back().prob > (ONE_R1_F - totProb)) {
             break;
