@@ -910,6 +910,65 @@ void QInterface::GetReducedDensityMatrix(const std::vector<bitLenInt>& qubits, c
     }
 }
 
+struct _PermProb {
+    bitCapInt perm;
+    real1_f prob;
+
+    _PermProb()
+        : perm(ZERO_BCI)
+        , prob(ZERO_R1_F)
+    {
+    }
+
+    _PermProb(const bitCapInt& prm, const real1_f& prb)
+        : perm(prm)
+        , prob(prb)
+    {
+    }
+};
+std::vector<bitCapInt> QInterface::HighestProbAll(size_t n)
+{
+    if (!n) {
+        return std::vector<bitCapInt>();
+    }
+
+    if (n == 1U) {
+        return std::vector<bitCapInt>{ HighestProbAll() };
+    }
+
+    if (n > maxQPower) {
+        throw std::invalid_argument("QInterface::HighestProbAll(n) requested more !");
+    }
+
+    const auto sortFn = [](const _PermProb& a, const _PermProb& b) { return a.prob > b.prob; };
+    real1_f totProb = ZERO_R1_F;
+    std::vector<_PermProb> highestProbs(n);
+    for (bitCapInt p = ZERO_BCI; p < maxQPower; ++p) {
+        real1_f prob = ProbAll(p);
+        totProb += prob;
+        for (size_t t = 0U; t < n; ++t) {
+            if (prob > highestProbs[t].prob) {
+                if ((t + 1U) < n) {
+                    std::copy(highestProbs.begin() + t, highestProbs.end() - 1U, highestProbs.begin() + t + 1U);
+                }
+                highestProbs[t] = _PermProb(p, prob);
+                std::sort(highestProbs.begin(), highestProbs.end(), sortFn);
+                break;
+            }
+        }
+        if (highestProbs.back().prob > (ONE_R1_F - totProb)) {
+            break;
+        }
+    }
+
+    std::vector<bitCapInt> bestPerms(n);
+    for (size_t t = 0U; t < n; ++t) {
+        bestPerms[t] = highestProbs[t].perm;
+    }
+
+    return bestPerms;
+}
+
 #define REG_GATE_1(gate)                                                                                               \
     void QInterface::gate(bitLenInt start, bitLenInt length)                                                           \
     {                                                                                                                  \

@@ -2624,7 +2624,6 @@ MICROSOFT_QUANTUM_DECL void HighestProbAll(_In_ uintq sid, uintq* r)
     }
 }
 
-
 double _Prob(_In_ uintq sid, _In_ uintq q, bool isRdm)
 {
     SIMULATOR_LOCK_GUARD_DOUBLE(sid)

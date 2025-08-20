@@ -2500,6 +2500,11 @@ public:
     }
 
     /**
+     * Get top-n highest probability permutations
+     */
+    virtual std::vector<bitCapInt> HighestProbAll(size_t n);
+
+    /**
      * Direct measure of full permutation probability
      */
     virtual real1_f ProbAll(const bitCapInt& fullRegister)

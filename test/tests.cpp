@@ -326,6 +326,10 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_highestproball")
     qftReg->RX(0.1, 1);
     qftReg->CNOT(1, 6);
     REQUIRE((bitCapIntOcl)qftReg->HighestProbAll() == 106);
+
+    std::vector<bitCapInt> p = qftReg->HighestProbAll(2);
+    REQUIRE((bitCapIntOcl)p[0U] == 106);
+    REQUIRE((bitCapIntOcl)p[1U] == 40);
 }
 
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_global_phase")

@@ -268,10 +268,6 @@ complex QUnit::GetAmplitudeOrProb(const bitCapInt& perm, bool isProb)
 
     for (const auto& qi : perms) {
         result *= qi.first->GetAmplitude(qi.second);
-        if (IS_AMP_0(result)) {
-            result = ZERO_CMPLX;
-            break;
-        }
     }
 
     return result;
@@ -1496,8 +1492,8 @@ bitCapInt QUnit::HighestProbAll()
                 toRet = toRet | pow2(i);
             }
         } else {
-            if (bi_compare_1((perms[unit] >> shard.mapped) & 1) == 0) {
-                toRet = toRet | pow2(i);
+            if (bi_and_1(perms[unit] >> shard.mapped)) {
+                bi_or_ip(&toRet, pow2(i));
             }
         }
     }
