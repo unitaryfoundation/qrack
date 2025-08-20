@@ -940,7 +940,6 @@ std::vector<bitCapInt> QInterface::HighestProbAll(size_t n)
         throw std::invalid_argument("QInterface::HighestProbAll(n) requested more !");
     }
 
-    const auto sortFn = [](const _PermProb& a, const _PermProb& b) { return a.prob > b.prob; };
     real1_f totProb = ZERO_R1_F;
     std::vector<_PermProb> highestProbs(n);
     for (bitCapInt p = ZERO_BCI; p < maxQPower; ++p) {
@@ -955,7 +954,6 @@ std::vector<bitCapInt> QInterface::HighestProbAll(size_t n)
                 std::swap(orig, highestProbs[i]);
             }
             highestProbs[t] = _PermProb(p, prob);
-            std::sort(highestProbs.begin(), highestProbs.end(), sortFn);
             break;
         }
         if (highestProbs.back().prob > (ONE_R1_F - totProb)) {
