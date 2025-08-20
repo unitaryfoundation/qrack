@@ -2624,6 +2624,29 @@ MICROSOFT_QUANTUM_DECL void HighestProbAll(_In_ uintq sid, uintq* r)
     }
 }
 
+/**
+ * (External API) Get the top n permutations with the highest probability
+ */
+MICROSOFT_QUANTUM_DECL void HighestProbAllN(_In_ uintq sid, _In_ uintq n, uintq* r)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        std::vector<bitCapInt> _r = simulator->HighestProbAll(n);
+        constexpr bitLenInt bitsPerWord = (bitLenInt)(sizeof(bitCapIntOcl) << 3U);
+        const bitLenInt maxWords = (simulator->GetQubitCount() + bitsPerWord - 1) / bitsPerWord;
+        const bitCapInt mask = pow2(bitsPerWord) - 1U;
+        for (size_t i = 0U; i < n; ++i) {
+          for (bitLenInt w = 0U; w < maxWords; ++w) {
+              r[(i * n) + w] = (bitCapIntOcl)(mask & _r[i]);
+              _r[i] = _r[i] >> bitsPerWord;
+          }
+        }
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
 double _Prob(_In_ uintq sid, _In_ uintq q, bool isRdm)
 {
     SIMULATOR_LOCK_GUARD_DOUBLE(sid)

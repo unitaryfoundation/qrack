@@ -51,6 +51,7 @@ MICROSOFT_QUANTUM_DECL void qstabilizer_in_from_file(_In_ uintq sid, _In_ char* 
 
 // pseudo-quantum
 MICROSOFT_QUANTUM_DECL void HighestProbAll(_In_ uintq sid, uintq* r);
+MICROSOFT_QUANTUM_DECL void HighestProbAllN(_In_ uintq sid, _In_ uintq n, uintq* r);
 #if FPPOW < 6
 MICROSOFT_QUANTUM_DECL void ProbAll(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, float* p);
 #else
