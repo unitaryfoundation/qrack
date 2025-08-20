@@ -22,6 +22,7 @@
 #include <math.h>
 #include <memory>
 
+#define IS_AMP_0(c) (norm(c) <= REAL1_EPSILON)
 #define IS_NORM_0(c) (norm(c) <= FP_NORM_EPSILON)
 #define IS_SAME(c1, c2) (IS_NORM_0((c1) - (c2)))
 #define IS_OPPOSITE(c1, c2) (IS_NORM_0((c1) + (c2)))
