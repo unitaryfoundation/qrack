@@ -171,6 +171,12 @@ Particularly on older hardware, it is possible that you do not have OpenCL v2.0 
     $ cmake -DENABLE_OOO_OCL=OFF ..
 ```
 
+If you're using a pre-packaged build artifact, like in PyQrack, set environment variable "`DISABLE_OOO_OCL`" to any value instead:
+
+```sh
+    $ export DISABLE_OOO_OCL=1
+```
+
 ## C++ language standard
 
 To change the C++ language standard language with which Qrack is compiled, use `-DCPP_STD=n`, where "`n`" is the two-digit standard year:
