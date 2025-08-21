@@ -107,7 +107,7 @@ size_t QBdt::CountBranches()
                 leaf = leaf->branches[SelectBit(i, maxQubitIndex - (j + 1U))];
 
                 if (!leaf) {
-                    return (bitCapInt)(pow2(maxQubitIndex - j) - ONE_BCI);
+                    return pow2(maxQubitIndex - j) - ONE_BCI;
                 }
 
                 std::lock_guard<std::mutex> lock(mtx);
@@ -295,7 +295,7 @@ bool QBdt::IsSeparable(bitLenInt start)
 
                 if (!leaf) {
                     // The immediate parent of "leaf" has 0 amplitude.
-                    return (bitCapInt)(pow2(start - j) - ONE_BCI);
+                    return pow2(start - j) - ONE_BCI;
                 }
             }
 
@@ -318,7 +318,7 @@ bool QBdt::IsSeparable(bitLenInt start)
                 // depending specifically on which dimension of the "low-index" subsystem we're inspecting.
                 result = false;
 
-                return (bitCapInt)(pow2(start) - ONE_BCI);
+                return pow2(start) - ONE_BCI;
             }
 
             return ZERO_BCI;
@@ -473,7 +473,7 @@ void QBdt::ApplySingle(const complex* mtrx, bitLenInt target)
                 leaf = leaf->branches[SelectBit(i, target - (j + 1U))];
 
                 if (!leaf) {
-                    return (bitCapInt)(pow2(target - j) - ONE_BCI);
+                    return pow2(target - j) - ONE_BCI;
                 }
             }
 
@@ -548,7 +548,8 @@ void QBdt::ApplyControlledSingle(const complex* mtrx, std::vector<bitLenInt> con
         [this, controlMask, controlPerm, target, mtrx](const bitCapInt& i) {
 #endif
             if (bi_compare((i & controlMask), controlPerm) != 0) {
-                return controlMask - ONE_BCI;
+                const bitCapInt result = controlMask - ONE_BCI;
+                return result;
             }
 
             QBdtNodeInterfacePtr leaf = root;
@@ -558,7 +559,8 @@ void QBdt::ApplyControlledSingle(const complex* mtrx, std::vector<bitLenInt> con
 
                 if (!leaf) {
                     // WARNING: Mutates loop control variable!
-                    return (bitCapInt)(pow2(target - j) - ONE_BCI);
+                    const bitCapInt result = pow2(target - j) - ONE_BCI;
+                    return result;
                 }
             }
 

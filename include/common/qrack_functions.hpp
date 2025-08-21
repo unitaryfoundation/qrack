@@ -26,14 +26,6 @@
 #include <bit>
 #endif
 
-#define _bi_div_mod(left, right, quotient, rmndr)                                                                      \
-    if (quotient) {                                                                                                    \
-        *quotient = left / right;                                                                                      \
-    }                                                                                                                  \
-    if (rmndr) {                                                                                                       \
-        *rmndr = left % right;                                                                                         \
-    }
-
 #define _bi_compare(left, right)                                                                                       \
     if (left > right) {                                                                                                \
         return 1;                                                                                                      \
@@ -44,7 +36,7 @@
                                                                                                                        \
     return 0;
 
-#if (QBCAPPOW < 7) || ((QBCAPPOW < 8) && defined(__SIZEOF_INT128__))
+#if (QBCAPPOW < 7) || ((QBCAPPOW < 8) && defined(__SIZEOF_INT128__)) || ((QBCAPPOW > 7) && defined(BOOST_AVAILABLE))
 inline void bi_not_ip(bitCapInt* left) { *left = ~(*left); }
 inline void bi_and_ip(bitCapInt* left, const bitCapInt& right) { *left &= right; }
 inline void bi_or_ip(bitCapInt* left, const bitCapInt& right) { *left |= right; }
@@ -54,10 +46,10 @@ inline double bi_to_double(const bitCapInt& in) { return (double)in; }
 inline void bi_increment(bitCapInt* pBigInt, const bitCapInt& value) { *pBigInt += value; }
 inline void bi_decrement(bitCapInt* pBigInt, const bitCapInt& value) { *pBigInt -= value; }
 
-inline void bi_lshift_ip(bitCapInt* left, const bitCapInt& right) { *left <<= right; }
-inline void bi_rshift_ip(bitCapInt* left, const bitCapInt& right) { *left >>= right; }
+inline void bi_lshift_ip(bitCapInt* left, const size_t& right) { *left <<= right; }
+inline void bi_rshift_ip(bitCapInt* left, const size_t& right) { *left >>= right; }
 
-inline int bi_and_1(const bitCapInt& left) { return left & 1; }
+inline int bi_and_1(const bitCapInt& left) { return (bool)(left & 1); }
 
 inline int bi_compare(const bitCapInt& left, const bitCapInt& right) { _bi_compare(left, right) }
 inline int bi_compare_0(const bitCapInt& left) { return (int)(bool)left; }
@@ -68,17 +60,32 @@ inline void bi_sub_ip(bitCapInt* left, const bitCapInt& right) { *left -= right;
 
 inline void bi_div_mod(const bitCapInt& left, const bitCapInt& right, bitCapInt* quotient, bitCapInt* rmndr)
 {
-    _bi_div_mod(left, right, quotient, rmndr)
+    if (quotient) {
+        *quotient = left / right;
+    }
+    if (rmndr) {
+        *rmndr = left % right;
+    }
 }
 #ifdef __SIZEOF_INT128__
 inline void bi_div_mod_small(const bitCapInt& left, uint64_t right, bitCapInt* quotient, uint64_t* rmndr)
 {
-    _bi_div_mod(left, right, quotient, rmndr)
+    if (quotient) {
+        *quotient = left / right;
+    }
+    if (rmndr) {
+        *rmndr = (uint64_t)(left % right);
+    }
 }
 #else
 inline void bi_div_mod_small(const bitCapInt& left, uint32_t right, bitCapInt* quotient, uint32_t* rmndr)
 {
-    _bi_div_mod(left, right, quotient, rmndr)
+    if (quotient) {
+        *quotient = left / right;
+    }
+    if (rmndr) {
+        *rmndr = (uint32_t)(left % right);
+    }
 }
 #endif
 #endif
@@ -128,8 +135,8 @@ inline bitLenInt popCountOcl(bitCapIntOcl n)
 #endif
 }
 
-#if (QBCAPPOW < 7) || ((QBCAPPOW < 8) && defined(__SIZEOF_INT128__))
-inline int bi_log2(const bitCapInt& n) { return log2Ocl(n); }
+#if (QBCAPPOW < 7) || ((QBCAPPOW < 8) && defined(__SIZEOF_INT128__)) || ((QBCAPPOW > 7) && defined(BOOST_AVAILABLE))
+inline int bi_log2(const bitCapInt& n) { return log2Ocl((bitCapIntOcl)n); }
 #endif
 inline bitLenInt log2(bitCapInt n) { return (bitLenInt)bi_log2(n); }
 

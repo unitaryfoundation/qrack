@@ -68,6 +68,10 @@
 #elif (QBCAPPOW < 8) && defined(__SIZEOF_INT128__)
 #define bitCapInt unsigned __int128
 #define QRACK_MAX_QUBITS 128
+#elif BOOST_AVAILABLE
+#include <boost/multiprecision/cpp_int.hpp>
+typedef boost::multiprecision::cpp_int bitCapInt;
+constexpr size_t QRACK_MAX_QUBITS = (1 << QBCAPPOW);
 #else
 #include "big_integer.hpp"
 #define bitCapInt BigInteger

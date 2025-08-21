@@ -2636,10 +2636,10 @@ MICROSOFT_QUANTUM_DECL void HighestProbAllN(_In_ uintq sid, _In_ uintq n, uintq*
         const bitLenInt maxWords = (simulator->GetQubitCount() + bitsPerWord - 1) / bitsPerWord;
         const bitCapInt mask = pow2(bitsPerWord) - 1U;
         for (size_t i = 0U; i < n; ++i) {
-          for (bitLenInt w = 0U; w < maxWords; ++w) {
-              r[(i * maxWords) + w] = (bitCapIntOcl)(mask & _r[i]);
-              _r[i] = _r[i] >> bitsPerWord;
-          }
+            for (bitLenInt w = 0U; w < maxWords; ++w) {
+                r[(i * maxWords) + w] = (bitCapIntOcl)(mask & _r[i]);
+                _r[i] = _r[i] >> bitsPerWord;
+            }
         }
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
