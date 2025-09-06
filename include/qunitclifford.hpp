@@ -486,7 +486,7 @@ public:
         const CliffordShard& shard = shards[qubit];
         QStabilizerPtr unit = shard.unit;
         std::vector<bitLenInt> eqb = unit->EntangledQubits(shard.mapped, g);
-        for (bitLenInt i = 0U; i < eqb.size(); ++i) {
+        for (size_t i = 0U; i < eqb.size(); ++i) {
             bitLenInt& qb = eqb[i];
             for (bitLenInt j = 0U; j < qubitCount; ++j) {
                 const CliffordShard& oShard = shards[j];

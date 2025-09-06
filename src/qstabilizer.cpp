@@ -1978,7 +1978,7 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
 
     nQubits->r[0U].reset();
     nQubits->r[1U].reset();
-    for (bitLenInt i = 0U; i < nQubits->x.size(); ++i) {
+    for (size_t i = 0U; i < nQubits->x.size(); ++i) {
         nQubits->x[i].reset();
         nQubits->z[i].reset();
     }
@@ -2217,7 +2217,7 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
 
     nQubits->r[0U].reset();
     nQubits->r[1U].reset();
-    for (bitLenInt i = 0U; i < nQubits->x.size(); ++i) {
+    for (size_t i = 0U; i < nQubits->x.size(); ++i) {
         nQubits->x[i].reset();
         nQubits->z[i].reset();
     }
@@ -2225,7 +2225,7 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     if (dest) {
         dest->r[0U].reset();
         dest->r[1U].reset();
-        for (bitLenInt i = 0U; i < dest->x.size(); ++i) {
+        for (size_t i = 0U; i < dest->x.size(); ++i) {
             dest->x[i].reset();
             dest->z[i].reset();
         }

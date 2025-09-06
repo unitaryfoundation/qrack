@@ -1993,7 +1993,7 @@ void QStabilizerHybrid::PruneAncillae(bool gaussian)
     for (bitLenInt i = qubitCount; i < maxI; ++i) {
         const std::vector<bitLenInt> eqb = stabilizer->EntangledQubits(i, gaussian);
         bool isSep = true;
-        for (bitLenInt j = 0U; j < eqb.size(); ++j) {
+        for (size_t j = 0U; j < eqb.size(); ++j) {
             if (eqb[j] < qubitCount) {
                 isSep = false;
                 break;

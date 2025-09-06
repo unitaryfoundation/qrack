@@ -873,7 +873,7 @@ std::vector<bitLenInt> QUnitClifford::MaxReduce(bitLenInt qb)
 
     std::vector<bitLenInt> inverseMap(qbc);
     std::iota(inverseMap.begin(), inverseMap.end(), 0U);
-    for (bitLenInt i = 0U; i < eqb.size(); ++i) {
+    for (size_t i = 0U; i < eqb.size(); ++i) {
         if (i == eqb[i]) {
             continue;
         }
