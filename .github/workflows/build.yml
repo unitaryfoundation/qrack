@@ -150,6 +150,10 @@ jobs:
       - name: Checkout Qrack
         uses: actions/checkout@v4
 
+      - name: Install choco dependencies
+      - run: |
+          choco install nsis
+
       - name: Install vcpkg dependencies
         run: |
           vcpkg install opencl boost-dynamic-bitset boost-multiprecision
