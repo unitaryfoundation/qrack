@@ -233,15 +233,15 @@ mol = gto.M(
 
 mf = scf.RHF(mol).run()
 
-# Step 2: Create OpenFermion molecule
+# Step 3: Create OpenFermion molecule
 molecule_of = MolecularData(geometry, basis, multiplicity=1, charge=0)
 molecule_of = run_pyscf(molecule_of, run_scf=True, run_mp2=False, run_cisd=False, run_ccsd=False, run_fci=False)
 fermion_ham = get_fermion_operator(molecule_of.get_molecular_hamiltonian())
-n_electrons = molecule_of.n_electrons
+# n_electrons = molecule_of.n_electrons
 n_qubits = mol.nao << 1
 print(f"{n_qubits} qubits...")
 
-# Step 3: Bootstrap!
+# Step 4: Bootstrap!
 def initial_energy(theta_bits):
     energy = 0.0
     z_qubits = set()
@@ -313,7 +313,7 @@ def bootstrap(theta, k, indices_array):
     return energies
 
 
-def multiprocessing_bootstrap(n_qubits, n_electrons, reheat_tries=0):
+def multiprocessing_bootstrap(n_qubits, reheat_tries=0):
     best_theta = np.random.randint(2, size=n_qubits)
     min_energy, z_qubits = initial_energy(best_theta)
     n_qubits = len(z_qubits)
@@ -378,7 +378,7 @@ def multiprocessing_bootstrap(n_qubits, n_electrons, reheat_tries=0):
     return best_theta, min_energy
 
 # Run threaded bootstrap
-theta, min_energy = multiprocessing_bootstrap(n_qubits, n_electrons, 1)
+theta, min_energy = multiprocessing_bootstrap(n_qubits, 1)
 
 print(f"\nFinal Bootstrap Ground State Energy: {min_energy} Ha")
 print("Final Bootstrap Parameters:")

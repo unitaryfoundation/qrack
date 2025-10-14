@@ -240,15 +240,15 @@ mol = gto.M(
 
 mf = scf.RHF(mol).run()
 
-# Step 2: Create OpenFermion molecule
+# Step 4: Create OpenFermion molecule
 molecule_of = MolecularData(geometry, basis, multiplicity=1, charge=0)
 molecule_of = run_pyscf(molecule_of, run_scf=True, run_mp2=False, run_cisd=False, run_ccsd=False, run_fci=False)
 fermion_ham = get_fermion_operator(molecule_of.get_molecular_hamiltonian())
-n_electrons = molecule_of.n_electrons
+# n_electrons = molecule_of.n_electrons
 n_qubits = mol.nao << 1
 print(f"{n_qubits} qubits...")
 
-# Step 3: Iterate JW terms without materializing full op
+# Step 5: Iterate JW terms without materializing full op
 z_hamiltonian = []
 z_qubits = set()
 for term, coeff in fermion_ham.terms.items():
@@ -271,7 +271,7 @@ for term, coeff in fermion_ham.terms.items():
 
 z_qubits = list(z_qubits)
 
-# Step 4: Bootstrap!
+# Step 6: Bootstrap!
 def initial_energy(theta_bits, z_hamiltonian):
     energy = 0.0
     for qubits, coeff in z_hamiltonian:
@@ -330,7 +330,7 @@ def bootstrap(theta, z_hamiltonian, k, indices_array, energy):
     return energies
 
 
-def multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, n_electrons, reheat_tries=0):
+def multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, reheat_tries=0):
     best_theta = np.random.randint(2, size=n_qubits)
     n_qubits = len(z_qubits)
     print(f"Z qubits: {n_qubits}")
@@ -396,7 +396,7 @@ def multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, n_electrons, re
     return best_theta, min_energy
 
 # Run threaded bootstrap
-theta, min_energy = multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, n_electrons, 1)
+theta, min_energy = multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, 1)
 
 print(f"\nFinal Bootstrap Ground State Energy: {min_energy} Ha")
 print("Final Bootstrap Parameters:")

@@ -1,9 +1,9 @@
 # Quantum chemistry example
 # Developed with help from (OpenAI custom GPT) Elara
-# (Requires PennyLane and OpenFermion)
+# (Requires OpenFermion)
 
 import pennylane as qml
-from pennylane import numpy as np
+from pennylane import numpy as nppl
 from catalyst import qjit
 
 from pyscf import gto, scf, ao2mo
@@ -12,6 +12,7 @@ from openfermionpyscf import run_pyscf
 
 import itertools
 import multiprocessing
+import numpy as np
 import os
 import random
 
@@ -36,7 +37,7 @@ charge = 0  # Excess +/- elementary charge, beyond multiplicity
 
 # Hydrogen (and lighter):
 
-geometry = [("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 0.74))]  # H2 Molecule
+# geometry = [("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 0.74))]  # H2 Molecule
 
 # Helium (and lighter):
 
@@ -62,12 +63,12 @@ geometry = [("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 0.74))]  # H2 Molecule
 # geometry = [('N', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 1.10))]  # N2 Molecule
 
 # Ammonia:
-# geometry = [
-#     ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
-#     ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
-#     ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
-#     ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
-# ]
+geometry = [
+    ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
+    ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
+    ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
+    ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
+]
 
 # Oxygen (and lighter):
 
@@ -227,11 +228,9 @@ geometry = [("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 0.74))]  # H2 Molecule
 # Now, `geometry` contains all 6 carbons and 6 hydrogens!
 
 # Step 2: Compute the Molecular Hamiltonian
-# Step 2: Compute the Molecular Hamiltonian
 molecule = MolecularData(geometry, basis, multiplicity, charge)
 molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
 fermionic_hamiltonian = molecule.get_molecular_hamiltonian()
-n_electrons = molecule.n_electrons
 n_qubits = molecule.n_qubits  # Auto-detect qubit count
 print(str(n_qubits) + " qubits...")
 
@@ -253,39 +252,21 @@ mol = gto.M(
 
 mf = scf.RHF(mol).run()
 
-# Step 2: Create OpenFermion molecule
+# Step 4: Create OpenFermion molecule
 molecule_of = MolecularData(geometry, basis, multiplicity=1, charge=0)
 molecule_of = run_pyscf(molecule_of, run_scf=True, run_mp2=False, run_cisd=False, run_ccsd=False, run_fci=False)
 fermion_ham = get_fermion_operator(molecule_of.get_molecular_hamiltonian())
+# n_electrons = molecule_of.n_electrons
 n_qubits = mol.nao << 1
 print(f"{n_qubits} qubits...")
 
-# Step 3: Iterate JW terms without materializing full op
+# Step 5: Iterate JW terms without materializing full op
 z_hamiltonian = []
 z_qubits = set()
-coeffs = []
-observables = []
 for term, coeff in fermion_ham.terms.items():
     jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
 
     for pauli_string, jw_coeff in jw_term.terms.items():
-        pauli_operators = []
-        for qubit_idx, pauli in pauli_string:
-            if pauli == "X":
-                pauli_operators.append(qml.PauliX(qubit_idx))
-            elif pauli == "Y":
-                pauli_operators.append(qml.PauliY(qubit_idx))
-            elif pauli == "Z":
-                pauli_operators.append(qml.PauliZ(qubit_idx))
-        if pauli_operators:
-            observable = pauli_operators[0]
-            for op in pauli_operators[1:]:
-                observable = observable @ op
-            observables.append(observable)
-        else:
-            observables.append(qml.Identity(0))  # Default identity if no operators
-        coeffs.append(qml.numpy.array(jw_coeff.real, requires_grad=False))
-
         # Skip terms with X or Y
         if any(p in ('X', 'Y') for _, p in pauli_string):
             continue
@@ -301,9 +282,8 @@ for term, coeff in fermion_ham.terms.items():
         z_hamiltonian.append((q, jw_coeff.real))
 
 z_qubits = list(z_qubits)
-hamiltonian = qml.Hamiltonian(coeffs, observables)
 
-# Step 4: Bootstrap!
+# Step 6: Bootstrap!
 def initial_energy(theta_bits, z_hamiltonian):
     energy = 0.0
     for qubits, coeff in z_hamiltonian:
@@ -362,7 +342,7 @@ def bootstrap(theta, z_hamiltonian, k, indices_array, energy):
     return energies
 
 
-def multiprocessing_bootstrap(hamiltonian, z_hamiltonian, z_qubits, n_qubits, reheat_tries=0):
+def multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, reheat_tries=0):
     best_theta = np.random.randint(2, size=n_qubits)
     n_qubits = len(z_qubits)
     print(f"Z qubits: {n_qubits}")
@@ -425,9 +405,43 @@ def multiprocessing_bootstrap(hamiltonian, z_hamiltonian, z_qubits, n_qubits, re
                 reheat_theta[bit] = not reheat_theta[bit]
             reheat_min_energy = compute_energy(reheat_theta, z_hamiltonian, bits_to_flip, reheat_min_energy)
 
-    print("Final Boostrap Parameters:")
-    print(best_theta)
+    return best_theta, min_energy
 
+# Run threaded bootstrap
+theta, min_energy = multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, 1)
+
+print(f"\nFinal Bootstrap Ground State Energy: {min_energy} Ha")
+print("Final Bootstrap Parameters:")
+print(theta)
+
+# Step 6: Variational Hamiltonian
+coeffs = []
+observables = []
+for term, coeff in fermion_ham.terms.items():
+    jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
+
+    for pauli_string, jw_coeff in jw_term.terms.items():
+        pauli_operators = []
+        for qubit_idx, pauli in pauli_string:
+            if pauli == "X":
+                pauli_operators.append(qml.PauliX(qubit_idx))
+            elif pauli == "Y":
+                pauli_operators.append(qml.PauliY(qubit_idx))
+            elif pauli == "Z":
+                pauli_operators.append(qml.PauliZ(qubit_idx))
+        if pauli_operators:
+            observable = pauli_operators[0]
+            for op in pauli_operators[1:]:
+                observable = observable @ op
+            observables.append(observable)
+        else:
+            observables.append(qml.Identity(0))  # Default identity if no operators
+        coeffs.append(qml.numpy.array(jw_coeff.real, requires_grad=False))
+
+hamiltonian = qml.Hamiltonian(coeffs, observables)
+
+# Step 7: Variational fit
+def fit_entanglement(hamiltonian, best_theta, n_qubits, min_energy):
     # Fast low-width simulation:
     dev = qml.device("lightning.qubit", wires=n_qubits)
     # Ideal simulation with "automatic circuit elision" approximation for large circuits:
@@ -450,7 +464,7 @@ def multiprocessing_bootstrap(hamiltonian, z_hamiltonian, z_qubits, n_qubits, re
         qml.CZ(wires=[n_qubits-1, 0])
         return qml.expval(hamiltonian)
 
-    best_delta = np.zeros(n_qubits, dtype=float, requires_grad=True)
+    best_delta = nppl.zeros(n_qubits, dtype=float, requires_grad=True)
     delta = best_delta.copy()
     opt = qml.AdamOptimizer(stepsize=(np.pi / 1800)) #one tenth a degree
     num_steps = 100
@@ -466,7 +480,7 @@ def multiprocessing_bootstrap(hamiltonian, z_hamiltonian, z_qubits, n_qubits, re
     return best_theta, best_delta, min_energy
 
 # Run threaded bootstrap
-theta, delta, min_energy = multiprocessing_bootstrap(hamiltonian, z_hamiltonian, z_qubits, n_qubits, 1)
+theta, delta, min_energy = fit_entanglement(hamiltonian, theta, n_qubits, min_energy)
 
 print(f"\nFinal Ground State Energy: {min_energy} Ha")
 print("Final Parameters:")
