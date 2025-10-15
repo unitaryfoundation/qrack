@@ -250,15 +250,10 @@ print(f"{n_qubits} qubits...")
 
 # Step 5: Iterate JW terms without materializing full op
 zx_hamiltonian = []
-zx_qubits = set()
 for term, coeff in fermion_ham.terms.items():
     jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
 
     for pauli_string, jw_coeff in jw_term.terms.items():
-        # Skip terms with X or Y
-        if any(p in ('Y') for _, p in pauli_string):
-            continue
-
         q = []
         b = []
         for qubit, op in pauli_string:
@@ -266,12 +261,10 @@ for term, coeff in fermion_ham.terms.items():
             if op == 'I':
                 continue
             q.append(qubit)
-            b.append(op == 'X')
-            zx_qubits.add(qubit)
+            b.append(op != 'Z')
 
         zx_hamiltonian.append((q, b, jw_coeff.real))
 
-zx_qubits = list(zx_qubits)
 
 # Step 6: Bootstrap!
 def compute_energy(theta_bits, phi_bits, zx_hamiltonian):
@@ -324,11 +317,9 @@ def bootstrap(theta, phi, zx_hamiltonian, k, indices_array, energy):
     return energies
 
 
-def multiprocessing_bootstrap(zx_hamiltonian, zx_qubits, n_qubits, reheat_tries=0):
+def multiprocessing_bootstrap(zx_hamiltonian, n_qubits, reheat_tries=0):
     best_theta = np.random.randint(2, size=n_qubits)
     best_phi = np.random.randint(2, size=n_qubits)
-    n_qubits = len(zx_qubits)
-    print(f"Z/X qubits: {n_qubits}")
     min_energy = compute_energy(best_theta, best_phi, zx_hamiltonian)
 
     combos_list = []
@@ -347,7 +338,7 @@ def multiprocessing_bootstrap(zx_hamiltonian, zx_qubits, n_qubits, reheat_tries=
 
                 if len(combos_list) < k:
                     combos = np.array(list(
-                        item for sublist in itertools.combinations(zx_qubits, k) for item in sublist
+                        item for sublist in itertools.combinations(range(n_qubits), k) for item in sublist
                     ))
                     combos_list.append(combos)
                 else:
@@ -408,7 +399,7 @@ def multiprocessing_bootstrap(zx_hamiltonian, zx_qubits, n_qubits, reheat_tries=
     return best_theta, best_phi, min_energy
 
 # Run threaded bootstrap
-theta, phi, min_energy = multiprocessing_bootstrap(zx_hamiltonian, zx_qubits, n_qubits, 1)
+theta, phi, min_energy = multiprocessing_bootstrap(zx_hamiltonian, n_qubits, 1)
 
 print(f"\nFinal Bootstrap Ground State Energy: {min_energy} Ha")
 print("Final Bootstrap Parameters:")
