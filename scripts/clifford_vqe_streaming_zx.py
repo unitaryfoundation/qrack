@@ -248,8 +248,13 @@ def compute_energy(theta_bits, phi_bits):
         jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
 
         for pauli_string, jw_coeff in jw_term.terms.items():
+            if any(p in ('Y') for _, p in pauli_string):
+                continue
+
             is_sat = True
             for qubit, op in pauli_string:
+                if op == 'I':
+                    continue
                 if (op != 'Z') != phi_bits[qubit]:
                     is_sat = False
                     break
