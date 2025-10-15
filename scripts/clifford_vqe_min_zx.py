@@ -254,6 +254,9 @@ for term, coeff in fermion_ham.terms.items():
     jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
 
     for pauli_string, jw_coeff in jw_term.terms.items():
+        if any(p in ('Y') for _, p in pauli_string):
+            continue
+
         q = []
         b = []
         for qubit, op in pauli_string:
