@@ -151,7 +151,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install choco dependencies
-      - run: |
+        run: |
           choco install nsis
 
       - name: Install vcpkg dependencies
