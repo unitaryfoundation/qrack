@@ -2,7 +2,6 @@
 # Developed with help from (OpenAI custom GPT) Elara
 # (Requires OpenFermion)
 
-from pyscf import gto, scf, ao2mo
 from openfermion import MolecularData, FermionOperator, jordan_wigner, get_fermion_operator
 from openfermionpyscf import run_pyscf
 
@@ -28,8 +27,8 @@ charge = 0  # Excess +/- elementary charge, beyond multiplicity
 # geometry = [("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 0.74))]  # H2 Molecule
 
 # geometry = [
-#     ("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 2.00)),
-#     ("H", (2.0, 0.0, 0.0)), ("H", (2.0, 0.0, 2.00))
+#     ("H", (-1.0, 0.0, -1.0)), ("H", (-1.0, 0.0, 1.00)),
+#     ("H", (1.0, 0.0, -1.0)), ("H", (1.0, 0.0, 1.00))
 # ]  # H4 Dissociation (hard for Hartree-Fock)
 
 # Helium (and lighter):
@@ -43,25 +42,25 @@ charge = 0  # Excess +/- elementary charge, beyond multiplicity
 # Carbon (and lighter):
 
 # Methane (CH4):
-geometry = [
-    ('C', (0.0000, 0.0000, 0.0000)),  # Central carbon
-    ('H', (1.0900, 0.0000, 0.0000)),  # Hydrogen 1
-    ('H', (-0.3630, 1.0270, 0.0000)),  # Hydrogen 2
-    ('H', (-0.3630, -0.5130, 0.8890)),  # Hydrogen 3
-    ('H', (-0.3630, -0.5130, -0.8890))  # Hydrogen 4
-]
+# geometry = [
+#     ('C', (0.0000, 0.0000, 0.0000)),  # Central carbon
+#     ('H', (1.0900, 0.0000, 0.0000)),  # Hydrogen 1
+#     ('H', (-0.3630, 1.0270, 0.0000)),  # Hydrogen 2
+#     ('H', (-0.3630, -0.5130, 0.8890)),  # Hydrogen 3
+#     ('H', (-0.3630, -0.5130, -0.8890))  # Hydrogen 4
+# ]
 
 # Nitrogen (and lighter):
 
 # geometry = [('N', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 1.10))]  # N2 Molecule
 
 # Ammonia:
-# geometry = [
-#     ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
-#     ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
-#     ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
-#     ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
-# ]
+geometry = [
+    ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
+    ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
+    ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
+    ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
+]
 
 # Oxygen (and lighter):
 
@@ -220,7 +219,7 @@ geometry = [
 
 # Now, `geometry` contains all 6 carbons and 6 hydrogens!
 
-# Step 2: Compute the Molecular Hamiltonian
+# Step 2: Create OpenFermion molecule
 def geometry_to_atom_str(geometry):
     """Convert list of (symbol, (x,y,z)) to Pyscf atom string."""
     return "; ".join(
@@ -228,10 +227,7 @@ def geometry_to_atom_str(geometry):
         for symbol, (x, y, z) in geometry
     )
 
-# Convert and feed to gto.M()
 atom_str = geometry_to_atom_str(geometry)
-
-# Step 3: Create OpenFermion molecule
 molecule_of = MolecularData(geometry, basis, multiplicity=multiplicity, charge=charge)
 molecule_of = run_pyscf(molecule_of, run_scf=True, run_mp2=False, run_cisd=False, run_ccsd=False, run_fci=False)
 fermion_ham = get_fermion_operator(molecule_of.get_molecular_hamiltonian())
@@ -240,7 +236,7 @@ n_qubits = molecule_of.n_qubits
 print(f"Hartree-Fock energy: {molecule_of.hf_energy}")
 print(f"{n_qubits} qubits...")
 
-# Step 4: Bootstrap!
+# Step 3: Bootstrap!
 def initial_energy(theta_bits):
     energy = 0.0
     z_qubits = set()
