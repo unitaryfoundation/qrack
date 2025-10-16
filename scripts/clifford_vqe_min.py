@@ -21,7 +21,7 @@ basis = "sto-3g"  # Minimal Basis Set
 multiplicity = 1  # singlet, closed shell, all electrons are paired (neutral molecules with full valence)
 # multiplicity = 2  # doublet, one unpaired electron (ex.: OH- radical)
 # multiplicity = 3  # triplet, two unpaired electrons (ex.: O2)
-charge = 0  # Excess +/- elementary charge, beyond multiplicity
+charge = -1  # Excess +/- elementary charge, beyond multiplicity
 
 # Hydrogen (and lighter):
 
@@ -60,7 +60,7 @@ geometry = [
 
 # Oxygen (and lighter):
 
-# geometry = [('O', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 0.97))]  # OH- Radical
+geometry = [('O', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 0.97))]  # OH- Radical
 # geometry = [('O', (0.0000, 0.0000, 0.0000)), ('H', (0.7586, 0.0000, 0.5043)),  ('H', (-0.7586, 0.0000, 0.5043))]  # H2O Molecule
 # geometry = [('C', (0.0000, 0.0000, 0.0000)), ('O', (0.0000, 0.0000, 1.128))]  # CO Molecule
 # geometry = [('C', (0.0000, 0.0000, 0.0000)), ('O', (0.0000, 0.0000, 1.16)), ('O', (0.0000, 0.0000, -1.16))]  # CO2 Molecule
@@ -216,13 +216,6 @@ geometry = [
 # Now, `geometry` contains all 6 carbons and 6 hydrogens!
 
 # Step 2: Compute the Molecular Hamiltonian
-molecule = MolecularData(geometry, basis, multiplicity, charge)
-molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
-fermionic_hamiltonian = molecule.get_molecular_hamiltonian()
-n_qubits = molecule.n_qubits  # Auto-detect qubit count
-print(str(n_qubits) + " qubits...")
-
-# Step 3: Convert to Qubit Hamiltonian (Jordan-Wigner)
 def geometry_to_atom_str(geometry):
     """Convert list of (symbol, (x,y,z)) to Pyscf atom string."""
     return "; ".join(
@@ -233,19 +226,12 @@ def geometry_to_atom_str(geometry):
 # Convert and feed to gto.M()
 atom_str = geometry_to_atom_str(geometry)
 
-mol = gto.M(
-    atom=atom_str,
-    basis=basis
-)
-
-mf = scf.RHF(mol).run()
-
-# Step 4: Create OpenFermion molecule
-molecule_of = MolecularData(geometry, basis, multiplicity=1, charge=0)
+# Step 3: Create OpenFermion molecule
+molecule_of = MolecularData(geometry, basis, multiplicity=multiplicity, charge=charge)
 molecule_of = run_pyscf(molecule_of, run_scf=True, run_mp2=False, run_cisd=False, run_ccsd=False, run_fci=False)
 fermion_ham = get_fermion_operator(molecule_of.get_molecular_hamiltonian())
 # n_electrons = molecule_of.n_electrons
-n_qubits = mol.nao << 1
+n_qubits = molecule_of.n_qubits
 print(f"{n_qubits} qubits...")
 
 # Step 5: Iterate JW terms without materializing full op
