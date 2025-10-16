@@ -21,11 +21,16 @@ basis = "sto-3g"  # Minimal Basis Set
 multiplicity = 1  # singlet, closed shell, all electrons are paired (neutral molecules with full valence)
 # multiplicity = 2  # doublet, one unpaired electron (ex.: OH- radical)
 # multiplicity = 3  # triplet, two unpaired electrons (ex.: O2)
-charge = -1  # Excess +/- elementary charge, beyond multiplicity
+charge = 0  # Excess +/- elementary charge, beyond multiplicity
 
 # Hydrogen (and lighter):
 
 # geometry = [("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 0.74))]  # H2 Molecule
+
+# geometry = [
+#     ("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 2.00)),
+#     ("H", (2.0, 0.0, 0.0)), ("H", (2.0, 0.0, 2.00))
+# ]  # H4 Dissociation (hard for Hartree-Fock)
 
 # Helium (and lighter):
 
@@ -38,29 +43,29 @@ charge = -1  # Excess +/- elementary charge, beyond multiplicity
 # Carbon (and lighter):
 
 # Methane (CH4):
-# geometry = [
-#     ('C', (0.0000, 0.0000, 0.0000)),  # Central carbon
-#     ('H', (1.0900, 0.0000, 0.0000)),  # Hydrogen 1
-#     ('H', (-0.3630, 1.0270, 0.0000)),  # Hydrogen 2
-#     ('H', (-0.3630, -0.5130, 0.8890)),  # Hydrogen 3
-#     ('H', (-0.3630, -0.5130, -0.8890))  # Hydrogen 4
-# ]
+geometry = [
+    ('C', (0.0000, 0.0000, 0.0000)),  # Central carbon
+    ('H', (1.0900, 0.0000, 0.0000)),  # Hydrogen 1
+    ('H', (-0.3630, 1.0270, 0.0000)),  # Hydrogen 2
+    ('H', (-0.3630, -0.5130, 0.8890)),  # Hydrogen 3
+    ('H', (-0.3630, -0.5130, -0.8890))  # Hydrogen 4
+]
 
 # Nitrogen (and lighter):
 
 # geometry = [('N', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 1.10))]  # N2 Molecule
 
 # Ammonia:
-geometry = [
-    ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
-    ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
-    ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
-    ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
-]
+# geometry = [
+#     ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
+#     ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
+#     ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
+#     ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
+# ]
 
 # Oxygen (and lighter):
 
-geometry = [('O', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 0.97))]  # OH- Radical
+# geometry = [('O', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 0.97))]  # OH- Radical
 # geometry = [('O', (0.0000, 0.0000, 0.0000)), ('H', (0.7586, 0.0000, 0.5043)),  ('H', (-0.7586, 0.0000, 0.5043))]  # H2O Molecule
 # geometry = [('C', (0.0000, 0.0000, 0.0000)), ('O', (0.0000, 0.0000, 1.128))]  # CO Molecule
 # geometry = [('C', (0.0000, 0.0000, 0.0000)), ('O', (0.0000, 0.0000, 1.16)), ('O', (0.0000, 0.0000, -1.16))]  # CO2 Molecule
@@ -232,6 +237,7 @@ molecule_of = run_pyscf(molecule_of, run_scf=True, run_mp2=False, run_cisd=False
 fermion_ham = get_fermion_operator(molecule_of.get_molecular_hamiltonian())
 # n_electrons = molecule_of.n_electrons
 n_qubits = molecule_of.n_qubits
+print(f"Hartree-Fock energy: {molecule_of.hf_energy}")
 print(f"{n_qubits} qubits...")
 
 # Step 5: Iterate JW terms without materializing full op
