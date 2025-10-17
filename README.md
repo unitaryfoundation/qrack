@@ -40,7 +40,7 @@ For help getting started with contributing, see our [CONTRIBUTING.md](CONTRIBUTI
 
 ## Quick start
 
-**Firstly, are you looking for the applications promised by quantum computing?** Do you want to run tens of thousands of nodes or more of _transverse field Ising model (TFIM),_ or _quadratic unconstrained binary optimization (QUBO)_ in the form of _MAXCUT,_ or the _Traveling Salesman Problem (TSP),_ at quality and scaling performance beyond _quantum annealers,_ _VQE,_ and _QAOA,_ at the scale of a consumer laptop, with _"quantum-inspired"_ heuristics? Then, **Qrack** will do a lot of things, but you likely want [PyQrackIsing](https://github.com/vm6502q/PyQrackIsing) for that.
+**Firstly, are you looking for the applications promised by quantum computing?** Do you want to run tens of thousands of nodes or more of _transverse field Ising model (TFIM),_ or _quadratic unconstrained binary optimization (QUBO)_ in the form of _MAXCUT,_ or the _Traveling Salesman Problem (TSP),_ at quality and scaling performance beyond _quantum annealers,_ _VQE,_ and _QAOA,_ at the scale of a consumer laptop, with _"quantum-inspired"_ heuristics? Then, **Qrack** will do a lot of things, but you likely want [PyQrackIsing](https://github.com/vm6502q/PyQrackIsing) for that. Otherwise, we'll tell you how to get started with **Qrack**.
 
 To get up-and-running most easily with maximum performance, if Python is the appropriate language for what you want to do, just `pip install pyqrack`. (We also offer the [Qook](https://crates.io/crates/qook/0.1.1/dependencies) Rust language bindings.) That's it, basically! At minimum, you could stop here: it should _just work._
 
