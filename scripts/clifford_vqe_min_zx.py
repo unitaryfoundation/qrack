@@ -417,7 +417,7 @@ while is_charge_update:
     if n_electrons != r_electrons:
         d_electrons = r_electrons - n_electrons
         r_charge = charge - d_electrons
-        r_multiplicity = (multiplicity - d_electrons) & 1
+        r_multiplicity = (multiplicity - abs(d_electrons)) & 1
         if r_multiplicity == 0:
             r_multiplicity = 2
 
