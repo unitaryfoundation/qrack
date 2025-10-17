@@ -34,6 +34,9 @@ multiplicity = 1  # singlet, closed shell, all electrons are paired (neutral mol
 # multiplicity = 3  # triplet, two unpaired electrons (ex.: O2)
 charge = 0  # Excess +/- elementary charge, beyond multiplicity
 
+print(f"charge = {charge}")
+print(f"multiplicity = {multiplicity}")
+
 # Hydrogen (and lighter):
 
 # geometry = [("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 0.74))]  # H2 Molecule
@@ -239,39 +242,6 @@ def geometry_to_atom_str(geometry):
         for symbol, (x, y, z) in geometry
     )
 
-atom_str = geometry_to_atom_str(geometry)
-molecule_of = MolecularData(geometry, basis, multiplicity=multiplicity, charge=charge)
-molecule_of = run_pyscf(molecule_of, run_scf=True, run_mp2=False, run_cisd=False, run_ccsd=False, run_fci=False)
-fermion_ham = get_fermion_operator(molecule_of.get_molecular_hamiltonian())
-# n_electrons = molecule_of.n_electrons
-n_qubits = molecule_of.n_qubits
-print(f"Hartree-Fock energy: {molecule_of.hf_energy}")
-print(f"{n_qubits} qubits...")
-
-# Step 3: Iterate JW terms without materializing full op
-z_hamiltonian = []
-z_qubits = set()
-for term, coeff in fermion_ham.terms.items():
-    jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
-
-    for pauli_string, jw_coeff in jw_term.terms.items():
-        # Skip terms with X or Y
-        if any(p in ('X', 'Y') for _, p in pauli_string):
-            continue
-
-        q = []
-        for qubit, op in pauli_string:
-            # Z/I terms: keep only Z
-            if op != "Z":
-                continue
-            q.append(qubit)
-            z_qubits.add(qubit)
-
-        z_hamiltonian.append((q, jw_coeff.real))
-
-z_qubits = list(z_qubits)
-
-# Step 4: Bootstrap!
 def initial_energy(theta_bits, z_hamiltonian):
     energy = 0.0
     for qubits, coeff in z_hamiltonian:
@@ -395,12 +365,68 @@ def multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, reheat_tries=0)
 
     return best_theta, min_energy
 
-# Run threaded bootstrap
-theta, min_energy = multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, 1)
+is_charge_update = True
+while is_charge_update:
+    is_charge_update = False
 
-print(f"\nFinal Bootstrap Ground State Energy: {min_energy} Ha")
-print("Final Bootstrap Parameters:")
-print(theta)
+    atom_str = geometry_to_atom_str(geometry)
+    molecule_of = MolecularData(geometry, basis, multiplicity=multiplicity, charge=charge)
+    molecule_of = run_pyscf(molecule_of, run_scf=True, run_mp2=False, run_cisd=False, run_ccsd=False, run_fci=False)
+    fermion_ham = get_fermion_operator(molecule_of.get_molecular_hamiltonian())
+    n_electrons = molecule_of.n_electrons
+    n_qubits = molecule_of.n_qubits
+    print(f"Hartree-Fock energy: {molecule_of.hf_energy}")
+    print(f"{n_electrons} electrons...")
+    print(f"{n_qubits} qubits...")
+
+    # Step 3: Iterate JW terms without materializing full op
+    z_hamiltonian = []
+    z_qubits = set()
+    for term, coeff in fermion_ham.terms.items():
+        jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
+
+        for pauli_string, jw_coeff in jw_term.terms.items():
+            # Skip terms with X or Y
+            if any(p in ('X', 'Y') for _, p in pauli_string):
+                continue
+
+            q = []
+            for qubit, op in pauli_string:
+                # Z/I terms: keep only Z
+                if op != "Z":
+                    continue
+                q.append(qubit)
+                z_qubits.add(qubit)
+
+            z_hamiltonian.append((q, jw_coeff.real))
+
+    z_qubits = list(z_qubits)
+
+    # Step 4: Bootstrap!
+    theta, min_energy = multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, 1)
+
+    print(f"\nFinal Bootstrap Ground State Energy: {min_energy} Ha")
+    print("Final Bootstrap Parameters:")
+    print(theta)
+
+    r_electrons = theta.sum()
+    if n_electrons != r_electrons:
+        d_electrons = r_electrons - n_electrons
+        r_charge = charge - d_electrons
+        r_multiplicity = (multiplicity - d_electrons) & 1
+        if r_multiplicity == 0:
+            r_multiplicity = 2
+
+        print()
+        print("Regresssed electron count doesn't match the assumptions!")
+        print("Running again with the natural parameters replacing your assumptions:")
+        print(f"charge = {r_charge}")
+        print(f"multiplicity = {r_multiplicity}")
+        print()
+
+        charge = r_charge
+        multiplicity = r_multiplicity
+        is_charge_update = True
 
 # Step 6: Variational Hamiltonian
 coeffs = []
