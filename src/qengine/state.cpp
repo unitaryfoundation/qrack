@@ -1392,7 +1392,7 @@ real1_f QEngineCPU::Prob(bitLenInt qubit)
     std::unique_ptr<real1[]> oneChanceBuff(new real1[numCores]());
 
     ParallelFunc fn;
-#if ENABLE_COMPLEX_X
+#if ENABLE_COMPLEX_X2
     if (stateVec->is_sparse()) {
         fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
             oneChanceBuff[cpu] += norm(stateVec->read(lcv | qPower));
