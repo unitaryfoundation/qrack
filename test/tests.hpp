@@ -38,6 +38,7 @@ extern bool disable_terminal_measurement;
 extern bool use_host_dma;
 extern bool disable_hardware_rng;
 extern bool async_time;
+extern bool sparse;
 extern int device_id;
 extern bitLenInt max_qubits;
 extern bitLenInt min_qubits;

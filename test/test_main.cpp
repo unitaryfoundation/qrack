@@ -32,6 +32,7 @@ bool disable_reactive_separation = false;
 bool use_host_dma = false;
 bool disable_hardware_rng = false;
 bool async_time = false;
+bool sparse = false;
 int device_id = -1;
 bitLenInt max_qubits = 24;
 std::string mOutputFileName;
@@ -125,6 +126,8 @@ int main(int argc, char* argv[])
         Opt(isBinaryOutput)["--binary-output"]("If included, specifies that the --measure-output file "
                                                "type should be binary. (By default, it is "
                                                "human-readable.)") |
+        Opt(sparse)["--sparse"](
+            "(For QEngineCPU, under QUnit:) Use a state vector optimized for sparse representation and iteration.") |
         Opt(benchmarkSamples, "samples")["--samples"]("number of samples to collect (default: 100)") |
         Opt(benchmarkDepth, "depth")["--benchmark-depth"](
             "depth of randomly constructed circuits, when applicable, with 1 round of single qubit and 1 round of "
@@ -298,7 +301,11 @@ int main(int argc, char* argv[])
     if (num_failed == 0 && qunit) {
         testEngineType = QINTERFACE_QUNIT;
         if (num_failed == 0 && cpu) {
-            session.config().stream() << "############ QUnit -> QEngine -> CPU ############" << std::endl;
+            if (sparse) {
+                session.config().stream() << "############ QUnit -> QEngine -> CPU (Sparse) ############" << std::endl;
+            } else {
+                session.config().stream() << "############ QUnit -> QEngine -> CPU ############" << std::endl;
+            }
             testSubEngineType = QINTERFACE_CPU;
             num_failed = session.run();
         }
@@ -532,7 +539,7 @@ QInterfaceTestFixture::QInterfaceTestFixture()
 
     qftReg = CreateQuantumInterface(
         { testEngineType, testSubEngineType, testSubSubEngineType, testSubSubSubEngineType }, 20, ZERO_BCI, rng,
-        ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, false, REAL1_EPSILON, devList);
+        ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, sparse, REAL1_EPSILON, devList);
 
     if (disable_t_injection) {
         qftReg->SetTInjection(false);

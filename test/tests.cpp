@@ -65,7 +65,7 @@ QInterfacePtr MakeEngine(bitLenInt qubitCount)
 {
     QInterfacePtr toRet = CreateQuantumInterface(
         { testEngineType, testSubEngineType, testSubSubEngineType, testSubSubSubEngineType }, qubitCount, ZERO_BCI, rng,
-        ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, false, REAL1_EPSILON, devList);
+        ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, sparse, REAL1_EPSILON, devList);
 
     if (disable_t_injection) {
         toRet->SetTInjection(false);
@@ -679,7 +679,7 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_cswap")
 
     QInterfacePtr qftReg2 =
         CreateQuantumInterface({ testEngineType, testSubEngineType, testSubSubEngineType, testSubSubSubEngineType },
-            20U, ZERO_BCI, rng, ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, false,
+            20U, ZERO_BCI, rng, ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, sparse,
             REAL1_DEFAULT_ARG, devList, 10);
 
     control[0] = 9;
@@ -1284,11 +1284,11 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_approxcompare")
 {
     qftReg =
         CreateQuantumInterface({ testEngineType, testSubEngineType, testSubSubEngineType, testSubSubSubEngineType }, 3U,
-            ZERO_BCI, rng, ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, false,
+            ZERO_BCI, rng, ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, sparse,
             REAL1_DEFAULT_ARG, devList, 10);
     QInterfacePtr qftReg2 =
         CreateQuantumInterface({ testEngineType, testSubEngineType, testSubSubEngineType, testSubSubSubEngineType }, 3U,
-            ZERO_BCI, rng, ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, false,
+            ZERO_BCI, rng, ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, sparse,
             REAL1_DEFAULT_ARG, devList, 10);
 
     qftReg->X(0);
@@ -2925,7 +2925,7 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_zero_phase_flip")
     REQUIRE_THAT(qftReg, HasProbability(0, 8, 0x03));
 
     QInterfacePtr qftReg2 = CreateQuantumInterface({ testEngineType, testSubEngineType, testSubSubEngineType, testSubSubSubEngineType }, 20U,
-        ZERO_BCI, rng, ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, false,
+        ZERO_BCI, rng, ONE_CMPLX, enable_normalization, true, false, device_id, !disable_hardware_rng, sparse,
         REAL1_DEFAULT_ARG, devList, 10);
 
     qftReg2->SetPermutation(3U << 9U);
@@ -3002,7 +3002,7 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_decompose", "[sd_xfail]")
     // Try across device/heap allocation case:
     qftReg2 = CreateQuantumInterface(
         { testEngineType, testSubEngineType, testSubSubEngineType, testSubSubSubEngineType }, 4, ZERO_BCI, rng,
-        ONE_CMPLX, enable_normalization, true, true, device_id, !disable_hardware_rng, false, REAL1_EPSILON, devList);
+        ONE_CMPLX, enable_normalization, true, true, device_id, !disable_hardware_rng, sparse, REAL1_EPSILON, devList);
 
     qftReg->SetPermutation(0x2b);
     qftReg->Decompose(0, qftReg2);
