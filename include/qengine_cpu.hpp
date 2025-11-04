@@ -39,6 +39,7 @@ protected:
 #if ENABLE_QUNIT_CPU_PARALLEL && ENABLE_PTHREAD
     DispatchQueue dispatchQueue;
 #endif
+    bool isSparse;
 
     using QEngine::Copy;
     void Copy(QInterfacePtr orig) { Copy(std::dynamic_pointer_cast<QEngineCPU>(orig)); }
@@ -48,12 +49,14 @@ protected:
         stateVec = orig->stateVec;
     }
 
+    StateVectorSparsePtr CastStateVecSparse() { return std::dynamic_pointer_cast<StateVectorSparse>(stateVec); }
+
 public:
     QEngineCPU(bitLenInt qBitCount, const bitCapInt& initState, qrack_rand_gen_ptr rgp = nullptr,
         const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false, bool randomGlobalPhase = true,
-        bool ignored = false, int64_t ignored2 = -1, bool useHardwareRNG = true, bool ignored3 = false,
-        real1_f norm_thresh = REAL1_EPSILON, std::vector<int64_t> ignored4 = {}, bitLenInt ignored5 = 0U,
-        real1_f ignored6 = _qrack_qunit_sep_thresh);
+        bool ignored = false, int64_t ignored2 = -1, bool useHardwareRNG = true, bool useSparseStateVec = false,
+        real1_f norm_thresh = REAL1_EPSILON, std::vector<int64_t> ignored3 = {}, bitLenInt ignored4 = 0U,
+        real1_f ignored5 = _qrack_qunit_sep_thresh);
 
     ~QEngineCPU() { Dump(); }
 
@@ -234,7 +237,14 @@ public:
 protected:
     real1_f GetExpectation(bitLenInt valueStart, bitLenInt valueLength);
 
-    StateVectorPtr AllocStateVec(bitCapIntOcl elemCount);
+    StateVectorPtr AllocStateVec(bitCapIntOcl elemCount)
+    {
+        if (isSparse) {
+            return std::make_shared<StateVectorSparse>(elemCount);
+        } else {
+            return std::make_shared<StateVectorArray>(elemCount);
+        }
+    }
     void ResetStateVec(StateVectorPtr sv) { stateVec = sv; }
     void FreeStateVec(complex* sv = nullptr) { stateVec = nullptr; }
 
