@@ -240,6 +240,9 @@ void QEngineShard::SwapTargetAnti(QEngineShardPtr control)
 {
     const auto phaseShard = targetOfShards.find(control);
     const auto antiPhaseShard = antiTargetOfShards.find(control);
+    if ((antiPhaseShard == antiTargetOfShards.end()) && (phaseShard == targetOfShards.end())) {
+        return;
+    }
     if (antiPhaseShard == antiTargetOfShards.end()) {
         std::swap(phaseShard->second->cmplxDiff, phaseShard->second->cmplxSame);
         antiTargetOfShards[phaseShard->first] = phaseShard->second;

@@ -37,6 +37,7 @@ protected:
     bool isBdt;
     bool isCpu;
     bool isSinglePage;
+    bool isSparse;
     bitLenInt thresholdQubits;
     real1_f separabilityThreshold;
     real1_f roundingThreshold;

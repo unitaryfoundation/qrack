@@ -39,6 +39,7 @@ protected:
 #if ENABLE_QUNIT_CPU_PARALLEL && ENABLE_PTHREAD
     DispatchQueue dispatchQueue;
 #endif
+    double fidelity;
     bool isSparse;
 
     using QEngine::Copy;
@@ -47,6 +48,8 @@ protected:
     {
         QEngine::Copy(std::dynamic_pointer_cast<QEngine>(orig));
         stateVec = orig->stateVec;
+        fidelity = orig->fidelity;
+        isSparse = orig->isSparse;
     }
 
     StateVectorSparsePtr CastStateVecSparse() { return std::dynamic_pointer_cast<StateVectorSparse>(stateVec); }
@@ -97,6 +100,22 @@ public:
         Dump();
         FreeStateVec();
         runningNorm = ZERO_R1;
+        fidelity = 1.0;
+    }
+
+    void TruncateBySize()
+    {
+        if (isSparse) {
+            fidelity *= CastStateVecSparse()->truncate_to_size(QRACK_SPARSE_MAX_KEYS);
+        }
+    }
+
+    bitCapInt GetAmplitudeCount() {
+        if (isSparse) {
+            return CastStateVecSparse()->size();
+        }
+
+        return maxQPower;
     }
 
     bool IsZeroAmplitude() { return !stateVec; }

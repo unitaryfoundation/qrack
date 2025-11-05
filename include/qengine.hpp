@@ -38,6 +38,7 @@ protected:
     /// summed, at each update. To normalize, we should always multiply by 1/sqrt(runningNorm).
     real1 runningNorm;
     bitCapIntOcl maxQPowerOcl;
+    double fidelity;
 
     inline bool IsPhase(const complex* mtrx) { return IS_NORM_0(mtrx[1]) && IS_NORM_0(mtrx[2]); }
     inline bool IsInvert(const complex* mtrx) { return IS_NORM_0(mtrx[0]) && IS_NORM_0(mtrx[3]); }
@@ -83,6 +84,7 @@ public:
         , useHostRam(useHostMem)
         , runningNorm(ONE_R1)
         , maxQPowerOcl(pow2Ocl(qBitCount))
+        , fidelity(1.0)
     {
         if (qBitCount > (sizeof(bitCapIntOcl) * bitsInByte)) {
             throw std::invalid_argument(
