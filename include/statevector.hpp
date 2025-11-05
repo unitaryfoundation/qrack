@@ -267,6 +267,7 @@ public:
 
         const real1 limit = *(nrms.begin());
         const real1 fidelity = std::accumulate(nrms.begin(), nrms.end(), ZERO_R1);
+        const real1 invFidelity = ONE_R1 / fidelity;
         nrms.clear();
 
         SparseStateVecMap nAmplitudes;
@@ -279,7 +280,7 @@ public:
         nAmplitudes.clear();
 
         for (auto& pair : amplitudes) {
-            pair.second /= fidelity;
+            pair.second *= invFidelity;
         }
 
         return fidelity;

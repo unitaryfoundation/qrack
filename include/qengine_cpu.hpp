@@ -118,6 +118,9 @@ public:
         return maxQPower;
     }
 
+    double GetUnitaryFidelity() { return fidelity; }
+    void ResetUnitaryFidelity() { fidelity = 1.0; }
+
     bool IsZeroAmplitude() { return !stateVec; }
     void GetAmplitudePage(complex* pagePtr, bitCapIntOcl offset, bitCapIntOcl length);
     void SetAmplitudePage(const complex* pagePtr, bitCapIntOcl offset, bitCapIntOcl length);
