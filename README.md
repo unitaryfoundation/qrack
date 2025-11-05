@@ -88,6 +88,8 @@ Set the maximum allowed allocation (in MB) for the global OpenCL pool with envir
 
 `QRACK_QBDT_MAX_ALLOC_MB` controls the **total process memory** limit before `QBdt` (quantum binary decision tree) instances will `throw std::bad_alloc()`. This is particularly useful in combination with `QUnit` simulation layer over `QBdt`, which will automatically elide any gates that cross the allocation limit at first point of failure, without relying the operating system to raise `std::bad_alloc()` due to heap memory limits, which might work, but cannot be guaranteed to ultimately prevent the process from being stopped by the operating system.
 
+`QRACK_SPARSE_MAX_ALLOC_MB` controls the maximum peak memory usage (roughly but very closely) before _sparse simulation_ in `QEngineCPU` begins to _approximately truncate._ For a worst-case fidelity estimate, when simulating with the sparse option at close to the limits of the this value, you should check `QInterface::GetUnitaryFidelity()` on your instances to know how much fidelity could have been lost.
+
 ## Near-Clifford simulation
 
 Qrack has a novel near-Clifford simulation method based on the "reverse gadget" for non-Clifford phase injection in Appendix A of [PRX Quantum 3, 020361 – Published 23 June 2022](https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.3.020361). To use it, simply restrict your gate set to Clifford gates and only `RZ` for a non-Clifford gate. You probably also want to disable `QTensorNetwork` and `QUnit` layers, to directly expose `QStabilizerHybrid` at the "top" of your simulation method "layer stack."

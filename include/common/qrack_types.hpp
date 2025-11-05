@@ -254,6 +254,8 @@ QRACK_CONST real1 REAL1_EPSILON = (real1)7.965459555662261e-59;
 #endif
 #endif
 
+constexpr size_t SPARSE_KEY_BYTES = sizeof(bitCapIntOcl) + sizeof(complex);
+
 QRACK_CONST complex ONE_CMPLX = complex(ONE_R1, ZERO_R1);
 QRACK_CONST complex ZERO_CMPLX = complex(ZERO_R1, ZERO_R1);
 QRACK_CONST complex I_CMPLX = complex(ZERO_R1, ONE_R1);

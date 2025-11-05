@@ -386,7 +386,7 @@ bool QUnit::Detach(bitLenInt start, bitLenInt length, QUnitPtr dest, bool isTry,
             dest->shards[i] = shard;
         }
     }
-    
+
     // Find the rest of the qubits.
     for (auto&& shard : shards) {
         const auto subunit = subunits.find(shard.unit);

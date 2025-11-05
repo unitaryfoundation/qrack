@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <mutex>
+#include <numeric>
 
 #ifdef ENABLE_PTHREAD
 #include <future>
@@ -243,6 +244,53 @@ public:
         : StateVector(cap)
         , amplitudes()
     {
+    }
+
+    size_t size() { return amplitudes.size(); }
+
+    real1_f truncate_to_size(size_t maxAmps)
+    {
+        if (amplitudes.size() <= maxAmps) {
+            return ONE_R1_F;
+        }
+
+        std::set<real1> nrms;
+        for (const auto& pair : amplitudes) {
+            real1 nrm = norm(pair.second);
+            if (nrms.size() < maxAmps) {
+                nrms.insert(nrm);
+            } else if (*(nrms.begin()) < nrm) {
+                nrms.erase(nrms.begin());
+                nrms.insert(nrm);
+            }
+        }
+
+        const real1 limit = *(nrms.begin());
+        const real1 fidelity = std::accumulate(nrms.begin(), nrms.end(), ZERO_R1);
+        nrms.clear();
+
+        for (auto it = amplitudes.begin(); it != amplitudes.end();) {
+            if (norm(it->second) < limit) {
+                it = amplitudes.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        // We might have duplicates of the limit value:
+        for (auto it = amplitudes.begin(); amplitudes.size() > maxAmps;) {
+            if (norm(it->second) == limit) {
+                it = amplitudes.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        for (auto& pair : amplitudes) {
+            pair.second /= fidelity;
+        }
+
+        return fidelity;
     }
 
     complex read(const bitCapIntOcl& i) { return isReadLocked ? readLocked(i) : readUnlocked(i); }

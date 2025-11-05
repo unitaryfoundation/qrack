@@ -240,6 +240,8 @@ const bitLenInt PSTRIDEPOW_DEFAULT =
     (bitLenInt)(getenv("QRACK_PSTRIDEPOW") ? std::stoi(std::string(getenv("QRACK_PSTRIDEPOW"))) : PSTRIDEPOW);
 const bitCapInt QRACK_QBDT_MAX_ALLOC_MB_DEFAULT =
     (bitCapInt)(getenv("QRACK_QBDT_MAX_ALLOC_MB") ? std::stoi(std::string(getenv("QRACK_QBDT_MAX_ALLOC_MB"))) : -1);
+const bitCapInt QRACK_SPARSE_MAX_ALLOC_MB_DEFAULT =
+    (bitCapInt)(getenv("QRACK_SPARSE_MAX_ALLOC_MB") ? std::stoi(std::string(getenv("QRACK_SPARSE_MAX_ALLOC_MB"))) : -1);
 #else
 const real1_f _qrack_qunit_sep_thresh = FP_NORM_EPSILON;
 const real1_f _qrack_qbdt_sep_thresh = FP_NORM_EPSILON;
@@ -249,6 +251,9 @@ const bitLenInt QRACK_MAX_PAGING_QB_DEFAULT = QRACK_MAX_CPU_QB_DEFAULT;
 const bitLenInt QRACK_QRACK_QTENSORNETWORK_THRESHOLD_CPU_QB = 32U;
 const bitLenInt PSTRIDEPOW_DEFAULT = PSTRIDEPOW;
 const bitCapInt QRACK_QBDT_MAX_ALLOC_MB_DEFAULT = -1;
+const bitCapInt QRACK_SPARSE_MAX_ALLOC_MB_DEFAULT = -1;
 #endif
 const bitCapInt QRACK_QBDT_MAX_ALLOC_BYTES_DEFAULT = QRACK_QBDT_MAX_ALLOC_MB_DEFAULT * 1024U * 1024U;
+const bitCapInt QRACK_SPARSE_MAX_ALLOC_BYTES_DEFAULT = QRACK_SPARSE_MAX_ALLOC_MB_DEFAULT * 1024U * 1024U;
+const size_t QRACK_SPARSE_MAX_KEYS = (QRACK_SPARSE_MAX_ALLOC_MB_DEFAULT / SPARSE_KEY_BYTES) >> 1U;
 } // namespace Qrack

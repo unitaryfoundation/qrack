@@ -26,6 +26,7 @@ QInterfacePtr QEngineCPU::Clone()
     Finish();
     clone->Finish();
     clone->runningNorm = runningNorm;
+    clone->fidelity = fidelity;
     clone->stateVec->copy(stateVec);
 
     return clone;
@@ -45,6 +46,7 @@ QInterfacePtr QEngineCPU::Copy()
 {
     QEngineCPUPtr clone = std::dynamic_pointer_cast<QEngineCPU>(CloneEmpty());
     clone->stateVec = stateVec;
+    clone->fidelity = fidelity;
 
     return clone;
 }

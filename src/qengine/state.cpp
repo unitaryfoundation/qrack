@@ -177,6 +177,7 @@ void QEngineCPU::CopyStateVec(QEnginePtr src)
     src->GetQuantumState(std::dynamic_pointer_cast<StateVectorArray>(stateVec)->amplitudes.get());
 
     runningNorm = src->GetRunningNorm();
+    fidelity = src->GetUnitaryFidelity();
 }
 
 complex QEngineCPU::GetAmplitude(const bitCapInt& perm)
@@ -245,6 +246,7 @@ void QEngineCPU::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
     }
 
     runningNorm = ONE_R1;
+    fidelity = 1.0;
 }
 
 /// Set arbitrary pure quantum state, in unsigned int permutation basis
@@ -258,6 +260,7 @@ void QEngineCPU::SetQuantumState(const complex* inputState)
 
     stateVec->copy_in(inputState);
     runningNorm = REAL1_DEFAULT_ARG;
+    fidelity = 1.0;
 }
 
 /// Get pure quantum state, in unsigned int permutation basis
@@ -458,6 +461,7 @@ void QEngineCPU::Apply2x2(bitCapIntOcl offset1, bitCapIntOcl offset2, const comp
             } else {
                 par_for_mask(0U, maxQPowerOcl, qPowersSorted, fn);
             }
+            TruncateBySize();
 
             if (doApplyNorm) {
                 runningNorm = ONE_R1;
@@ -641,6 +645,7 @@ void QEngineCPU::Apply2x2(bitCapIntOcl offset1, bitCapIntOcl offset2, const comp
             } else {
                 par_for_mask(0U, maxQPowerOcl, qPowersSorted, fn);
             }
+            TruncateBySize();
 
             if (doApplyNorm) {
                 runningNorm = ONE_R1;
@@ -705,6 +710,7 @@ void QEngineCPU::XMask(const bitCapInt& mask)
         };
 
         par_for(0U, maxQPowerOcl, fn);
+        TruncateBySize();
     });
 }
 
@@ -751,6 +757,7 @@ void QEngineCPU::PhaseParity(real1_f radians, const bitCapInt& mask)
             setInt |= otherRes;
 
             stateVec->write(setInt, (v ? phaseFac : phaseFacAdj) * stateVec->read(setInt));
+            TruncateBySize();
         });
     });
 }
@@ -790,6 +797,7 @@ void QEngineCPU::PhaseRootNMask(bitLenInt n, const bitCapInt& mask)
                 stateVec->write(lcv, std::polar(ONE_R1, (real1)(radians * nPhaseSteps)) * stateVec->read(lcv));
             }
         });
+        TruncateBySize();
     });
 }
 
@@ -892,6 +900,7 @@ void QEngineCPU::UniformlyControlledSingleBit(const std::vector<bitLenInt>& cont
     Finish();
 
     par_for_skip(0U, maxQPowerOcl, targetPower, 1U, fn);
+    TruncateBySize();
 
     if (doNormalize) {
         runningNorm = ONE_R1;
@@ -921,6 +930,7 @@ void QEngineCPU::UniformParityRZ(const bitCapInt& mask, real1_f angle)
         } else {
             par_for(0U, maxQPowerOcl, fn);
         }
+        TruncateBySize();
     });
 }
 
@@ -959,6 +969,7 @@ void QEngineCPU::CUniformParityRZ(const std::vector<bitLenInt>& cControls, const
                 stateVec->read(controlMask | lcv) *
                     ((popCountOcl(lcv & (bitCapIntOcl)mask) & 1U) ? phaseFac : phaseFacAdj));
         });
+        TruncateBySize();
     });
 }
 
@@ -1033,6 +1044,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
     } else {
         par_for(0U, nMaxQPower, fn);
     }
+    TruncateBySize();
 
     SetQubitCount(nQubitCount);
 
@@ -1099,6 +1111,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
             stateVec->read((lcv & startMask) | ((lcv & endMask) >> oQubitCount)) *
                 toCopy->stateVec->read((lcv & midMask) >> start));
     });
+    TruncateBySize();
 
     SetQubitCount(nQubitCount);
 
@@ -1153,6 +1166,7 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
             nStateVec->write(lcv, nStateVec->read(lcv) * src->stateVec->read((lcv & mask[j]) >> offset[j]));
         }
     });
+    TruncateBySize();
 
     SetQubitCount(nQubitCount);
 
