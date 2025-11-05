@@ -269,22 +269,14 @@ public:
         const real1 fidelity = std::accumulate(nrms.begin(), nrms.end(), ZERO_R1);
         nrms.clear();
 
-        for (auto it = amplitudes.begin(); it != amplitudes.end();) {
-            if (norm(it->second) < limit) {
-                it = amplitudes.erase(it);
-            } else {
-                ++it;
+        SparseStateVecMap nAmplitudes;
+        for (auto it = amplitudes.begin(); it != amplitudes.end(); ++it) {
+            if (norm(it->second) >= limit) {
+                nAmplitudes[it->first] = it->second;
             }
         }
-
-        // We might have duplicates of the limit value:
-        for (auto it = amplitudes.begin(); amplitudes.size() > maxAmps;) {
-            if (norm(it->second) == limit) {
-                it = amplitudes.erase(it);
-            } else {
-                ++it;
-            }
-        }
+        amplitudes = nAmplitudes;
+        nAmplitudes.clear();
 
         for (auto& pair : amplitudes) {
             pair.second /= fidelity;
