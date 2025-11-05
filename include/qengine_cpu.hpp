@@ -110,6 +110,14 @@ public:
         }
     }
 
+    bitCapInt GetAmplitudeCount() {
+        if (isSparse) {
+            return CastStateVecSparse()->size();
+        }
+
+        return maxQPower;
+    }
+
     bool IsZeroAmplitude() { return !stateVec; }
     void GetAmplitudePage(complex* pagePtr, bitCapIntOcl offset, bitCapIntOcl length);
     void SetAmplitudePage(const complex* pagePtr, bitCapIntOcl offset, bitCapIntOcl length);

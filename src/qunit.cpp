@@ -113,6 +113,7 @@ QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCa
     }
 
     isReactiveSeparate = (separabilityThreshold > FP_NORM_EPSILON_F);
+    isSparse = useSparseStateVec && isCpu;
 
     if (qubitCount) {
         SetPermutation(initState);
@@ -427,26 +428,43 @@ QInterfacePtr QUnit::EntangleInCurrentBasis(
     std::map<QInterfacePtr, bool> found;
 
     // Walk through all of the supplied bits and create a unique list to compose.
-    bitLenInt logMem = 0U;
-    for (auto bit = first; bit < last; ++bit) {
-        if (found.find(shards[**bit].unit) == found.end()) {
-            found[shards[**bit].unit] = true;
-            units.push_back(shards[**bit].unit);
+    if (isSparse) {
+        size_t mem = 0U;
+        for (auto bit = first; bit < last; ++bit) {
+            if (found.find(shards[**bit].unit) == found.end()) {
+                found[shards[**bit].unit] = true;
+                units.push_back(shards[**bit].unit);
 
-            logMem += units.back()->GetQubitCount();
+                mem *= units.back()->GetAmplitudeCount();
 
-            bool isThrow = false;
-            if (isCpu) {
-                isThrow = logMem > QRACK_MAX_CPU_QB_DEFAULT;
-            } else if (isSinglePage) {
-                isThrow = logMem > QRACK_MAX_PAGE_QB_DEFAULT;
-            } else {
-                isThrow = logMem > QRACK_MAX_PAGING_QB_DEFAULT;
+                if (mem > QRACK_SPARSE_MAX_KEYS) {
+                    Copy(backupCopy);
+                    throw bad_alloc("RAM limits exceeded in QUnit::EntangleInCurrentBasis()");
+                }
             }
+        }
+    } else {
+        bitLenInt logMem = 0U;
+        for (auto bit = first; bit < last; ++bit) {
+            if (found.find(shards[**bit].unit) == found.end()) {
+                found[shards[**bit].unit] = true;
+                units.push_back(shards[**bit].unit);
 
-            if (isThrow) {
-                Copy(backupCopy);
-                throw bad_alloc("RAM limits exceeded in QUnit::EntangleInCurrentBasis()");
+                logMem += units.back()->GetQubitCount();
+
+                bool isThrow = false;
+                if (isCpu) {
+                    isThrow = logMem > QRACK_MAX_CPU_QB_DEFAULT;
+                } else if (isSinglePage) {
+                    isThrow = logMem > QRACK_MAX_PAGE_QB_DEFAULT;
+                } else {
+                    isThrow = logMem > QRACK_MAX_PAGING_QB_DEFAULT;
+                }
+
+                if (isThrow) {
+                    Copy(backupCopy);
+                    throw bad_alloc("RAM limits exceeded in QUnit::EntangleInCurrentBasis()");
+                }
             }
         }
     }
