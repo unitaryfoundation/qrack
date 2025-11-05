@@ -284,7 +284,7 @@ public:
 
         if (amplitudes.size() > maxAmps) {
             std::vector<bitCapIntOcl> indices;
-            for (auto it = amplitudes.begin(); (nAmplitudes.size() > maxAmps) && (it != amplitudes.end()); ++it) {
+            for (auto it = amplitudes.begin(); it != amplitudes.end(); ++it) {
                 if (norm(it->second) == limit) {
                     indices.push_back(it->first);
                 }
