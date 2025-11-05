@@ -276,7 +276,19 @@ public:
                 nAmplitudes[it->first] = it->second;
             }
         }
+        amplitudes.clear();
         amplitudes = nAmplitudes;
+
+        if (amplitudes.size() > maxAmps) {
+            for (auto it = amplitudes.begin(); (nAmplitudes.size() > maxAmps) && (it != amplitudes.end()); ++it) {
+                if (norm(it->second) == limit) {
+                    nAmplitudes.erase(it->first);
+                }
+            }
+            amplitudes.clear();
+            amplitudes = nAmplitudes;
+        }
+
         nAmplitudes.clear();
 
         for (auto& pair : amplitudes) {
