@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <mutex>
 #include <numeric>
+#include <random>
 
 #ifdef ENABLE_PTHREAD
 #include <future>
@@ -278,18 +279,23 @@ public:
         }
         amplitudes.clear();
         amplitudes = nAmplitudes;
+        nAmplitudes.clear();
 
         if (amplitudes.size() > maxAmps) {
+            std::vector<bitCapIntOcl> indices;
             for (auto it = amplitudes.begin(); (nAmplitudes.size() > maxAmps) && (it != amplitudes.end()); ++it) {
                 if (norm(it->second) == limit) {
-                    nAmplitudes.erase(it->first);
+                    indices.push_back(it->first);
                 }
             }
-            amplitudes.clear();
-            amplitudes = nAmplitudes;
+            std::random_device rd;
+            std::mt19937 g(rd());
+            std::shuffle(indices.begin(), indices.end(), g);
+            indices.resize(amplitudes.size() - maxAmps);
+            for (const bitCapIntOcl& idx : indices) {
+                amplitudes.erase(idx);
+            }
         }
-
-        nAmplitudes.clear();
 
         for (auto& pair : amplitudes) {
             pair.second *= invFidelity;
