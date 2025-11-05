@@ -4582,7 +4582,7 @@ TEST_CASE("test_universal_circuit_digital_cross_entropy", "[supreme]")
 
     QInterfacePtr goldStandard =
         CreateQuantumInterface({ testSubEngineType, testSubSubEngineType, testSubSubSubEngineType }, n, ZERO_BCI, rng,
-            ONE_CMPLX, enable_normalization, true, use_host_dma, device_id, !disable_hardware_rng);
+            ONE_CMPLX, enable_normalization, true, use_host_dma, device_id, !disable_hardware_rng, sparse);
     if (disable_t_injection) {
         goldStandard->SetTInjection(false);
     }
