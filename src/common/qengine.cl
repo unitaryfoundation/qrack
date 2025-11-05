@@ -952,14 +952,14 @@ void kernel nrmlze(global cmplx* stateVec, constant bitCapIntOcl* bitCapIntOclPt
     const bitCapIntOcl Nthreads = get_global_size(0);
     const bitCapIntOcl maxI = bitCapIntOclPtr[0];
     const real1 norm_thresh = args_ptr[0].x;
-    const cmplx nrm = args_ptr[1];
+    const real1 nrm = args_ptr[1].x;
 
     for (bitCapIntOcl lcv = ID; lcv < maxI; lcv += Nthreads) {
         cmplx amp = stateVec[lcv];
         if (dot(amp, amp) < norm_thresh) {
             amp = (cmplx)(ZERO_R1, ZERO_R1);
         }
-        stateVec[lcv] = zmul(nrm, amp);
+        stateVec[lcv] = nrm * amp;
     }
 }
 
@@ -967,13 +967,13 @@ void kernel nrmlzewide(global cmplx* stateVec, constant bitCapIntOcl* bitCapIntO
 {
     const bitCapIntOcl lcv = ID;
     const real1 norm_thresh = args_ptr[0].x;
-    const cmplx nrm = args_ptr[1];
+    const real1 nrm = args_ptr[1].x;
 
     cmplx amp = stateVec[lcv];
     if (dot(amp, amp) < norm_thresh) {
         amp = (cmplx)(ZERO_R1, ZERO_R1);
     }
-    stateVec[lcv] = zmul(nrm, amp);
+    stateVec[lcv] = nrm * amp;
 }
 
 void kernel updatenorm(global cmplx* stateVec, constant bitCapIntOcl* bitCapIntOclPtr, constant real1* args_ptr,
