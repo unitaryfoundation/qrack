@@ -19,6 +19,7 @@
 #include <mutex>
 #include <numeric>
 #include <random>
+#include <set>
 
 #ifdef ENABLE_PTHREAD
 #include <future>
@@ -255,7 +256,7 @@ public:
             return ONE_R1_F;
         }
 
-        std::set<real1> nrms;
+        std::multiset<real1> nrms;
         for (const auto& pair : amplitudes) {
             real1 nrm = norm(pair.second);
             if (nrms.size() < maxAmps) {
