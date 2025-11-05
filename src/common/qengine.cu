@@ -1028,14 +1028,14 @@ __global__ void nrmlze(qCudaCmplx* stateVec, bitCapIntOcl* bitCapIntOclPtr, qCud
     const bitCapIntOcl Nthreads = gridDim.x * blockDim.x;
     const bitCapIntOcl maxI = bitCapIntOclPtr[0];
     const qCudaReal1 norm_thresh = args_ptr[0].x;
-    const qCudaCmplx nrm = args_ptr[1];
+    const qCudaReal1 nrm = args_ptr[1].x;
 
     for (bitCapIntOcl lcv = ID; lcv < maxI; lcv += Nthreads) {
         qCudaCmplx amp = stateVec[lcv];
         if (qCudaDot(amp, amp) < norm_thresh) {
             amp = make_qCudaCmplx(ZERO_R1_CUDA, ZERO_R1_CUDA);
         }
-        stateVec[lcv] = zmul(nrm, amp);
+        stateVec[lcv] = nrm * amp;
     }
 }
 
@@ -1043,13 +1043,13 @@ __global__ void nrmlzewide(qCudaCmplx* stateVec, bitCapIntOcl* bitCapIntOclPtr, 
 {
     const bitCapIntOcl lcv = ID;
     const qCudaReal1 norm_thresh = args_ptr[0].x;
-    const qCudaCmplx nrm = args_ptr[1];
+    const qCudaReal1 nrm = args_ptr[1].x;
 
     qCudaCmplx amp = stateVec[lcv];
     if (qCudaDot(amp, amp) < norm_thresh) {
         amp = make_qCudaCmplx(ZERO_R1_CUDA, ZERO_R1_CUDA);
     }
-    stateVec[lcv] = zmul(nrm, amp);
+    stateVec[lcv] = nrm * amp;
 }
 
 __global__ void updatenorm(
