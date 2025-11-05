@@ -1849,17 +1849,18 @@ void QEngineCPU::NormalizeState(real1_f nrm_f, real1_f norm_thresh_f, real1_f ph
         norm_thresh = amplitudeFloor;
     }
     nrm = ONE_R1 / std::sqrt((real1_s)nrm);
+    complex cNrm = std::polar(nrm, (real1)phaseArg);
 
     ParallelFunc fn;
     if (norm_thresh <= ZERO_R1) {
-        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) { stateVec->write(lcv, nrm * stateVec->read(lcv)); };
+        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) { stateVec->write(lcv, cNrm * stateVec->read(lcv)); };
     } else {
         fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
             complex amp = stateVec->read(lcv);
             if (norm(amp) < norm_thresh) {
                 amp = ZERO_CMPLX;
             }
-            stateVec->write(lcv, nrm * amp);
+            stateVec->write(lcv, cNrm * amp);
         };
     }
     par_for(0U, maxQPowerOcl, fn);
