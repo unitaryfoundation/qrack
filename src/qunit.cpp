@@ -429,7 +429,7 @@ QInterfacePtr QUnit::EntangleInCurrentBasis(
 
     // Walk through all of the supplied bits and create a unique list to compose.
     if (isSparse) {
-        size_t mem = 1U;
+        bitCapInt mem = ONE_BCI;
         for (auto bit = first; bit < last; ++bit) {
             if (found.find(shards[**bit].unit) == found.end()) {
                 found[shards[**bit].unit] = true;

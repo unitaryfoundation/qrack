@@ -44,7 +44,7 @@
     std::unique_ptr<const std::lock_guard<std::mutex>> simulatorLock;                                                  \
     if (true) {                                                                                                        \
         std::lock(metaOperationMutex, simulatorMutexes[simulator]);                                                    \
-        const std::lock_guard<std::mutex> metaLock(metaOperationMutex, std::adopt_lock);                               \
+        const std::lock_guard<std::mutex> metaLock(metaOperationMutex, std::adopt_lock);CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp)                               \
         simulatorLock = std::unique_ptr<const std::lock_guard<std::mutex>>(                                            \
             new const std::lock_guard<std::mutex>(simulatorMutexes[simulator], std::adopt_lock));                      \
     }
@@ -261,6 +261,7 @@ std::vector<int> simulatorErrors;
 std::vector<QInterfacePtr> simulators;
 std::vector<std::vector<QInterfaceEngine>> simulatorTypes;
 std::vector<bool> simulatorHostPointer;
+std::vector<bool> simulatorSparse;
 std::map<QInterface*, std::mutex> simulatorMutexes;
 std::vector<bool> simulatorReservations;
 std::map<QInterface*, std::map<uintq, bitLenInt>> shards;
@@ -626,7 +627,7 @@ MICROSOFT_QUANTUM_DECL int get_error(_In_ uintq sid)
  * (External API) Initialize a simulator ID with "q" qubits and explicit layer options on/off
  */
 MICROSOFT_QUANTUM_DECL uintq init_count_type(_In_ uintq q, _In_ bool tn, _In_ bool md, _In_ bool sd, _In_ bool sh,
-    _In_ bool bdt, _In_ bool pg, _In_ bool nw, _In_ bool hy, _In_ bool oc, _In_ bool hp)
+    _In_ bool bdt, _In_ bool pg, _In_ bool nw, _In_ bool hy, _In_ bool oc, _In_ bool hp, _In_ bool sp)
 {
     META_LOCK_GUARD()
 
@@ -689,7 +690,7 @@ MICROSOFT_QUANTUM_DECL uintq init_count_type(_In_ uintq q, _In_ bool tn, _In_ bo
     if (q) {
         try {
             simulator =
-                CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp);
+                CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
         } catch (const std::exception& ex) {
             std::cout << ex.what() << std::endl;
             isSuccess = false;
@@ -701,12 +702,14 @@ MICROSOFT_QUANTUM_DECL uintq init_count_type(_In_ uintq q, _In_ bool tn, _In_ bo
         simulators.push_back(simulator);
         simulatorTypes.push_back(simulatorType);
         simulatorHostPointer.push_back(hp);
+        simulatorSparse.push_back(sp);
         simulatorErrors.push_back(isSuccess ? 0 : 1);
     } else {
         simulatorReservations[sid] = true;
         simulators[sid] = simulator;
         simulatorTypes[sid] = simulatorType;
         simulatorHostPointer[sid] = hp;
+        simulatorSparse[sid] = sp;
         simulatorErrors[sid] = isSuccess ? 0 : 1;
     }
 
@@ -722,7 +725,7 @@ MICROSOFT_QUANTUM_DECL uintq init_count_type(_In_ uintq q, _In_ bool tn, _In_ bo
 /**
  * (External API) Initialize a simulator ID with "q" qubits and implicit default layer options.
  */
-MICROSOFT_QUANTUM_DECL uintq init_count(_In_ uintq q, _In_ bool hp)
+MICROSOFT_QUANTUM_DECL uintq init_count(_In_ uintq q, _In_ bool hp, _In_ bool sp)
 {
     META_LOCK_GUARD()
 
@@ -743,7 +746,7 @@ MICROSOFT_QUANTUM_DECL uintq init_count(_In_ uintq q, _In_ bool hp)
     if (q) {
         try {
             simulator =
-                CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp);
+                CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
         } catch (const std::exception& ex) {
             std::cout << ex.what() << std::endl;
             isSuccess = false;
@@ -755,12 +758,14 @@ MICROSOFT_QUANTUM_DECL uintq init_count(_In_ uintq q, _In_ bool hp)
         simulators.push_back(simulator);
         simulatorTypes.push_back(simulatorType);
         simulatorHostPointer.push_back(hp);
+        simulatorSparse.push_back(sp);
         simulatorErrors.push_back(isSuccess ? 0 : 1);
     } else {
         simulatorReservations[sid] = true;
         simulators[sid] = simulator;
         simulatorTypes[sid] = simulatorType;
         simulatorHostPointer[sid] = hp;
+        simulatorSparse[sid] = sp;
         simulatorErrors[sid] = isSuccess ? 0 : 1;
     }
 
@@ -776,7 +781,7 @@ MICROSOFT_QUANTUM_DECL uintq init_count(_In_ uintq q, _In_ bool hp)
 /**
  * (External API) Initialize a simulator ID with "q" qubits and implicit default layer options.
  */
-MICROSOFT_QUANTUM_DECL uintq init_count_pager(_In_ uintq q, _In_ bool hp)
+MICROSOFT_QUANTUM_DECL uintq init_count_pager(_In_ uintq q, _In_ bool hp, _In_ bool sp)
 {
     META_LOCK_GUARD()
 
@@ -814,7 +819,7 @@ MICROSOFT_QUANTUM_DECL uintq init_count_pager(_In_ uintq q, _In_ bool hp)
     if (q) {
         try {
             simulator = CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true,
-                hp, -1, true, false, REAL1_EPSILON, deviceList, 0, FP_NORM_EPSILON_F);
+                hp, -1, true, sp, REAL1_EPSILON, deviceList, 0, FP_NORM_EPSILON_F);
         } catch (const std::exception& ex) {
             std::cout << ex.what() << std::endl;
             isSuccess = false;
@@ -826,12 +831,14 @@ MICROSOFT_QUANTUM_DECL uintq init_count_pager(_In_ uintq q, _In_ bool hp)
         simulators.push_back(simulator);
         simulatorTypes.push_back(simulatorType);
         simulatorHostPointer.push_back(hp);
+        simulatorSparse.push_back(sp);
         simulatorErrors.push_back(isSuccess ? 0 : 1);
     } else {
         simulatorReservations[sid] = true;
         simulators[sid] = simulator;
         simulatorTypes[sid] = simulatorType;
         simulatorHostPointer[sid] = hp;
+        simulatorSparse[sid] = sp;
         simulatorErrors[sid] = isSuccess ? 0 : 1;
     }
 
@@ -880,12 +887,14 @@ MICROSOFT_QUANTUM_DECL uintq init_count_stabilizer(_In_ uintq q)
         simulators.push_back(simulator);
         simulatorTypes.push_back(simulatorType);
         simulatorHostPointer.push_back(false);
+        simulatorSparse.push_back(false);
         simulatorErrors.push_back(isSuccess ? 0 : 1);
     } else {
         simulatorReservations[sid] = true;
         simulators[sid] = simulator;
         simulatorTypes[sid] = simulatorType;
         simulatorHostPointer[sid] = false;
+        simulatorSparse[sid] = false;
         simulatorErrors[sid] = isSuccess ? 0 : 1;
     }
 
@@ -940,12 +949,14 @@ MICROSOFT_QUANTUM_DECL uintq init_clone(_In_ uintq sid)
         simulators.push_back(simulator);
         simulatorTypes.push_back(simulatorTypes[sid]);
         simulatorHostPointer.push_back(simulatorHostPointer[sid]);
+        simulatorSparse.push_back(simulatorSparse[sid]);
         simulatorErrors.push_back(isSuccess ? 0 : 1);
     } else {
         simulatorReservations[nsid] = true;
         simulators[nsid] = simulator;
         simulatorTypes[nsid] = simulatorTypes[sid];
         simulatorHostPointer[nsid] = simulatorHostPointer[sid];
+        simulatorSparse[nsid] = simulatorSparse[sid];
         simulatorErrors[nsid] = isSuccess ? 0 : 1;
     }
 
@@ -983,7 +994,7 @@ uintq init_clone_size(uintq sid, uintq n)
     QInterfacePtr simulator;
     try {
         simulator = CreateQuantumInterface(
-            simulatorTypes[sid], n, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, simulatorHostPointer[sid]);
+            simulatorTypes[sid], n, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, simulatorHostPointer[sid], simulatorSparse[sid]);
     } catch (const std::exception& ex) {
         std::cout << ex.what() << std::endl;
         isSuccess = false;
@@ -994,12 +1005,13 @@ uintq init_clone_size(uintq sid, uintq n)
         simulators.push_back(simulator);
         simulatorTypes.push_back(simulatorTypes[sid]);
         simulatorHostPointer.push_back(simulatorHostPointer[sid]);
+        simulatorSparse.push_back(simulatorSparse[sid]);
         simulatorErrors.push_back(isSuccess ? 0 : 1);
     } else {
         simulatorReservations[nsid] = true;
         simulators[nsid] = simulator;
         simulatorTypes[nsid] = simulatorTypes[sid];
-        simulatorHostPointer[nsid] = simulatorHostPointer[sid];
+        simulatorSparse[nsid] = simulatorSparse[sid];
         simulatorErrors[nsid] = isSuccess ? 0 : 1;
     }
 
@@ -1416,7 +1428,7 @@ MICROSOFT_QUANTUM_DECL void allocateQubit(_In_ uintq sid, _In_ uintq qid)
     }
 
     QInterfacePtr nQubit = CreateQuantumInterface(
-        simulatorTypes[sid], 1U, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, simulatorHostPointer[sid]);
+        simulatorTypes[sid], 1U, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, simulatorHostPointer[sid], simulatorSparse[sid]);
 
     if (!simulators[sid]) {
         simulators[sid] = nQubit;
