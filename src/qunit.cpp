@@ -435,7 +435,7 @@ QInterfacePtr QUnit::EntangleInCurrentBasis(
                 found[shards[**bit].unit] = true;
                 units.push_back(shards[**bit].unit);
 
-                mem *= units.back()->GetAmplitudeCount();
+                mem = mem * units.back()->GetAmplitudeCount();
 
                 if (mem > QRACK_SPARSE_MAX_KEYS) {
                     Copy(backupCopy);
