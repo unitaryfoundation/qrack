@@ -710,7 +710,6 @@ void QEngineCPU::XMask(const bitCapInt& mask)
         };
 
         par_for(0U, maxQPowerOcl, fn);
-        TruncateBySize();
     });
 }
 
@@ -757,7 +756,6 @@ void QEngineCPU::PhaseParity(real1_f radians, const bitCapInt& mask)
             setInt |= otherRes;
 
             stateVec->write(setInt, (v ? phaseFac : phaseFacAdj) * stateVec->read(setInt));
-            TruncateBySize();
         });
     });
 }
@@ -797,7 +795,6 @@ void QEngineCPU::PhaseRootNMask(bitLenInt n, const bitCapInt& mask)
                 stateVec->write(lcv, std::polar(ONE_R1, (real1)(radians * nPhaseSteps)) * stateVec->read(lcv));
             }
         });
-        TruncateBySize();
     });
 }
 
@@ -930,7 +927,6 @@ void QEngineCPU::UniformParityRZ(const bitCapInt& mask, real1_f angle)
         } else {
             par_for(0U, maxQPowerOcl, fn);
         }
-        TruncateBySize();
     });
 }
 
@@ -969,7 +965,6 @@ void QEngineCPU::CUniformParityRZ(const std::vector<bitLenInt>& cControls, const
                 stateVec->read(controlMask | lcv) *
                     ((popCountOcl(lcv & (bitCapIntOcl)mask) & 1U) ? phaseFac : phaseFacAdj));
         });
-        TruncateBySize();
     });
 }
 
