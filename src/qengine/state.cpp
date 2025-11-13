@@ -1034,7 +1034,6 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
             const complex amp = stateVec->read(lcv & startMask) * toCopy->stateVec->read((lcv & endMask) >> qubitCount);
             const real1 nrm = norm(amp);
             if (nrm <= _qrack_sparse_thresh) {
-                nStateVec->write(lcv, ZERO_CMPLX);
                 fidelityLoss[cpu] += nrm;
             } else {
                 nStateVec->write(lcv, amp);
@@ -1139,7 +1138,6 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
                 toCopy->stateVec->read((lcv & midMask) >> start);
             const real1 nrm = norm(amp);
             if (nrm <= _qrack_sparse_thresh) {
-                nStateVec->write(lcv, ZERO_CMPLX);
                 fidelityLoss[cpu] += nrm;
             } else {
                 nStateVec->write(lcv, amp);
@@ -1225,7 +1223,6 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
                 const complex amp = nStateVec->read(lcv) * src->stateVec->read((lcv & mask[j]) >> offset[j]);
                 const real1 nrm = norm(amp);
                 if (nrm <= _qrack_sparse_thresh) {
-                    nStateVec->write(lcv, ZERO_CMPLX);
                     fidelityLoss[cpu] += nrm;
                 } else {
                     nStateVec->write(lcv, amp);
