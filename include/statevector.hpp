@@ -250,6 +250,13 @@ public:
 
     size_t size() { return amplitudes.size(); }
 
+    void mult(real1_f nrm)
+    {
+        for (auto& pair : amplitudes) {
+            pair.second *= nrm;
+        }
+    }
+
     real1_f truncate_to_size(size_t maxAmps)
     {
         if (amplitudes.size() <= maxAmps) {
@@ -298,9 +305,8 @@ public:
             }
         }
 
-        for (auto& pair : amplitudes) {
-            pair.second *= nrm;
-        }
+        // Normalize
+        mult(nrm);
 
         return fidelity;
     }

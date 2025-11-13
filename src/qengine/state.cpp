@@ -1063,10 +1063,8 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
         for (size_t i = 0U; i < numCores; ++i) {
             totFidelityLoss += fidelityLoss[i];
         }
-        fidelity *= (ONE_R1 - totFidelityLoss);
+        SparseRenorm(totFidelityLoss);
     }
-
-    TruncateBySize();
 
     SetQubitCount(nQubitCount);
 
@@ -1162,10 +1160,8 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
         for (size_t i = 0U; i < numCores; ++i) {
             totFidelityLoss += fidelityLoss[i];
         }
-        fidelity *= (ONE_R1 - totFidelityLoss);
+        SparseRenorm(totFidelityLoss);
     }
-
-    TruncateBySize();
 
     SetQubitCount(nQubitCount);
 
@@ -1247,10 +1243,8 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
         for (size_t i = 0U; i < numCores; ++i) {
             totFidelityLoss += fidelityLoss[i];
         }
-        fidelity *= (ONE_R1 - totFidelityLoss);
+        SparseRenorm(totFidelityLoss);
     }
-
-    TruncateBySize();
 
     SetQubitCount(nQubitCount);
 
