@@ -116,7 +116,7 @@ public:
         fidelity *= f;
         StateVectorSparsePtr sv = CastStateVecSparse();
         if ((totFidelityLoss > REAL1_EPSILON) && (sv->size() <= QRACK_SPARSE_MAX_KEYS)) {
-            sv->mult((real1_f)std::sqrt(f));
+            sv->mult((real1_f)std::sqrt(1.0 / f));
         } else {
             fidelity *= sv->truncate_to_size(QRACK_SPARSE_MAX_KEYS);
         }
