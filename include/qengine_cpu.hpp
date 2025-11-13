@@ -112,10 +112,10 @@ public:
 
     void SparseRenorm(real1_f totFidelityLoss)
     {
-        const double f = 1.0 - (double)totFidelityLoss;
-        fidelity *= f;
         StateVectorSparsePtr sv = CastStateVecSparse();
         if ((totFidelityLoss > REAL1_EPSILON) && (sv->size() <= QRACK_SPARSE_MAX_KEYS)) {
+            const double f = 1.0 - (double)totFidelityLoss;
+            fidelity *= f;
             sv->mult((real1_f)std::sqrt(1.0 / f));
         } else {
             fidelity *= sv->truncate_to_size(QRACK_SPARSE_MAX_KEYS);
