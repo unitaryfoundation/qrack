@@ -1025,9 +1025,27 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        nStateVec->write(lcv, stateVec->read(lcv & startMask) * toCopy->stateVec->read((lcv & endMask) >> qubitCount));
-    };
+    const unsigned numCores = GetConcurrencyLevel();
+    std::unique_ptr<real1[]> fidelityLoss;
+    ParallelFunc fn;
+    if (isSparse) {
+        fidelityLoss = std::unique_ptr<real1[]>(new real1[numCores]());
+        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            const complex amp = stateVec->read(lcv & startMask) * toCopy->stateVec->read((lcv & endMask) >> qubitCount);
+            const real1 nrm = norm(amp);
+            if (nrm <= _qrack_sparse_thresh) {
+                nStateVec->write(lcv, ZERO_CMPLX);
+                fidelityLoss[cpu] += nrm;
+            } else {
+                nStateVec->write(lcv, amp);
+            }
+        };
+    } else {
+        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            nStateVec->write(
+                lcv, stateVec->read(lcv & startMask) * toCopy->stateVec->read((lcv & endMask) >> qubitCount));
+        };
+    }
 
     if ((toCopy->doNormalize) && (toCopy->runningNorm != ONE_R1)) {
         toCopy->NormalizeState();
@@ -1040,6 +1058,15 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
     } else {
         par_for(0U, nMaxQPower, fn);
     }
+
+    if (isSparse) {
+        real1 totFidelityLoss = ZERO_R1;
+        for (size_t i = 0U; i < numCores; ++i) {
+            totFidelityLoss += fidelityLoss[i];
+        }
+        fidelity *= totFidelityLoss;
+    }
+
     TruncateBySize();
 
     SetQubitCount(nQubitCount);
@@ -1102,11 +1129,44 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
-    par_for(0U, nMaxQPower, [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        nStateVec->write(lcv,
-            stateVec->read((lcv & startMask) | ((lcv & endMask) >> oQubitCount)) *
-                toCopy->stateVec->read((lcv & midMask) >> start));
-    });
+    const unsigned numCores = GetConcurrencyLevel();
+    std::unique_ptr<real1[]> fidelityLoss;
+    ParallelFunc fn;
+    if (isSparse) {
+        fidelityLoss = std::unique_ptr<real1[]>(new real1[numCores]());
+        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            const complex amp = stateVec->read((lcv & startMask) | ((lcv & endMask) >> oQubitCount)) *
+                toCopy->stateVec->read((lcv & midMask) >> start);
+            const real1 nrm = norm(amp);
+            if (nrm <= _qrack_sparse_thresh) {
+                nStateVec->write(lcv, ZERO_CMPLX);
+                fidelityLoss[cpu] += nrm;
+            } else {
+                nStateVec->write(lcv, amp);
+            }
+        };
+    } else {
+        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            nStateVec->write(lcv,
+                stateVec->read((lcv & startMask) | ((lcv & endMask) >> oQubitCount)) *
+                    toCopy->stateVec->read((lcv & midMask) >> start));
+        };
+    }
+
+    if ((toCopy->doNormalize) && (toCopy->runningNorm != ONE_R1)) {
+        toCopy->NormalizeState();
+    }
+
+    par_for(0U, nMaxQPower, fn);
+
+    if (isSparse) {
+        real1 totFidelityLoss = ZERO_R1;
+        for (size_t i = 0U; i < numCores; ++i) {
+            totFidelityLoss += fidelityLoss[i];
+        }
+        fidelity *= totFidelityLoss;
+    }
+
     TruncateBySize();
 
     SetQubitCount(nQubitCount);
@@ -1154,14 +1214,45 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
-    par_for(0U, nMaxQPower, [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        nStateVec->write(lcv, stateVec->read(lcv & startMask));
+    const unsigned numCores = GetConcurrencyLevel();
+    std::unique_ptr<real1[]> fidelityLoss;
+    ParallelFunc fn;
+    if (isSparse) {
+        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            nStateVec->write(lcv, stateVec->read(lcv & startMask));
+            for (bitLenInt j = 0U; j < toComposeCount; ++j) {
+                QEngineCPUPtr src = std::dynamic_pointer_cast<Qrack::QEngineCPU>(toCopy[j]);
+                const complex amp = nStateVec->read(lcv) * src->stateVec->read((lcv & mask[j]) >> offset[j]);
+                const real1 nrm = norm(amp);
+                if (nrm <= _qrack_sparse_thresh) {
+                    nStateVec->write(lcv, ZERO_CMPLX);
+                    fidelityLoss[cpu] += nrm;
+                } else {
+                    nStateVec->write(lcv, amp);
+                }
+            }
+        };
+    } else {
+        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            nStateVec->write(lcv, stateVec->read(lcv & startMask));
 
-        for (bitLenInt j = 0U; j < toComposeCount; ++j) {
-            QEngineCPUPtr src = std::dynamic_pointer_cast<Qrack::QEngineCPU>(toCopy[j]);
-            nStateVec->write(lcv, nStateVec->read(lcv) * src->stateVec->read((lcv & mask[j]) >> offset[j]));
+            for (bitLenInt j = 0U; j < toComposeCount; ++j) {
+                QEngineCPUPtr src = std::dynamic_pointer_cast<Qrack::QEngineCPU>(toCopy[j]);
+                nStateVec->write(lcv, nStateVec->read(lcv) * src->stateVec->read((lcv & mask[j]) >> offset[j]));
+            }
+        };
+    }
+
+    par_for(0U, nMaxQPower, fn);
+
+    if (isSparse) {
+        real1 totFidelityLoss = ZERO_R1;
+        for (size_t i = 0U; i < numCores; ++i) {
+            totFidelityLoss += fidelityLoss[i];
         }
-    });
+        fidelity *= totFidelityLoss;
+    }
+
     TruncateBySize();
 
     SetQubitCount(nQubitCount);

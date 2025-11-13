@@ -40,13 +40,13 @@
             std::make_unique<const std::lock_guard<std::mutex>>(simulatorMutexes[simulator], std::adopt_lock);         \
     }
 #else
-#define SIMULATOR_LOCK_GUARD(simulator)                                                                                \
-    std::unique_ptr<const std::lock_guard<std::mutex>> simulatorLock;                                                  \
-    if (true) {                                                                                                        \
-        std::lock(metaOperationMutex, simulatorMutexes[simulator]);                                                    \
+#define SIMULATOR_LOCK_GUARD(simulator)                                                                                                   \
+    std::unique_ptr<const std::lock_guard<std::mutex>> simulatorLock;                                                                     \
+    if (true) {                                                                                                                           \
+        std::lock(metaOperationMutex, simulatorMutexes[simulator]);                                                                       \
         const std::lock_guard<std::mutex> metaLock(metaOperationMutex, std::adopt_lock);CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp)                               \
         simulatorLock = std::unique_ptr<const std::lock_guard<std::mutex>>(                                            \
-            new const std::lock_guard<std::mutex>(simulatorMutexes[simulator], std::adopt_lock));                      \
+            new const std::lock_guard<std::mutex>(simulatorMutexes[simulator], std::adopt_lock));                                         \
     }
 #endif
 
@@ -689,8 +689,8 @@ MICROSOFT_QUANTUM_DECL uintq init_count_type(_In_ uintq q, _In_ bool tn, _In_ bo
     QInterfacePtr simulator{ nullptr };
     if (q) {
         try {
-            simulator =
-                CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
+            simulator = CreateQuantumInterface(
+                simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
         } catch (const std::exception& ex) {
             std::cout << ex.what() << std::endl;
             isSuccess = false;
@@ -745,8 +745,8 @@ MICROSOFT_QUANTUM_DECL uintq init_count(_In_ uintq q, _In_ bool hp, _In_ bool sp
     QInterfacePtr simulator{ nullptr };
     if (q) {
         try {
-            simulator =
-                CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
+            simulator = CreateQuantumInterface(
+                simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
         } catch (const std::exception& ex) {
             std::cout << ex.what() << std::endl;
             isSuccess = false;
@@ -993,8 +993,8 @@ uintq init_clone_size(uintq sid, uintq n)
     bool isSuccess = true;
     QInterfacePtr simulator;
     try {
-        simulator = CreateQuantumInterface(
-            simulatorTypes[sid], n, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, simulatorHostPointer[sid], simulatorSparse[sid]);
+        simulator = CreateQuantumInterface(simulatorTypes[sid], n, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true,
+            simulatorHostPointer[sid], simulatorSparse[sid]);
     } catch (const std::exception& ex) {
         std::cout << ex.what() << std::endl;
         isSuccess = false;
@@ -1427,8 +1427,8 @@ MICROSOFT_QUANTUM_DECL void allocateQubit(_In_ uintq sid, _In_ uintq qid)
         return;
     }
 
-    QInterfacePtr nQubit = CreateQuantumInterface(
-        simulatorTypes[sid], 1U, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, simulatorHostPointer[sid], simulatorSparse[sid]);
+    QInterfacePtr nQubit = CreateQuantumInterface(simulatorTypes[sid], 1U, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG,
+        false, true, simulatorHostPointer[sid], simulatorSparse[sid]);
 
     if (!simulators[sid]) {
         simulators[sid] = nQubit;

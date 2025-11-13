@@ -110,7 +110,8 @@ public:
         }
     }
 
-    bitCapInt GetAmplitudeCount() {
+    bitCapInt GetAmplitudeCount()
+    {
         if (isSparse) {
             return CastStateVecSparse()->size();
         }

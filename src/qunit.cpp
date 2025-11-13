@@ -123,7 +123,7 @@ QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCa
 QInterfacePtr QUnit::MakeEngine(bitLenInt length, const bitCapInt& perm)
 {
     QInterfacePtr toRet = CreateQuantumInterface(engines, length, perm, rand_generator, phaseFactor, doNormalize,
-        randGlobalPhase, useHostRam, devID, useRDRAND, false, (real1_f)amplitudeFloor, deviceIDs, thresholdQubits,
+        randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor, deviceIDs, thresholdQubits,
         separabilityThreshold);
     toRet->SetTInjection(useTGadget);
     toRet->SetNcrp(roundingThreshold);
