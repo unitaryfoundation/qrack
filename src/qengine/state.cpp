@@ -1025,13 +1025,6 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
-#if ENABLE_ENV_VARS
-    const real1_f threshold = _has_qrack_sparse_thresh || !getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")
-        ? _qrack_sparse_thresh
-        : (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")));
-#else
-    const real1_f threshold = _qrack_sparse_thresh;
-#endif
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
     ParallelFunc fn;
@@ -1040,7 +1033,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
         fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
             const complex amp = stateVec->read(lcv & startMask) * toCopy->stateVec->read((lcv & endMask) >> qubitCount);
             const real1 nrm = norm(amp);
-            if (nrm <= threshold) {
+            if (nrm <= _qrack_sparse_thresh) {
                 fidelityLoss[cpu] += nrm;
             } else {
                 nStateVec->write(lcv, amp);
@@ -1133,13 +1126,6 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
-#if ENABLE_ENV_VARS
-    const real1_f threshold = _has_qrack_sparse_thresh || !getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")
-        ? _qrack_sparse_thresh
-        : (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")));
-#else
-    const real1_f threshold = _qrack_sparse_thresh;
-#endif
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
     ParallelFunc fn;
@@ -1149,7 +1135,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
             const complex amp = stateVec->read((lcv & startMask) | ((lcv & endMask) >> oQubitCount)) *
                 toCopy->stateVec->read((lcv & midMask) >> start);
             const real1 nrm = norm(amp);
-            if (nrm <= threshold) {
+            if (nrm <= _qrack_sparse_thresh) {
                 fidelityLoss[cpu] += nrm;
             } else {
                 nStateVec->write(lcv, amp);
@@ -1222,13 +1208,6 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
-#if ENABLE_ENV_VARS
-    const real1_f threshold = _has_qrack_sparse_thresh || !getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")
-        ? _qrack_sparse_thresh
-        : (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")));
-#else
-    const real1_f threshold = _qrack_sparse_thresh;
-#endif
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
     ParallelFunc fn;
@@ -1239,7 +1218,7 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
                 QEngineCPUPtr src = std::dynamic_pointer_cast<Qrack::QEngineCPU>(toCopy[j]);
                 const complex amp = nStateVec->read(lcv) * src->stateVec->read((lcv & mask[j]) >> offset[j]);
                 const real1 nrm = norm(amp);
-                if (nrm <= threshold) {
+                if (nrm <= _qrack_sparse_thresh) {
                     fidelityLoss[cpu] += nrm;
                 } else {
                     nStateVec->write(lcv, amp);
