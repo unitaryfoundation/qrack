@@ -20,6 +20,7 @@
 #include "immintrin.h"
 #endif
 
+#include <algorithm>
 #include <set>
 #include <vector>
 #if CPP_STD >= 20
@@ -245,6 +246,14 @@ const size_t QRACK_SPARSE_MAX_ALLOC_MB_DEFAULT =
 const real1_f _qrack_sparse_thresh = getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")
     ? (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")))
     : REAL1_EPSILON;
+// See https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c#answer-4654718
+inline bool _is_number(const std::string& s)
+{
+    return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+}
+const bitLenInt _qrack_rcs_z = (bitLenInt)(getenv("QRACK_RCS_Z")
+        ? (_is_number(getenv("QRACK_RCS_Z")) ? std::stoi(std::string(getenv("QRACK_RCS_Z"))) : -1)
+        : 0U);
 #else
 const real1_f _qrack_qunit_sep_thresh = FP_NORM_EPSILON;
 const real1_f _qrack_qbdt_sep_thresh = FP_NORM_EPSILON;

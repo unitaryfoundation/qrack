@@ -1025,6 +1025,9 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
+    const real1_f threshold = (_qrack_rcs_z > 0U)
+        ? ONE_R1_F / (real1_f)(((_qrack_rcs_z == -1) ? qubitCount : _qrack_rcs_z) * pow(2.0, nQubitCount / 2.0))
+        : _qrack_sparse_thresh;
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
     ParallelFunc fn;
@@ -1033,7 +1036,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
         fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
             const complex amp = stateVec->read(lcv & startMask) * toCopy->stateVec->read((lcv & endMask) >> qubitCount);
             const real1 nrm = norm(amp);
-            if (nrm <= _qrack_sparse_thresh) {
+            if (nrm <= threshold) {
                 fidelityLoss[cpu] += nrm;
             } else {
                 nStateVec->write(lcv, amp);
@@ -1126,6 +1129,9 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
+    const real1_f threshold = (_qrack_rcs_z > 0U)
+        ? ONE_R1_F / (real1_f)(((_qrack_rcs_z == -1) ? qubitCount : _qrack_rcs_z) * pow(2.0, nQubitCount / 2.0))
+        : _qrack_sparse_thresh;
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
     ParallelFunc fn;
@@ -1135,7 +1141,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
             const complex amp = stateVec->read((lcv & startMask) | ((lcv & endMask) >> oQubitCount)) *
                 toCopy->stateVec->read((lcv & midMask) >> start);
             const real1 nrm = norm(amp);
-            if (nrm <= _qrack_sparse_thresh) {
+            if (nrm <= threshold) {
                 fidelityLoss[cpu] += nrm;
             } else {
                 nStateVec->write(lcv, amp);
@@ -1208,6 +1214,9 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
+    const real1_f threshold = (_qrack_rcs_z > 0U)
+        ? ONE_R1_F / (real1_f)(((_qrack_rcs_z == -1) ? qubitCount : _qrack_rcs_z) * pow(2.0, nQubitCount / 2.0))
+        : _qrack_sparse_thresh;
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
     ParallelFunc fn;
@@ -1218,7 +1227,7 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
                 QEngineCPUPtr src = std::dynamic_pointer_cast<Qrack::QEngineCPU>(toCopy[j]);
                 const complex amp = nStateVec->read(lcv) * src->stateVec->read((lcv & mask[j]) >> offset[j]);
                 const real1 nrm = norm(amp);
-                if (nrm <= _qrack_sparse_thresh) {
+                if (nrm <= threshold) {
                     fidelityLoss[cpu] += nrm;
                 } else {
                     nStateVec->write(lcv, amp);
