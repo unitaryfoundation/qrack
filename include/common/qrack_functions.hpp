@@ -243,7 +243,8 @@ const size_t QRACK_QBDT_MAX_ALLOC_MB_DEFAULT =
     (size_t)(getenv("QRACK_QBDT_MAX_ALLOC_MB") ? std::stoi(std::string(getenv("QRACK_QBDT_MAX_ALLOC_MB"))) : -1);
 const size_t QRACK_SPARSE_MAX_ALLOC_MB_DEFAULT =
     (size_t)(getenv("QRACK_SPARSE_MAX_ALLOC_MB") ? std::stoi(std::string(getenv("QRACK_SPARSE_MAX_ALLOC_MB"))) : -1);
-const real1_f _qrack_sparse_thresh = getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")
+const bool _has_qrack_sparse_thresh = getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD");
+const real1_f _qrack_sparse_thresh = _has_qrack_sparse_thresh
     ? (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")))
     : REAL1_EPSILON;
 // See https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c#answer-4654718

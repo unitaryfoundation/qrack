@@ -443,6 +443,12 @@ QInterfacePtr QUnit::EntangleInCurrentBasis(
                 }
             }
         }
+#if ENABLE_ENV_VARS
+        const real1 threshold = ONE_R1 /
+            (real1)(((_qrack_rcs_z == (bitLenInt)(-1)) ? qubitCount - 1U : _qrack_rcs_z) *
+                pow(ONE_R1 * 2, qubitCount / (ONE_R1 * 2)));
+        setenv("QRACK_SPARSE_TRUNCATION_THRESHOLD", std::to_string(threshold).c_str(), 0);
+#endif
     } else {
         bitLenInt logMem = 0U;
         for (auto bit = first; bit < last; ++bit) {

@@ -1025,9 +1025,13 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
-    const real1_f threshold = (_qrack_rcs_z > 0U)
-        ? ONE_R1_F / (real1_f)(((_qrack_rcs_z == (bitLenInt)(-1)) ? (qubitCount - 1U) : _qrack_rcs_z) * pow(2.0, nQubitCount / 2.0))
-        : _qrack_sparse_thresh;
+#if ENABLE_ENV_VARS
+    const real1_f threshold = _has_qrack_sparse_thresh
+        ? _qrack_sparse_thresh
+        : (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")));
+#else
+    const real1_f threshold = _qrack_sparse_thresh;
+#endif
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
     ParallelFunc fn;
@@ -1129,9 +1133,13 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
-    const real1_f threshold = (_qrack_rcs_z > 0U)
-        ? ONE_R1_F / (real1_f)(((_qrack_rcs_z == (bitLenInt)(-1)) ? (qubitCount - 1U) : _qrack_rcs_z) * pow(2.0, nQubitCount / 2.0))
-        : _qrack_sparse_thresh;
+#if ENABLE_ENV_VARS
+    const real1_f threshold = _has_qrack_sparse_thresh
+        ? _qrack_sparse_thresh
+        : (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")));
+#else
+    const real1_f threshold = _qrack_sparse_thresh;
+#endif
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
     ParallelFunc fn;
@@ -1214,9 +1222,13 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
-    const real1_f threshold = (_qrack_rcs_z > 0U)
-        ? ONE_R1_F / (real1_f)(((_qrack_rcs_z == (bitLenInt)(-1)) ? (qubitCount - 1U) : _qrack_rcs_z) * pow(2.0, nQubitCount / 2.0))
-        : _qrack_sparse_thresh;
+#if ENABLE_ENV_VARS
+    const real1_f threshold = _has_qrack_sparse_thresh
+        ? _qrack_sparse_thresh
+        : (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")));
+#else
+    const real1_f threshold = _qrack_sparse_thresh;
+#endif
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
     ParallelFunc fn;
