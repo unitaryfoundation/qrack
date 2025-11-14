@@ -1026,7 +1026,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
 #if ENABLE_ENV_VARS
-    const real1_f threshold = _has_qrack_sparse_thresh
+    const real1_f threshold = _has_qrack_sparse_thresh || !getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")
         ? _qrack_sparse_thresh
         : (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")));
 #else
@@ -1134,7 +1134,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
 #if ENABLE_ENV_VARS
-    const real1_f threshold = _has_qrack_sparse_thresh
+    const real1_f threshold = _has_qrack_sparse_thresh || !getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")
         ? _qrack_sparse_thresh
         : (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")));
 #else
@@ -1223,7 +1223,7 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
 #if ENABLE_ENV_VARS
-    const real1_f threshold = _has_qrack_sparse_thresh
+    const real1_f threshold = _has_qrack_sparse_thresh || !getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")
         ? _qrack_sparse_thresh
         : (real1_f)std::stof(std::string(getenv("QRACK_SPARSE_TRUNCATION_THRESHOLD")));
 #else
