@@ -62,8 +62,7 @@ def bench_qrack(width, depth, sdrp):
     idx = 0
     ideal_probs = {}
     sum_probs = 0
-    for idx in range(n_pow):
-        count_tuple = sorted_counts[idx]
+    for count_tuple in sorted_counts:
         key = count_tuple[0]
         prob = abs(quimb_rcs.amplitude(int_to_bitstring(key, width))) ** 2
         if prob <= u_u:
