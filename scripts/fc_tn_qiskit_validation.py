@@ -88,8 +88,9 @@ def calc_stats(ideal_probs, exp_probs, shots, depth):
     # For QV, we compare probabilities of (ideal) "heavy outputs."
     # If the probability is above 2/3, the protocol certifies/passes the qubit width.
     n_pow = len(ideal_probs)
-    mean_guess = 1 / n_pow
     n = int(round(math.log2(n_pow)))
+    mean_guess = 1 / n_pow
+    model = 1 / n
     threshold = statistics.median(ideal_probs)
     u_u = statistics.mean(ideal_probs)
     numer = 0
@@ -97,7 +98,7 @@ def calc_stats(ideal_probs, exp_probs, shots, depth):
     sum_hog_counts = 0
     sqr_diff = 0
     for i in range(n_pow):
-        exp = exp_probs[i] if i in exp_probs else 0
+        exp = (1 - model) * (exp_probs[i] if i in exp_probs else 0) + model * mean_guess
         ideal = ideal_probs[i]
 
         # XEB / EPLG
