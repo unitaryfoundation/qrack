@@ -101,7 +101,7 @@ def calc_stats(ideal_probs, exp_probs, adj_xeb, shots, depth):
     n = int(round(math.log2(n_pow)))
     threshold = statistics.median(ideal_probs)
     u_u = statistics.mean(ideal_probs)
-    model = min(1.0, 1 / (adj_xeb * n))
+    model = min(1.0, 1 / (adj_xeb * n * n))
     numer = 0
     denom = 0
     sum_hog_counts = 0
