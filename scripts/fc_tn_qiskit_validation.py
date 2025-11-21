@@ -57,19 +57,22 @@ def bench_qrack(width, depth, sdrp):
     sorted_counts = sorted(experiment_counts.items(), key=operator.itemgetter(1))
 
     quimb_rcs = quimb_circuit(rcs)
-    u_u =  1 / (1 << width)
+    n_pow = 1 << width
+    u_u =  1 / n_pow
     idx = 0
     ideal_probs = {}
     sum_probs = 0
-    while (len(ideal_probs) < retained):
+    for idx in range(n_pow):
         count_tuple = sorted_counts[idx]
-        idx += 1
         key = count_tuple[0]
         prob = abs(quimb_rcs.amplitude(int_to_bitstring(key, width))) ** 2
-        if prob > u_u:
-            val = count_tuple[1]
-            ideal_probs[key] = val
-            sum_probs += val
+        if prob <= u_u:
+            continue
+        val = count_tuple[1]
+        ideal_probs[key] = val
+        sum_probs += val
+        if len(ideal_probs) >= retained:
+            break
 
     numer = 0
     denom = 0
