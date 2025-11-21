@@ -73,26 +73,18 @@ def bench_qrack(width, depth, sdrp):
         if len(ideal_probs) >= retained:
             break
 
-    numer = 0
-    denom = 0
     for key in ideal_probs.keys():
-        ideal = ideal_probs[key]
-        adj = ideal / sum_probs
-        ideal_probs[key] = adj
-        denom += (ideal - u_u) ** 2
-        numer += (ideal - u_u) * (adj - u_u)
-
-    adj_xeb = numer / denom
+        ideal_probs[key] = ideal_probs[key] / sum_probs
 
     rcs.save_statevector()
     control = AerSimulator(method="statevector")
     job = control.run(rcs)
     control_probs = Statevector(job.result().get_statevector()).probabilities()
 
-    return calc_stats(control_probs, ideal_probs, adj_xeb, shots, depth)
+    return calc_stats(control_probs, ideal_probs, shots, depth)
 
 
-def calc_stats(ideal_probs, exp_probs, adj_xeb, shots, depth):
+def calc_stats(ideal_probs, exp_probs, shots, depth):
     # For QV, we compare probabilities of (ideal) "heavy outputs."
     # If the probability is above 2/3, the protocol certifies/passes the qubit width.
     n_pow = len(ideal_probs)
@@ -100,13 +92,12 @@ def calc_stats(ideal_probs, exp_probs, adj_xeb, shots, depth):
     n = int(round(math.log2(n_pow)))
     threshold = statistics.median(ideal_probs)
     u_u = statistics.mean(ideal_probs)
-    model = min(1.0, 1 / (adj_xeb * n * n))
     numer = 0
     denom = 0
     sum_hog_counts = 0
     sqr_diff = 0
     for i in range(n_pow):
-        exp = model * (exp_probs[i] if i in exp_probs else 0) + (1.0 - model) * mean_guess
+        exp = exp_probs[i] if i in exp_probs else 0
         ideal = ideal_probs[i]
 
         # XEB / EPLG
