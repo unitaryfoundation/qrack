@@ -53,8 +53,7 @@ def bench_qrack(width, depth, sdrp):
         experiment.set_sdrp(sdrp)
     experiment.run_qiskit_circuit(rcs)
     experiment_counts = dict(Counter(experiment.measure_shots(all_bits, shots)))
-
-    sorted_counts = sorted(experiment_counts.items(), key=operator.itemgetter(1))
+    experiment_counts = sorted(experiment_counts.items(), key=operator.itemgetter(1))
 
     quimb_rcs = quimb_circuit(rcs)
     n_pow = 1 << width
@@ -62,9 +61,9 @@ def bench_qrack(width, depth, sdrp):
     idx = 0
     ideal_probs = {}
     sum_probs = 0
-    for count_tuple in sorted_counts:
+    for count_tuple in experiment_counts:
         key = count_tuple[0]
-        prob = abs(quimb_rcs.amplitude(int_to_bitstring(key, width))) ** 2
+        prob = abs(quimb_rcs.amplitude(int_to_bitstring(key, width), backend="jax")) ** 2
         if prob <= u_u:
             continue
         val = count_tuple[1]
