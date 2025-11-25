@@ -21,6 +21,8 @@
 
 #include "qinterface.hpp"
 
+#include <functional>
+
 #define IS_ARG_0(c) IS_SAME(c, ONE_CMPLX)
 #define IS_ARG_PI(c) IS_OPPOSITE(c, ONE_CMPLX)
 
@@ -45,6 +47,21 @@ class QEngineShard;
 typedef QEngineShard* QEngineShardPtr;
 typedef std::shared_ptr<PhaseShard> PhaseShardPtr;
 typedef std::map<QEngineShardPtr, PhaseShardPtr> ShardToPhaseMap;
+
+}
+
+// Hash provided by Elara (OpenAI custom GPT)
+namespace std {
+    template <>
+    struct hash<Qrack::QEngineShard> {
+        std::size_t operator()(const Qrack::QEngineShard& s) const {
+            // Simple fallback hash — replace with something more meaningful if possible
+            return reinterpret_cast<std::size_t>(&s);
+        }
+    };
+}
+
+namespace Qrack {
 
 /** Associates a QInterface object with a set of bits. */
 class QEngineShard {
