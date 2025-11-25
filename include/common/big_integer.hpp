@@ -37,7 +37,10 @@
 #include "config.h"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+
+using std::size_t;
 
 #ifdef __SIZEOF_INT128__
 #define BIG_INTEGER_WORD_BITS 128U
