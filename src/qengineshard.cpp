@@ -20,17 +20,7 @@
 #include "qengineshard.hpp"
 
 #include <functional>
-#include <unordered_set>
-
-// Hash provided by Elara (OpenAI custom GPT)
-namespace std {
-    template <>
-    struct hash<Qrack::QEngineShard> {
-        size_t operator()(const Qrack::QEngineShard& s) const {
-            return reinterpret_cast<size_t>(&s);
-        }
-    };
-}
+#include <set>
 
 namespace Qrack {
 
@@ -271,14 +261,14 @@ void QEngineShard::SwapTargetAnti(QEngineShardPtr control)
 
 void QEngineShard::FlipPhaseAnti()
 {
-    std::unordered_set<QEngineShardPtr> toSwap;
+    std::set<QEngineShardPtr> toSwap;
     for (const auto& ctrlPhaseShard : controlsShards) {
         toSwap.insert(ctrlPhaseShard.first);
     }
     for (const auto& ctrlPhaseShard : antiControlsShards) {
         toSwap.insert(ctrlPhaseShard.first);
     }
-    std::unordered_set<QEngineShardPtr>::iterator swapShard;
+    std::set<QEngineShardPtr>::iterator swapShard;
     for (const auto& swapShard : toSwap) {
         swapShard->SwapTargetAnti(this);
     }

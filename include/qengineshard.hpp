@@ -43,15 +43,6 @@ struct PhaseShard {
 
 class QEngineShard;
 typedef QEngineShard* QEngineShardPtr;
-}
-
-namespace std {
-    template <>
-    struct hash<Qrack::QEngineShard>;
-}
-
-namespace Qrack {
-
 typedef std::shared_ptr<PhaseShard> PhaseShardPtr;
 typedef std::map<QEngineShardPtr, PhaseShardPtr> ShardToPhaseMap;
 
