@@ -16,11 +16,14 @@
 
 #include "config.h"
 
+#include <cstddef>
 #include <complex>
 #include <functional>
 #include <limits>
 #include <math.h>
 #include <memory>
+
+using std::size_t;
 
 #define IS_AMP_0(c) (norm(c) <= REAL1_EPSILON)
 #define IS_NORM_0(c) (norm(c) <= FP_NORM_EPSILON)
