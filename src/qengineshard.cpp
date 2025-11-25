@@ -32,6 +32,8 @@ namespace std {
     };
 }
 
+template struct std::hash<Qrack::QEngineShard>;
+
 namespace Qrack {
 
 bool QEngineShard::ClampAmps()
