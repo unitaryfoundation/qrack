@@ -1,4 +1,4 @@
-find_package(Boost CONFIG COMPONENTS dynamic_bitset multiprecision)
+find_package(Boost)
 if (Boost_FOUND OR Boost_INCLUDE_DIR)
     include_directories(${Boost_INCLUDE_DIR})
     target_compile_definitions (qrack PUBLIC BOOST_AVAILABLE=1)
