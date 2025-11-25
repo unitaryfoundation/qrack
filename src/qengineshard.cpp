@@ -19,7 +19,6 @@
 
 #include "qengineshard.hpp"
 
-#include <functional>
 #include <set>
 
 namespace Qrack {
