@@ -45,8 +45,6 @@ struct PhaseShard {
 
 class QEngineShard;
 typedef QEngineShard* QEngineShardPtr;
-typedef std::shared_ptr<PhaseShard> PhaseShardPtr;
-typedef std::map<QEngineShardPtr, PhaseShardPtr> ShardToPhaseMap;
 
 }
 
@@ -55,13 +53,15 @@ namespace std {
     template <>
     struct hash<Qrack::QEngineShard> {
         std::size_t operator()(const Qrack::QEngineShard& s) const {
-            // Simple fallback hash — replace with something more meaningful if possible
             return reinterpret_cast<std::size_t>(&s);
         }
     };
 }
 
 namespace Qrack {
+
+typedef std::shared_ptr<PhaseShard> PhaseShardPtr;
+typedef std::map<QEngineShardPtr, PhaseShardPtr> ShardToPhaseMap;
 
 /** Associates a QInterface object with a set of bits. */
 class QEngineShard {
