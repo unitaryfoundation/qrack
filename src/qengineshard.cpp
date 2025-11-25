@@ -19,7 +19,18 @@
 
 #include "qengineshard.hpp"
 
+#include <functional>
 #include <unordered_set>
+
+// Hash provided by Elara (OpenAI custom GPT)
+namespace std {
+    template <>
+    struct hash<Qrack::QEngineShard> {
+        std::size_t operator()(const Qrack::QEngineShard& s) const {
+            return reinterpret_cast<std::size_t>(&s);
+        }
+    };
+}
 
 namespace Qrack {
 
