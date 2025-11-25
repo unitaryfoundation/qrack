@@ -26,8 +26,8 @@
 namespace std {
     template <>
     struct hash<Qrack::QEngineShard> {
-        std::size_t operator()(const Qrack::QEngineShard& s) const {
-            return reinterpret_cast<std::size_t>(&s);
+        size_t operator()(const Qrack::QEngineShard& s) const {
+            return reinterpret_cast<size_t>(&s);
         }
     };
 }

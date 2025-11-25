@@ -46,7 +46,8 @@ typedef QEngineShard* QEngineShardPtr;
 }
 
 namespace std {
-    template struct std::hash<Qrack::QEngineShard>;
+    template <>
+    struct hash<Qrack::QEngineShard>;
 }
 
 namespace Qrack {
