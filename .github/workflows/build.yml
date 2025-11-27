@@ -86,10 +86,6 @@ jobs:
       - name: Install Homebrew (MacOS)
         uses: Homebrew/actions/setup-homebrew@master
 
-      - name: Prepare Build Environment (MacOS)
-        run: |
-          brew install boost
-
       - name: Build Qrack MacOS
         run: |
           mkdir build
@@ -118,10 +114,6 @@ jobs:
 
       - name: Install Homebrew (MacOS)
         uses: Homebrew/actions/setup-homebrew@master
-
-      - name: Prepare Build Environment (MacOS)
-        run: |
-          brew install boost
 
       - name: Build Qrack MacOS
         run: |
