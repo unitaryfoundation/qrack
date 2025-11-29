@@ -1,3 +1,39 @@
+libqrack (9.32.5) bionic; urgency=medium
+
+  * Debug Boost backwards compatibility (Bionic 2/)
+
+ -- Dan Strano <stranoj@gmail.com>  Sat, 29 Nov 2025 13:26:19 -0500
+
+libqrack (9.32.4) focal; urgency=medium
+
+  * Debug Boost backwards compatibility (Focal 1/2)
+
+ -- Dan Strano <stranoj@gmail.com>  Sat, 29 Nov 2025 13:16:35 -0500
+
+libqrack (9.32.3) bionic; urgency=medium
+
+  * Sparse truncation (Bionic 4/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Sat, 29 Nov 2025 12:12:43 -0500
+
+libqrack (9.32.2) focal; urgency=medium
+
+  * Sparse truncation (Focal 3/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Sat, 29 Nov 2025 12:08:13 -0500
+
+libqrack (9.32.1) jammy; urgency=medium
+
+  * Sparse truncation (Jammy 2/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Sat, 29 Nov 2025 12:03:06 -0500
+
+libqrack (9.32.0) noble; urgency=medium
+
+  * Sparse truncation (Noble 1/4)
+
+ -- Dan Strano <stranoj@gmail.com>  Sat, 29 Nov 2025 11:44:54 -0500
+
 libqrack (9.25.5) jammy; urgency=medium
 
   * Trigger build (Jammy)

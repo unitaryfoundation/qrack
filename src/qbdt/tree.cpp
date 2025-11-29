@@ -107,7 +107,8 @@ size_t QBdt::CountBranches()
                 leaf = leaf->branches[SelectBit(i, maxQubitIndex - (j + 1U))];
 
                 if (!leaf) {
-                    return pow2(maxQubitIndex - j) - ONE_BCI;
+                    const bitCapInt r = pow2(maxQubitIndex - j) - ONE_BCI;
+                    return r;
                 }
 
                 std::lock_guard<std::mutex> lock(mtx);
@@ -295,7 +296,8 @@ bool QBdt::IsSeparable(bitLenInt start)
 
                 if (!leaf) {
                     // The immediate parent of "leaf" has 0 amplitude.
-                    return pow2(start - j) - ONE_BCI;
+                    const bitCapInt r = pow2(start - j) - ONE_BCI;
+                    return r;
                 }
             }
 
@@ -318,7 +320,8 @@ bool QBdt::IsSeparable(bitLenInt start)
                 // depending specifically on which dimension of the "low-index" subsystem we're inspecting.
                 result = false;
 
-                return pow2(start) - ONE_BCI;
+                const bitCapInt r = pow2(start) - ONE_BCI;
+                return r;
             }
 
             return ZERO_BCI;
@@ -473,7 +476,8 @@ void QBdt::ApplySingle(const complex* mtrx, bitLenInt target)
                 leaf = leaf->branches[SelectBit(i, target - (j + 1U))];
 
                 if (!leaf) {
-                    return pow2(target - j) - ONE_BCI;
+                    const bitCapInt r = pow2(target - j) - ONE_BCI;
+                    return r;
                 }
             }
 
