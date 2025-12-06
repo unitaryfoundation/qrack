@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <vector>
 
 namespace Qrack {
