@@ -2257,6 +2257,9 @@ MICROSOFT_QUANTUM_DECL void MAllLong(_In_ uintq sid, uintq* r)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)
     try {
+#if QBCCAPOW <= UINTPOW
+        r[0U] = (bitCapIntOcl)(simulator->MAll());
+#else
         bitCapInt _r = simulator->MAll();
         constexpr bitLenInt bitsPerWord = (bitLenInt)(sizeof(bitCapIntOcl) << 3U);
         const bitLenInt maxWords = (simulator->GetQubitCount() + bitsPerWord - 1) / bitsPerWord;
@@ -2265,6 +2268,7 @@ MICROSOFT_QUANTUM_DECL void MAllLong(_In_ uintq sid, uintq* r)
             r[w] = (bitCapIntOcl)(mask & _r);
             _r = _r >> bitsPerWord;
         }
+#endif
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;
@@ -2622,6 +2626,9 @@ MICROSOFT_QUANTUM_DECL void HighestProbAll(_In_ uintq sid, uintq* r)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)
     try {
+#if QBCCAPOW <= UINTPOW
+        r[0U] = (bitCapIntOcl)(simulator->HighestProbAll());
+#else
         bitCapInt _r = simulator->HighestProbAll();
         constexpr bitLenInt bitsPerWord = (bitLenInt)(sizeof(bitCapIntOcl) << 3U);
         const bitLenInt maxWords = (simulator->GetQubitCount() + bitsPerWord - 1) / bitsPerWord;
@@ -2630,6 +2637,7 @@ MICROSOFT_QUANTUM_DECL void HighestProbAll(_In_ uintq sid, uintq* r)
             r[w] = (bitCapIntOcl)(mask & _r);
             _r = _r >> bitsPerWord;
         }
+#endif
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;
@@ -2643,6 +2651,9 @@ MICROSOFT_QUANTUM_DECL void HighestProbAllN(_In_ uintq sid, _In_ uintq n, uintq*
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)
     try {
+#if QBCCAPOW <= UINTPOW
+        r[0U] = (bitCapIntOcl)(simulator->HighestProbAll(n));
+#else
         std::vector<bitCapInt> _r = simulator->HighestProbAll(n);
         constexpr bitLenInt bitsPerWord = (bitLenInt)(sizeof(bitCapIntOcl) << 3U);
         const bitLenInt maxWords = (simulator->GetQubitCount() + bitsPerWord - 1) / bitsPerWord;
@@ -2653,6 +2664,7 @@ MICROSOFT_QUANTUM_DECL void HighestProbAllN(_In_ uintq sid, _In_ uintq n, uintq*
                 _r[i] = _r[i] >> bitsPerWord;
             }
         }
+#endif
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;
