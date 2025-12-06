@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <thread>
+#include <stdexcept>
 
 namespace Qrack {
 
