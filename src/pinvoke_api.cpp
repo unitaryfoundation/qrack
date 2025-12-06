@@ -2652,7 +2652,10 @@ MICROSOFT_QUANTUM_DECL void HighestProbAllN(_In_ uintq sid, _In_ uintq n, uintq*
     SIMULATOR_LOCK_GUARD_VOID(sid)
     try {
 #if QBCCAPOW <= UINTPOW
-        r[0U] = (bitCapIntOcl)(simulator->HighestProbAll(n));
+        const std::vector<bitCapInt> _r = simulator->HighestProbAll(n);
+        for (size_t i = 0U; i < n; ++i) {
+            r[i] = (bitCapIntOcl)(_r[i]);
+        }
 #else
         std::vector<bitCapInt> _r = simulator->HighestProbAll(n);
         constexpr bitLenInt bitsPerWord = (bitLenInt)(sizeof(bitCapIntOcl) << 3U);
