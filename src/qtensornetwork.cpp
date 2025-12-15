@@ -50,6 +50,7 @@ QTensorNetwork::QTensorNetwork(std::vector<QInterfaceEngine> eng, bitLenInt qBit
     , devID(deviceId)
     , separabilityThreshold(sep_thresh)
     , globalPhase(phaseFac)
+    , layerStack(nullptr)
     , deviceIDs(devList)
     , engines(eng)
 {

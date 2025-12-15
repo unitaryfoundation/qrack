@@ -2782,30 +2782,6 @@ void QUnit::ToPermBasisAllMeasure()
 }
 
 #if ENABLE_ALU
-void QUnit::CINC(const bitCapInt& toMod, bitLenInt start, bitLenInt length, const std::vector<bitLenInt>& controls)
-{
-    if (isBadBitRange(start, length, qubitCount)) {
-        throw std::invalid_argument("QUnit::CINC range is out-of-bounds!");
-    }
-
-    ThrowIfQbIdArrayIsBad(
-        controls, qubitCount, "QUnit::CINC parameter controls array values must be within allocated qubit bounds!");
-
-    // Try to optimize away the whole gate, or as many controls as is opportune.
-    std::vector<bitLenInt> controlVec;
-    bitCapInt _perm = pow2(controls.size());
-    bi_decrement(&_perm, 1U);
-    if (TrimControls(controls, controlVec, &_perm)) {
-        return;
-    }
-
-    if (controlVec.empty()) {
-        return INC(toMod, start, length);
-    }
-
-    INT(toMod, start, length, (bitLenInt)(-1), false, controlVec);
-}
-
 void QUnit::INCx(INCxFn fn, const bitCapInt& toMod, bitLenInt start, bitLenInt length, bitLenInt flagIndex)
 {
     if (isBadBitRange(start, length, qubitCount)) {

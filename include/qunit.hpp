@@ -382,6 +382,11 @@ public:
     {
         QInterface::DECS(toSub, start, length, overflowIndex);
     }
+    virtual void CINC(
+        const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        QInterface::CINC(toAdd, inOutStart, length, controls);
+    }
     virtual void CDEC(
         const bitCapInt& toSub, bitLenInt inOutStart, bitLenInt length, const std::vector<bitLenInt>& controls)
     {
@@ -413,8 +418,6 @@ public:
     }
 
     virtual void INC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length);
-    virtual void CINC(
-        const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt length, const std::vector<bitLenInt>& controls);
     virtual void INCC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt carryIndex);
     virtual void INCS(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt overflowIndex);
     virtual void INCDECSC(
