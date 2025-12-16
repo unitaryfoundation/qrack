@@ -14,8 +14,8 @@
 #include "qengine_cuda.hpp"
 
 #include <algorithm>
-#include <thread>
 #include <stdexcept>
+#include <thread>
 
 namespace Qrack {
 

@@ -2113,7 +2113,7 @@ void QUnit::IS(bitLenInt target)
             }                                                                                                          \
             unit->ctrld;                                                                                               \
         },                                                                                                             \
-        false);
+        false, controlPerm);
 
 #define CTRLED_PHASE_INVERT_WRAP(ctrld, ctrldgen, isInvert, top, bottom)                                               \
     ApplyEitherControlled(                                                                                             \
@@ -2139,7 +2139,7 @@ void QUnit::IS(bitLenInt target)
                 unit->ctrld;                                                                                           \
             }                                                                                                          \
         },                                                                                                             \
-        !isInvert);
+        !isInvert, controlPerm);
 
 #define CTRLED_SWAP_WRAP(ctrld, bare, anti)                                                                            \
     ThrowIfQbIdArrayIsBad(controls, qubitCount,                                                                        \
@@ -2166,7 +2166,8 @@ void QUnit::IS(bitLenInt target)
     }                                                                                                                  \
     ApplyEitherControlled(                                                                                             \
         controlVec, { qubit1, qubit2 },                                                                                \
-        [&](QInterfacePtr unit, std::vector<bitLenInt> mappedControls) { unit->ctrld; }, false)
+        [&](QInterfacePtr unit, std::vector<bitLenInt> mappedControls) { unit->ctrld; }, false,                        \
+        anti ? ZERO_BCI : (pow2(controls.size()) - ONE_BCI))
 #define CTRL_GEN_ARGS mappedControls, trnsMtrx, shards[target].mapped, controlPerm
 #define CTRL_S_ARGS mappedControls, shards[qubit1].mapped, shards[qubit2].mapped
 #define CTRL_P_ARGS mappedControls, topLeft, bottomRight, shards[target].mapped, controlPerm
@@ -2647,8 +2648,8 @@ bool QUnit::TrimControls(const std::vector<bitLenInt>& controls, std::vector<bit
 }
 
 template <typename CF>
-void QUnit::ApplyEitherControlled(
-    std::vector<bitLenInt> controlVec, const std::vector<bitLenInt> targets, CF cfn, bool isPhase)
+void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::vector<bitLenInt> targets, CF cfn,
+    bool isPhase, const bitCapInt& controlPerm)
 {
     // If we've made it this far, we have to form the entangled representation and apply the gate.
 
@@ -2713,11 +2714,13 @@ void QUnit::ApplyEitherControlled(
 
         std::vector<bitLenInt> intraControlVec;
         real1_f p = ONE_R1_F;
-        for (const bitLenInt& c : controlVec) {
+        for (size_t i = 0U; i < controlVec.size(); ++i) {
+            const bitLenInt& c = controlVec[i];
             if (unit == shards[c].unit) {
                 intraControlVec.push_back(c);
             } else {
-                p *= Prob(c);
+                const real1_f b = Prob(c);
+                p *= (bi_and_1(controlPerm >> i) != 0U) ? b : (ONE_R1_F - b);
             }
         }
 

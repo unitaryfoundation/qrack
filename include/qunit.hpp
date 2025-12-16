@@ -787,8 +787,8 @@ protected:
     bool TrimControls(const std::vector<bitLenInt>& controls, std::vector<bitLenInt>& controlVec, bitCapInt* perm);
 
     template <typename CF>
-    void ApplyEitherControlled(
-        std::vector<bitLenInt> controlVec, const std::vector<bitLenInt> targets, CF cfn, bool isPhase);
+    void ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::vector<bitLenInt> targets, CF cfn,
+        bool isPhase, const bitCapInt& controlPerm);
 
     void ClampShard(bitLenInt qubit)
     {
