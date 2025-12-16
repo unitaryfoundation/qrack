@@ -2713,15 +2713,30 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
         }
 
         std::vector<bitLenInt> intraControlVec;
+        std::map<QInterfacePtr, bitCapInt> intraMaskMap;
+        std::map<QInterfacePtr, bitCapInt> intraPermMap;
         real1_f p = ONE_R1_F;
         for (size_t i = 0U; i < controlVec.size(); ++i) {
             const bitLenInt& c = controlVec[i];
-            if (unit == shards[c].unit) {
-                intraControlVec.push_back(c);
-            } else {
+            QEngineShard& shard = shards[c];
+            if (!shard.unit) {
                 const real1_f b = Prob(c);
                 p *= (bi_and_1(controlPerm >> i) != 0U) ? b : (ONE_R1_F - b);
+            } else if (unit == shard.unit) {
+                intraControlVec.push_back(c);
+            } else {
+                const QInterfacePtr& u = shard.unit;
+                const bitCapInt offset = pow2(shard.mapped);
+                intraMaskMap[u] = intraMaskMap[u] | offset;
+                if (bi_and_1(controlPerm >> i) != 0U) {
+                    intraPermMap[u] = intraPermMap[u] | offset;
+                }
             }
+        }
+
+        for (auto it = intraMaskMap.begin(); it != intraMaskMap.end(); it++) {
+            QInterfacePtr u = it->first;
+            p *= u->ProbMask(intraMaskMap[u], intraPermMap[u]);
         }
 
         // Act the classical shadow of the gate payload.
