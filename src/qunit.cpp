@@ -2701,8 +2701,8 @@ void QUnit::ApplyEitherControlled(
             throw e;
         }
 
+        const bitLenInt& t = targets[0];
         if (targets.size() == 1U) {
-            const bitLenInt& t = targets[0];
             EndEmulation(t);
             unit = shards[t].unit;
         } else {
@@ -2711,18 +2711,22 @@ void QUnit::ApplyEitherControlled(
             unit = Entangle(targets);
         }
 
+        std::vector<bitLenInt> intraControlVec;
         real1_f p = ONE_R1_F;
         for (const bitLenInt& c : controlVec) {
-            p *= Prob(c);
+            if (unit == shards[c].unit) {
+                intraControlVec.push_back(c);
+            } else {
+                p *= Prob(c);
+            }
         }
-
-        QEngineShard& shard = shards[targets[0]];
-        shard.isPhaseDirty = true;
-        shard.isProbDirty |= (shard.pauliBasis != PauliZ) || !isPhase;
 
         // Act the classical shadow of the gate payload.
         if ((2 * p) > ONE_R1_F) {
-            cfn(unit, {});
+            QEngineShard& shard = shards[t];
+            shard.isPhaseDirty = true;
+            shard.isProbDirty |= (shard.pauliBasis != PauliZ) || !isPhase;
+            cfn(unit, intraControlVec);
             logFidelity += (double)log(p);
         } else {
             logFidelity += (double)log(ONE_R1_F - p);
