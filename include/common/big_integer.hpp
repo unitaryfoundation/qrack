@@ -72,7 +72,9 @@ typedef struct BigInteger {
 
     inline BigInteger()
     {
-        // Intentionally left blank.
+        for (int i = 0; i < BIG_INTEGER_WORD_SIZE; ++i) {
+            bits[i] = 0U;
+        }
     }
 
     inline BigInteger(const BigInteger& val)
