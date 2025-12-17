@@ -3646,6 +3646,27 @@ MICROSOFT_QUANTUM_DECL void SetNoiseParameter(_In_ uintq sid, _In_ double np)
     }
 }
 
+MICROSOFT_QUANTUM_DECL void SetAceMaxQb(_In_ uintq sid, _In_ uintq qb)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        simulator->SetAceMaxQubits((bitLenInt)qb);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+MICROSOFT_QUANTUM_DECL void SetSparseAceMaxMb(_In_ uintq sid, _In_ size_t mb)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        simulator->SetSparseAceMaxMb(mb);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
 MICROSOFT_QUANTUM_DECL void Normalize(_In_ uintq sid)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)

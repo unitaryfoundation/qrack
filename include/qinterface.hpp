@@ -2972,6 +2972,14 @@ public:
      *  If this is a QInterfaceNoisy, return the noise level per gate.
      */
     virtual real1_f GetNoiseParameter() { return ZERO_R1_F; }
+    /**
+     * Set the "automatic circuit elision" (ACE) maximum entangled subsystem qubit count
+     */
+    virtual void SetAceMaxQubits(bitLenInt qb) {}
+    /**
+     * Set the (sparse-simulation) "automatic circuit elision" (ACE) maximum memory megabytes
+     */
+    virtual void SetSparseAceMaxMb(size_t mb) {}
 
     /**
      *  Clone this QInterface

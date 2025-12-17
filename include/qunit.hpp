@@ -38,6 +38,8 @@ protected:
     bool isCpu;
     bool isSinglePage;
     bool isSparse;
+    size_t aceMb;
+    bitLenInt aceQubits;
     bitLenInt thresholdQubits;
     real1_f separabilityThreshold;
     real1_f roundingThreshold;
@@ -609,6 +611,8 @@ public:
             },
             ncrp, ZERO_R1_F, ZERO_R1_F, 0);
     }
+    virtual void SetAceMaxQubits(bitLenInt qb) { aceQubits = qb; }
+    virtual void SetSparseAceMaxMb(size_t mb) { aceMb = mb; }
 
     virtual QInterfacePtr Clone();
     virtual QInterfacePtr Copy();

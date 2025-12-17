@@ -48,6 +48,9 @@ QTensorNetwork::QTensorNetwork(std::vector<QInterfaceEngine> eng, bitLenInt qBit
     , isQBdt(false)
 #endif
     , devID(deviceId)
+    , aceMb(0U)
+    , aceQubits(0U)
+    , qbThreshold(qubitThreshold)
     , separabilityThreshold(sep_thresh)
     , globalPhase(phaseFac)
     , layerStack(nullptr)
@@ -164,9 +167,16 @@ void QTensorNetwork::MakeLayerStack(std::set<bitLenInt> qubits)
 
     // We need to prepare the layer stack (and cache it).
     layerStack = CreateQuantumInterface(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
-        randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor, deviceIDs);
+        randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor, deviceIDs,
+        qbThreshold, separabilityThreshold);
     layerStack->SetReactiveSeparate(isReactiveSeparate);
     layerStack->SetTInjection(useTGadget);
+    if (aceQubits) {
+        layerStack->SetAceMaxQubits(aceQubits);
+    }
+    if (aceMb) {
+        layerStack->SetSparseAceMaxMb(aceMb);
+    }
 
     const bitLenInt maxQb = GetThresholdQb();
     std::vector<QCircuitPtr> c;
@@ -209,7 +219,7 @@ QInterfacePtr QTensorNetwork::Clone()
 {
     QTensorNetworkPtr clone = std::make_shared<QTensorNetwork>(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX,
         doNormalize, randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor,
-        deviceIDs);
+        deviceIDs, qbThreshold, separabilityThreshold);
 
     clone->circuit.clear();
     for (size_t i = 0U; i < circuit.size(); ++i) {

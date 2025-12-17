@@ -321,6 +321,8 @@ MICROSOFT_QUANTUM_DECL void SetNcrp(_In_ uintq sid, _In_ double ncrp);
 MICROSOFT_QUANTUM_DECL void SetReactiveSeparate(_In_ uintq sid, _In_ bool irs);
 MICROSOFT_QUANTUM_DECL void SetTInjection(_In_ uintq sid, _In_ bool iti);
 MICROSOFT_QUANTUM_DECL void SetNoiseParameter(_In_ uintq sid, _In_ double np);
+MICROSOFT_QUANTUM_DECL void SetAceMaxQb(_In_ uintq sid, _In_ uintq qb);
+MICROSOFT_QUANTUM_DECL void SetSparseAceMaxMb(_In_ uintq sid, _In_ size_t mb);
 MICROSOFT_QUANTUM_DECL void Normalize(_In_ uintq sid);
 
 #if !(FPPOW < 6 && !defined(ENABLE_COMPLEX_X2))

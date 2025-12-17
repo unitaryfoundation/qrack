@@ -40,7 +40,11 @@ protected:
     bool isQBdt;
 #endif
     int64_t devID;
+    size_t aceMb;
+    bitLenInt aceQubits;
+    bitLenInt qbThreshold;
     real1_f separabilityThreshold;
+    real1_f ncrp;
     complex globalPhase;
     QInterfacePtr layerStack;
     std::vector<int64_t> deviceIDs;
@@ -160,9 +164,35 @@ public:
     {
         separabilityThreshold = sdrp;
         isReactiveSeparate = (separabilityThreshold > FP_NORM_EPSILON_F);
+        if (layerStack) {
+            layerStack->SetSdrp(sdrp);
+            layerStack->SetReactiveSeparate(isReactiveSeparate);
+        }
     }
 
     void SetReactiveSeparate(bool isAggSep) { isReactiveSeparate = isAggSep; }
+
+    void SetNcrp(real1_f rp)
+    {
+        ncrp = rp;
+        if (layerStack) {
+            layerStack->SetNcrp(ncrp);
+        }
+    }
+    void SetAceMaxQubits(bitLenInt qb)
+    {
+        aceQubits = qb;
+        if (layerStack) {
+            layerStack->SetAceMaxQubits(qb);
+        }
+    }
+    void SetSparseAceMaxMb(size_t mb)
+    {
+        aceMb = mb;
+        if (layerStack) {
+            layerStack->SetSparseAceMaxMb(mb);
+        }
+    }
 
     double GetUnitaryFidelity()
     {

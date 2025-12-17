@@ -85,6 +85,7 @@ QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCa
     , isCpu(true)
 #endif
     , isSinglePage(false)
+    , aceMb(QRACK_SPARSE_MAX_KEYS)
     , thresholdQubits(qubitThreshold)
     , separabilityThreshold(sep_thresh)
     , logFidelity(0.0)
@@ -110,6 +111,14 @@ QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCa
                 break;
             }
         }
+    }
+
+    if (isCpu) {
+        aceQubits = QRACK_MAX_CPU_QB_DEFAULT;
+    } else if (isSinglePage) {
+        aceQubits = QRACK_MAX_PAGE_QB_DEFAULT;
+    } else {
+        aceQubits = QRACK_MAX_PAGING_QB_DEFAULT;
     }
 
     isReactiveSeparate = (separabilityThreshold > FP_NORM_EPSILON_F);
@@ -434,10 +443,8 @@ QInterfacePtr QUnit::EntangleInCurrentBasis(
             if (found.find(shards[**bit].unit) == found.end()) {
                 found[shards[**bit].unit] = true;
                 units.push_back(shards[**bit].unit);
-
                 mem = mem * units.back()->GetAmplitudeCount();
-
-                if (mem > QRACK_SPARSE_MAX_KEYS) {
+                if (mem > aceMb) {
                     Copy(backupCopy);
                     throw bad_alloc("RAM limits exceeded in QUnit::EntangleInCurrentBasis()");
                 }
@@ -449,19 +456,8 @@ QInterfacePtr QUnit::EntangleInCurrentBasis(
             if (found.find(shards[**bit].unit) == found.end()) {
                 found[shards[**bit].unit] = true;
                 units.push_back(shards[**bit].unit);
-
                 logMem += units.back()->GetQubitCount();
-
-                bool isThrow = false;
-                if (isCpu) {
-                    isThrow = logMem > QRACK_MAX_CPU_QB_DEFAULT;
-                } else if (isSinglePage) {
-                    isThrow = logMem > QRACK_MAX_PAGE_QB_DEFAULT;
-                } else {
-                    isThrow = logMem > QRACK_MAX_PAGING_QB_DEFAULT;
-                }
-
-                if (isThrow) {
+                if (logMem > aceQubits) {
                     Copy(backupCopy);
                     throw bad_alloc("RAM limits exceeded in QUnit::EntangleInCurrentBasis()");
                 }
