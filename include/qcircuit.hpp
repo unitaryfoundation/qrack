@@ -614,6 +614,24 @@ protected:
     bitLenInt qubitCount;
     std::list<QCircuitGatePtr> gates;
 
+    // Method provided by Google search AI:
+    bool setsIntersect(const std::set<bitLenInt>& set1, const std::set<bitLenInt>& set2) {
+        auto it1 = set1.begin();
+        auto it2 = set2.begin();
+
+        while (it1 != set1.end() && it2 != set2.end()) {
+            if (*it1 == *it2) {
+                return true; // Found a common element, so they intersect
+            } else if (*it1 < *it2) {
+                ++it1; // Element in set1 is smaller, advance set1 iterator
+            } else {
+                ++it2; // Element in set2 is smaller, advance set2 iterator
+            }
+        }
+
+        return false; // Reached the end of one set without finding common elements
+    }
+
 public:
     /**
      * Default constructor
@@ -810,20 +828,13 @@ public:
         std::list<QCircuitGatePtr> nGates;
         for (auto gIt = gates.begin(); gIt != gates.end(); ++gIt) {
             QCircuitGatePtr& gate = *gIt;
-            // Is the target qubit on the light cone?
-            if (qubits.find(gate->target) == qubits.end()) {
-                // The target isn't on the light cone, but the controls might be.
-                bool isNonCausal = true;
-                for (const bitLenInt& c : gate->controls) {
-                    if (qubits.find(c) != qubits.end()) {
-                        isNonCausal = false;
-                        break;
-                    }
-                }
-                if (isNonCausal) {
-                    // This gate is not on the past light cone.
-                    continue;
-                }
+
+            std::set<bitLenInt> toCheck = gate->controls;
+            toCheck.insert(gate->target);
+
+            if (!setsIntersect(qubits, toCheck)) {
+                // This gate is not on the past light cone.
+                continue;
             }
 
             // This gate is on the past light cone.
@@ -852,20 +863,11 @@ public:
         std::list<QCircuitGatePtr> nGates;
         for (auto gIt = gates.begin(); gIt != gates.end(); ++gIt) {
             QCircuitGatePtr& gate = *gIt;
-            // Is the target qubit on the light cone?
-            bool isNonCausal = true;
-            if (qubits.find(gate->target) != qubits.end()) {
-                isNonCausal = false;
-            } else {
-                // The target isn't on the light cone, but the controls might be.
-                for (const bitLenInt& c : gate->controls) {
-                    if (qubits.find(c) != qubits.end()) {
-                        isNonCausal = false;
-                        break;
-                    }
-                }
-            }
-            if (isNonCausal) {
+
+            std::set<bitLenInt> toCheck = gate->controls;
+            toCheck.insert(gate->target);
+
+            if (!setsIntersect(qubits, toCheck)) {
                 // This gate is not on the past light cone.
                 oGates.insert(oGates.begin(), gate);
                 continue;
