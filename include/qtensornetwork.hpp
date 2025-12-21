@@ -262,13 +262,9 @@ public:
             return start;
         }
 
-        layerStack->Allocate(start, length);
+        layerStack->Allocate(length);
         const bitLenInt movedQubits = qubitCount - start;
         SetQubitCount(qubitCount + length);
-
-        if (!movedQubits) {
-            return start;
-        }
 
         for (bitLenInt i = 0U; i < movedQubits; ++i) {
             const bitLenInt q = start + movedQubits - (i + 1U);
