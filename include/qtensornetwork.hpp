@@ -45,7 +45,6 @@ protected:
     bitLenInt qbThreshold;
     real1_f separabilityThreshold;
     real1_f ncrp;
-    complex globalPhase;
     QInterfacePtr layerStack;
     std::vector<int64_t> deviceIDs;
     std::vector<QInterfaceEngine> engines;
@@ -181,21 +180,7 @@ public:
     {
         circuit = std::make_shared<QCircuit>(true, isNearClifford);
         MakeLayerStack();
-
-        for (bitLenInt i = 0U; i < qubitCount; ++i) {
-            if (bi_compare_0(pow2(i) & initState) != 0) {
-                X(i);
-            }
-        }
-
-        if ((phaseFac == CMPLX_DEFAULT_ARG) && randGlobalPhase) {
-            real1_f angle = Rand() * 2 * (real1_f)PI_R1;
-            globalPhase = complex((real1)cos(angle), (real1)sin(angle));
-        } else if (phaseFac == CMPLX_DEFAULT_ARG) {
-            globalPhase = complex(ONE_R1, ZERO_R1);
-        } else {
-            globalPhase = phaseFac;
-        }
+        layerStack->SetPermutation(initState, phaseFac);
     }
 
     QInterfacePtr Clone();

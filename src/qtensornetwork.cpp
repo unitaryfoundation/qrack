@@ -52,7 +52,6 @@ QTensorNetwork::QTensorNetwork(std::vector<QInterfaceEngine> eng, bitLenInt qBit
     , aceQubits(0U)
     , qbThreshold(qubitThreshold)
     , separabilityThreshold(sep_thresh)
-    , globalPhase(phaseFac)
     , layerStack(nullptr)
     , deviceIDs(devList)
     , engines(eng)
@@ -110,7 +109,7 @@ QTensorNetwork::QTensorNetwork(std::vector<QInterfaceEngine> eng, bitLenInt qBit
     }
 #endif
 
-    SetPermutation(initState, globalPhase);
+    SetPermutation(initState, phaseFac);
 }
 
 bitLenInt QTensorNetwork::GetThresholdQb()
