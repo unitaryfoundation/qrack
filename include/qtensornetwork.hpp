@@ -49,37 +49,7 @@ protected:
     QInterfacePtr layerStack;
     std::vector<int64_t> deviceIDs;
     std::vector<QInterfaceEngine> engines;
-    std::vector<QCircuitPtr> circuit;
-    std::vector<std::map<bitLenInt, bool>> measurements;
-
-    QCircuitPtr GetCircuit(bitLenInt target, std::vector<bitLenInt> controls = std::vector<bitLenInt>())
-    {
-        for (size_t i = 0U; i < measurements.size(); ++i) {
-            size_t l = measurements.size() - (i + 1U);
-            std::map<bitLenInt, bool>& m = measurements[l];
-            ++l;
-
-            if (m.find(target) != m.end()) {
-                if (circuit.size() == l) {
-                    circuit.push_back(std::make_shared<QCircuit>());
-                }
-
-                return circuit[l];
-            }
-
-            for (const bitLenInt& control : controls) {
-                if (m.find(control) != m.end()) {
-                    if (circuit.size() == l) {
-                        circuit.push_back(std::make_shared<QCircuit>());
-                    }
-
-                    return circuit[l];
-                }
-            }
-        }
-
-        return circuit[0U];
-    }
+    QCircuitPtr circuit;
 
     void CheckQubitCount(bitLenInt target)
     {
@@ -95,46 +65,22 @@ protected:
             controls, qubitCount, "QTensorNetwork qubit index values must be within allocated qubit bounds!");
     }
 
-    void RunMeasurmentLayer(size_t layerId)
-    {
-        const std::map<bitLenInt, bool>& mLayer = measurements[layerId];
-        std::vector<bitLenInt> bits;
-        bits.reserve(mLayer.size());
-        std::vector<bool> values;
-        values.reserve(mLayer.size());
-
-        for (const auto& m : mLayer) {
-            bits.push_back(m.first);
-            values.push_back(m.second);
-        }
-
-        layerStack->ForceM(bits, values);
-    }
-
     bitLenInt GetThresholdQb();
 
-    void MakeLayerStack(std::set<bitLenInt> qubits = std::set<bitLenInt>());
+    void MakeLayerStack();
 
     template <typename Fn> void RunAsAmplitudes(Fn fn, const std::set<bitLenInt>& qubits = std::set<bitLenInt>())
     {
-        if (qubits.empty()) {
-            MakeLayerStack();
-
-            return fn(layerStack);
-        }
-
         const bitLenInt maxQb = GetThresholdQb();
-        if (qubitCount <= maxQb) {
-            MakeLayerStack();
-
-            return fn(layerStack);
+        std::set<bitLenInt> _qubits = qubits;
+        if (qubits.size() && (qubitCount > maxQb)) {
+            circuit->RemovePastLightCone(_qubits)->Run(layerStack);
+        } else {
+            circuit->Run(layerStack);
+            circuit = std::make_shared<QCircuit>(true, isNearClifford);
         }
 
-        MakeLayerStack(qubits);
-        QInterfacePtr ls = layerStack;
-        layerStack = nullptr;
-
-        return fn(ls);
+        return fn(layerStack);
     }
 
     void Copy(QInterfacePtr orig)
@@ -164,10 +110,7 @@ public:
     {
         separabilityThreshold = sdrp;
         isReactiveSeparate = (separabilityThreshold > FP_NORM_EPSILON_F);
-        if (layerStack) {
-            layerStack->SetSdrp(sdrp);
-            layerStack->SetReactiveSeparate(isReactiveSeparate);
-        }
+        layerStack->SetSdrp(sdrp);
     }
 
     void SetReactiveSeparate(bool isAggSep) { isReactiveSeparate = isAggSep; }
@@ -175,23 +118,17 @@ public:
     void SetNcrp(real1_f rp)
     {
         ncrp = rp;
-        if (layerStack) {
-            layerStack->SetNcrp(ncrp);
-        }
+        layerStack->SetNcrp(ncrp);
     }
     void SetAceMaxQubits(bitLenInt qb)
     {
         aceQubits = qb;
-        if (layerStack) {
-            layerStack->SetAceMaxQubits(qb);
-        }
+        layerStack->SetAceMaxQubits(qb);
     }
     void SetSparseAceMaxMb(size_t mb)
     {
         aceMb = mb;
-        if (layerStack) {
-            layerStack->SetSparseAceMaxMb(mb);
-        }
+        layerStack->SetSparseAceMaxMb(mb);
     }
 
     double GetUnitaryFidelity()
@@ -215,33 +152,25 @@ public:
 
     void Finish()
     {
-        if (layerStack) {
-            layerStack->Finish();
-        }
+        layerStack->Finish();
     };
 
-    bool isFinished() { return !layerStack || layerStack->isFinished(); }
+    bool isFinished() { return layerStack->isFinished(); }
 
     void Dump()
     {
-        if (layerStack) {
-            layerStack->Dump();
-        }
+        layerStack->Dump();
     }
 
     void UpdateRunningNorm(real1_f norm_thresh = REAL1_DEFAULT_ARG)
     {
-        if (layerStack) {
-            layerStack->UpdateRunningNorm(norm_thresh);
-        }
+        layerStack->UpdateRunningNorm(norm_thresh);
     }
 
     void NormalizeState(
         real1_f nrm = REAL1_DEFAULT_ARG, real1_f norm_thresh = REAL1_DEFAULT_ARG, real1_f phaseArg = ZERO_R1_F)
     {
-        if (layerStack) {
-            layerStack->NormalizeState(nrm, norm_thresh, phaseArg);
-        }
+        layerStack->NormalizeState(nrm, norm_thresh, phaseArg);
     }
 
     real1_f SumSqrDiff(QInterfacePtr toCompare)
@@ -251,18 +180,15 @@ public:
     real1_f SumSqrDiff(QTensorNetworkPtr toCompare)
     {
         real1_f toRet;
-        toCompare->MakeLayerStack();
+        toCompare->RunAsAmplitudes([&](QInterfacePtr ls) { });
         RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->SumSqrDiff(toCompare->layerStack); });
         return toRet;
     }
 
     void SetPermutation(const bitCapInt& initState, const complex& phaseFac = CMPLX_DEFAULT_ARG)
     {
-        circuit.clear();
-        measurements.clear();
-        layerStack = nullptr;
-
-        circuit.push_back(std::make_shared<QCircuit>());
+        circuit = std::make_shared<QCircuit>(true, isNearClifford);
+        MakeLayerStack();
 
         for (bitLenInt i = 0U; i < qubitCount; ++i) {
             if (bi_compare_0(pow2(i) & initState) != 0) {
@@ -343,8 +269,10 @@ public:
             return start;
         }
 
+        layerStack->Allocate(start, length);
         const bitLenInt movedQubits = qubitCount - start;
         SetQubitCount(qubitCount + length);
+
         if (!movedQubits) {
             return start;
         }
@@ -370,26 +298,10 @@ public:
         return toRet;
     }
 
-    bool ForceM(bitLenInt qubit, bool result, bool doForce = true, bool doApply = true);
-
-    bitCapInt MAll()
+    bool ForceM(bitLenInt qubit, bool result, bool doForce = true, bool doApply = true)
     {
-        bitCapInt toRet = ZERO_BCI;
-
-        const bitLenInt maxQb = GetThresholdQb();
-        if (qubitCount <= maxQb) {
-            MakeLayerStack();
-            toRet = layerStack->MAll();
-        } else {
-            for (bitLenInt i = 0U; i < qubitCount; ++i) {
-                if (M(i)) {
-                    bi_or_ip(&toRet, pow2(i));
-                }
-            }
-        }
-
-        SetPermutation(toRet);
-
+        bool toRet;
+        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->ForceM(qubit, result, doForce, doApply); }, { qubit });
         return toRet;
     }
 
@@ -485,24 +397,21 @@ public:
     void Mtrx(const complex* mtrx, bitLenInt target)
     {
         CheckQubitCount(target);
-        layerStack = nullptr;
-        GetCircuit(target)->AppendGate(std::make_shared<QCircuitGate>(target, mtrx));
+        circuit->AppendGate(std::make_shared<QCircuitGate>(target, mtrx));
     }
     void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
     {
         CheckQubitCount(target, controls);
-        layerStack = nullptr;
         bitCapInt m = pow2(controls.size());
         bi_decrement(&m, 1U);
-        GetCircuit(target, controls)
+        circuit
             ->AppendGate(std::make_shared<QCircuitGate>(
                 target, mtrx, std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
     }
     void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
     {
         CheckQubitCount(target, controls);
-        layerStack = nullptr;
-        GetCircuit(target, controls)
+        circuit
             ->AppendGate(std::make_shared<QCircuitGate>(
                 target, mtrx, std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
     }
@@ -510,7 +419,6 @@ public:
         const std::vector<bitLenInt>& controls, const complex& topLeft, const complex& bottomRight, bitLenInt target)
     {
         CheckQubitCount(target, controls);
-        layerStack = nullptr;
         std::shared_ptr<complex> lMtrx(new complex[4U], std::default_delete<complex[]>());
         lMtrx.get()[0U] = topLeft;
         lMtrx.get()[1U] = ZERO_CMPLX;
@@ -518,7 +426,7 @@ public:
         lMtrx.get()[3U] = bottomRight;
         bitCapInt m = pow2(controls.size());
         bi_decrement(&m, 1U);
-        GetCircuit(target, controls)
+        circuit
             ->AppendGate(std::make_shared<QCircuitGate>(
                 target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
     }
@@ -526,13 +434,12 @@ public:
         const std::vector<bitLenInt>& controls, const complex& topLeft, const complex& bottomRight, bitLenInt target)
     {
         CheckQubitCount(target, controls);
-        layerStack = nullptr;
         std::shared_ptr<complex> lMtrx(new complex[4U], std::default_delete<complex[]>());
         lMtrx.get()[0U] = topLeft;
         lMtrx.get()[1U] = ZERO_CMPLX;
         lMtrx.get()[2U] = ZERO_CMPLX;
         lMtrx.get()[3U] = bottomRight;
-        GetCircuit(target, controls)
+        circuit
             ->AppendGate(std::make_shared<QCircuitGate>(
                 target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
     }
@@ -540,7 +447,6 @@ public:
         const std::vector<bitLenInt>& controls, const complex& topRight, const complex& bottomLeft, bitLenInt target)
     {
         CheckQubitCount(target, controls);
-        layerStack = nullptr;
         std::shared_ptr<complex> lMtrx(new complex[4U], std::default_delete<complex[]>());
         lMtrx.get()[0U] = ZERO_CMPLX;
         lMtrx.get()[1U] = topRight;
@@ -548,7 +454,7 @@ public:
         lMtrx.get()[3U] = ZERO_CMPLX;
         bitCapInt m = pow2(controls.size());
         bi_decrement(&m, 1U);
-        GetCircuit(target, controls)
+        circuit
             ->AppendGate(std::make_shared<QCircuitGate>(
                 target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
     }
@@ -556,13 +462,12 @@ public:
         const std::vector<bitLenInt>& controls, const complex& topRight, const complex& bottomLeft, bitLenInt target)
     {
         CheckQubitCount(target, controls);
-        layerStack = nullptr;
         std::shared_ptr<complex> lMtrx(new complex[4U], std::default_delete<complex[]>());
         lMtrx.get()[0U] = ZERO_CMPLX;
         lMtrx.get()[1U] = topRight;
         lMtrx.get()[2U] = bottomLeft;
         lMtrx.get()[3U] = ZERO_CMPLX;
-        GetCircuit(target, controls)
+        circuit
             ->AppendGate(std::make_shared<QCircuitGate>(
                 target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
     }

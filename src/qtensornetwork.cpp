@@ -158,14 +158,9 @@ bitLenInt QTensorNetwork::GetThresholdQb()
 #endif
 }
 
-void QTensorNetwork::MakeLayerStack(std::set<bitLenInt> qubits)
+void QTensorNetwork::MakeLayerStack()
 {
-    if (layerStack) {
-        // We have a cached layerStack.
-        return;
-    }
-
-    // We need to prepare the layer stack (and cache it).
+    layerStack = nullptr;
     layerStack = CreateQuantumInterface(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
         randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor, deviceIDs,
         qbThreshold, separabilityThreshold);
@@ -177,42 +172,6 @@ void QTensorNetwork::MakeLayerStack(std::set<bitLenInt> qubits)
     if (aceMb) {
         layerStack->SetSparseAceMaxMb(aceMb);
     }
-
-    const bitLenInt maxQb = GetThresholdQb();
-    std::vector<QCircuitPtr> c;
-    if (qubits.size() && (qubitCount > maxQb)) {
-        for (size_t i = 0U; i < circuit.size(); ++i) {
-            const size_t j = circuit.size() - (i + 1U);
-            if (j < measurements.size()) {
-                for (const auto& m : measurements[j]) {
-                    qubits.erase(m.first);
-                }
-            }
-            if (qubits.empty()) {
-                QRACK_CONST complex pauliX[4]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
-                c.push_back(std::make_shared<QCircuit>(true, isNearClifford));
-                for (const auto& m : measurements[j]) {
-                    if (m.second) {
-                        c.back()->AppendGate(std::make_shared<QCircuitGate>(m.first, pauliX));
-                    }
-                }
-
-                break;
-            }
-            c.push_back(circuit[j]->PastLightCone(qubits));
-        }
-        std::reverse(c.begin(), c.end());
-    } else {
-        c = circuit;
-    }
-
-    const size_t offset = circuit.size() - c.size();
-    for (size_t i = 0U; i < c.size(); ++i) {
-        c[i]->Run(layerStack);
-        if (measurements.size() > (offset + i)) {
-            RunMeasurmentLayer(offset + i);
-        }
-    }
 }
 
 QInterfacePtr QTensorNetwork::Clone()
@@ -221,122 +180,13 @@ QInterfacePtr QTensorNetwork::Clone()
         doNormalize, randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor,
         deviceIDs, qbThreshold, separabilityThreshold);
 
-    clone->circuit.clear();
-    for (size_t i = 0U; i < circuit.size(); ++i) {
-        clone->circuit.push_back(circuit[i]->Clone());
-    }
-    clone->measurements = measurements;
+    clone->circuit = circuit->Clone();
     if (layerStack) {
         clone->layerStack = layerStack->Clone();
     }
-
     clone->SetReactiveSeparate(isReactiveSeparate);
     clone->SetTInjection(useTGadget);
 
     return clone;
-}
-
-bool QTensorNetwork::ForceM(bitLenInt qubit, bool result, bool doForce, bool doApply)
-{
-    CheckQubitCount(qubit);
-
-    bool toRet;
-    RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->ForceM(qubit, result, doForce, doApply); }, { qubit });
-
-    if (!doApply) {
-        return toRet;
-    }
-
-    bool eigen = toRet;
-    size_t layerId = circuit.size() - 1U;
-    // Starting from latest circuit layer, if measurement commutes...
-    while (!(circuit[layerId]->IsNonClassicalTarget(qubit))) {
-        const QCircuitPtr& c = circuit[layerId];
-        eigen = c->DeleteClassicalTarget(qubit, eigen);
-
-        if (!layerId) {
-            // The qubit has been simplified to |0> with no gates.
-            break;
-        }
-
-        // We will insert a terminal measurement on this qubit, again.
-        // This other measurement commutes, as it is in the same basis.
-        // So, erase any redundant later measurement.
-        std::map<bitLenInt, bool>& m = measurements[layerId];
-        m.erase(qubit);
-
-        // If the measurement layer is empty, telescope the layers.
-        if (m.empty()) {
-            measurements.erase(measurements.begin() + layerId);
-            const size_t prevLayerId = layerId + 1U;
-            if (prevLayerId < circuit.size()) {
-                c->Combine(circuit[prevLayerId]);
-                circuit.erase(circuit.begin() + prevLayerId);
-            }
-        }
-
-        // ...Fill an earlier layer.
-        --layerId;
-    }
-
-    // Identify whether we need a totally new measurement layer.
-    if (layerId >= measurements.size()) {
-        // Insert the required measurement layer.
-        measurements.emplace_back();
-    }
-
-    // Insert terminal measurement.
-    measurements[layerId][qubit] = eigen;
-
-    // If no qubit in this layer is unmeasured, we can completely telescope into classical state preparation.
-    std::vector<bitLenInt> nonMeasuredQubits;
-    nonMeasuredQubits.reserve(qubitCount);
-    for (size_t i = 0U; i < qubitCount; ++i) {
-        nonMeasuredQubits.push_back(i);
-    }
-    std::map<bitLenInt, bool> m = measurements[layerId];
-    for (const bitLenInt& q : nonMeasuredQubits) {
-        size_t layer = layerId;
-        eigen = false;
-        while (true) {
-            std::map<bitLenInt, bool>& ml = measurements[layer];
-            if (ml.find(q) != ml.end()) {
-                m[q] = ml[q] ^ eigen;
-                break;
-            }
-            if (circuit[layer]->IsNonClassicalTarget(q, &eigen)) {
-                // Nothing more to do; tell the user the result.
-                return toRet;
-            }
-            if (!layer) {
-                m[q] = eigen;
-                break;
-            }
-            --layer;
-        }
-        nonMeasuredQubits.erase(std::find(nonMeasuredQubits.begin(), nonMeasuredQubits.end(), q));
-    }
-
-    // All bits have been measured in this layer.
-    // None of the previous layers matter.
-
-    // Erase all of the previous layers.
-    for (size_t i = 0U; i < layerId; ++i) {
-        circuit.erase(circuit.begin() + layerId - i);
-        measurements.erase(measurements.begin() + layerId - i);
-    }
-    circuit[0U] = std::make_shared<QCircuit>();
-    measurements.erase(measurements.begin());
-
-    // Sync layer 0U as state preparation for deterministic measurement.
-    QRACK_CONST complex pauliX[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
-    for (const auto& b : m) {
-        if (b.second) {
-            circuit[0U]->AppendGate(std::make_shared<QCircuitGate>(b.first, pauliX));
-        }
-    }
-
-    // Tell the user the result.
-    return toRet;
 }
 } // namespace Qrack

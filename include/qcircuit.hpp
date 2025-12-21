@@ -837,7 +837,54 @@ public:
         // Restore the original order of this QCircuit's gates.
         gates.reverse();
 
-        return std::make_shared<QCircuit>(qubitCount, nGates, isCollapsed);
+        return std::make_shared<QCircuit>(qubitCount, nGates, isCollapsed, isNearClifford);
+    }
+
+    /**
+     * Return (as a new QCircuit) just the gates on the past light cone of a set of qubit indices, while removing these gates from the original circuit.
+     */
+    QCircuitPtr RemovePastLightCone(std::set<bitLenInt>& qubits)
+    {
+        // We're working from latest gate to earliest gate.
+        gates.reverse();
+
+        std::list<QCircuitGatePtr> oGates;
+        std::list<QCircuitGatePtr> nGates;
+        for (auto gIt = gates.begin(); gIt != gates.end(); ++gIt) {
+            QCircuitGatePtr& gate = *gIt;
+            // Is the target qubit on the light cone?
+            if (qubits.find(gate->target) != qubits.end()) {
+                // This gate is not on the past light cone.
+                oGates.insert(oGates.begin(), gate);
+                // Every qubit involved in this gate is now considered to be part of the past light cone.
+                qubits.insert(gate->controls.begin(), gate->controls.end());
+                continue;
+            }
+            // The target isn't on the light cone, but the controls might be.
+            bool isNonCausal = true;
+            for (const bitLenInt& c : gate->controls) {
+                if (qubits.find(c) != qubits.end()) {
+                    isNonCausal = false;
+                    break;
+                }
+            }
+            if (isNonCausal) {
+                // This gate is not on the past light cone.
+                oGates.insert(oGates.begin(), gate);
+                continue;
+            }
+
+            // This gate is on the past light cone.
+            nGates.insert(nGates.begin(), gate);
+            // Every qubit involved in this gate is now considered to be part of the past light cone.
+            qubits.insert(gate->target);
+            qubits.insert(gate->controls.begin(), gate->controls.end());
+        }
+
+        // Internally retain just the gates off the light cone.
+        gates = oGates;
+
+        return std::make_shared<QCircuit>(qubitCount, nGates, isCollapsed, isNearClifford);
     }
 
 #if ENABLE_ALU
