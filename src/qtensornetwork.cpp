@@ -181,9 +181,7 @@ QInterfacePtr QTensorNetwork::Clone()
         deviceIDs, qbThreshold, separabilityThreshold);
 
     clone->circuit = circuit->Clone();
-    if (layerStack) {
-        clone->layerStack = layerStack->Clone();
-    }
+    clone->layerStack = layerStack->Clone();
     clone->SetReactiveSeparate(isReactiveSeparate);
     clone->SetTInjection(useTGadget);
 

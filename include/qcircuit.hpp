@@ -853,19 +853,16 @@ public:
         for (auto gIt = gates.begin(); gIt != gates.end(); ++gIt) {
             QCircuitGatePtr& gate = *gIt;
             // Is the target qubit on the light cone?
-            if (qubits.find(gate->target) != qubits.end()) {
-                // This gate is not on the past light cone.
-                oGates.insert(oGates.begin(), gate);
-                // Every qubit involved in this gate is now considered to be part of the past light cone.
-                qubits.insert(gate->controls.begin(), gate->controls.end());
-                continue;
-            }
-            // The target isn't on the light cone, but the controls might be.
             bool isNonCausal = true;
-            for (const bitLenInt& c : gate->controls) {
-                if (qubits.find(c) != qubits.end()) {
-                    isNonCausal = false;
-                    break;
+            if (qubits.find(gate->target) != qubits.end()) {
+                isNonCausal = false;
+            } else {
+                // The target isn't on the light cone, but the controls might be.
+                for (const bitLenInt& c : gate->controls) {
+                    if (qubits.find(c) != qubits.end()) {
+                        isNonCausal = false;
+                        break;
+                    }
                 }
             }
             if (isNonCausal) {

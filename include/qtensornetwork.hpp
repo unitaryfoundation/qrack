@@ -71,9 +71,8 @@ protected:
 
     template <typename Fn> void RunAsAmplitudes(Fn fn, const std::set<bitLenInt>& qubits = std::set<bitLenInt>())
     {
-        const bitLenInt maxQb = GetThresholdQb();
         std::set<bitLenInt> _qubits = qubits;
-        if (qubits.size() && (qubitCount > maxQb)) {
+        if (qubits.size()) {
             circuit->RemovePastLightCone(_qubits)->Run(layerStack);
         } else {
             circuit->Run(layerStack);
