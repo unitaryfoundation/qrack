@@ -106,16 +106,24 @@ public:
 
     void SetReactiveSeparate(bool isAggSep) { isReactiveSeparate = isAggSep; }
 
+    void SetTInjection(bool useGadget)
+    {
+        useTGadget = useGadget;
+        layerStack->SetTInjection(useTGadget);
+    }
+
     void SetNcrp(real1_f rp)
     {
         ncrp = rp;
         layerStack->SetNcrp(ncrp);
     }
+
     void SetAceMaxQubits(bitLenInt qb)
     {
         aceQubits = qb;
         layerStack->SetAceMaxQubits(aceQubits);
     }
+
     void SetSparseAceMaxMb(size_t mb)
     {
         aceMb = mb;
