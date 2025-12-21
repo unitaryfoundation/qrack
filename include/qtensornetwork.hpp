@@ -69,11 +69,10 @@ protected:
 
     void MakeLayerStack();
 
-    template <typename Fn> void RunAsAmplitudes(Fn fn, const std::set<bitLenInt>& qubits = std::set<bitLenInt>())
+    template <typename Fn> void RunAsAmplitudes(Fn fn, std::set<bitLenInt> qubits = std::set<bitLenInt>())
     {
-        std::set<bitLenInt> _qubits = qubits;
         if (qubits.size()) {
-            circuit->RemovePastLightCone(_qubits)->Run(layerStack);
+            circuit->RemovePastLightCone(qubits)->Run(layerStack);
         } else {
             circuit->Run(layerStack);
             circuit = std::make_shared<QCircuit>(true, isNearClifford);
