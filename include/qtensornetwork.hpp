@@ -122,12 +122,12 @@ public:
     void SetAceMaxQubits(bitLenInt qb)
     {
         aceQubits = qb;
-        layerStack->SetAceMaxQubits(qb);
+        layerStack->SetAceMaxQubits(aceQubits);
     }
     void SetSparseAceMaxMb(size_t mb)
     {
         aceMb = mb;
-        layerStack->SetSparseAceMaxMb(mb);
+        layerStack->SetSparseAceMaxMb(aceMb);
     }
 
     double GetUnitaryFidelity()
@@ -323,90 +323,21 @@ public:
     std::map<bitCapInt, int> MultiShotMeasureMask(const std::vector<bitCapInt>& qPowers, unsigned shots)
     {
         std::map<bitCapInt, int> toRet;
-        if (qubitCount <= GetThresholdQb()) {
-            std::set<bitLenInt> qubits;
-            for (const bitCapInt& qPow : qPowers) {
-                qubits.insert(log2(qPow));
-            }
-            RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->MultiShotMeasureMask(qPowers, shots); }, qubits);
-        } else {
-            std::vector<bitLenInt> qubits;
-            qubits.reserve(qPowers.size());
-            for (const bitCapInt& qPow : qPowers) {
-                qubits.push_back(log2(qPow));
-            }
-#if ENABLE_QBDT && !ENABLE_QBDT_CPU_PARALLEL
-            if (isQBdt) {
-                std::mutex mapMtx;
-                par_for(0U, shots, [&](const bitCapIntOcl& ignored, const unsigned& ignored2) {
-                    QInterfacePtr clone = Clone();
-                    bitCapInt result = ZERO_BCI;
-                    for (size_t i = 0U; i < qubits.size(); ++i) {
-                        if (clone->M(qubits[i])) {
-                            bi_or_ip(&result, pow2(i));
-                        }
-                    }
-                    std::lock_guard<std::mutex> mapLock(mapMtx);
-                    ++toRet[result];
-                });
-
-                return toRet;
-            }
-#endif
-            for (unsigned shot = 0U; shot < shots; ++shot) {
-                QInterfacePtr clone = Clone();
-                bitCapInt result = ZERO_BCI;
-                for (size_t i = 0U; i < qubits.size(); ++i) {
-                    if (clone->M(qubits[i])) {
-                        bi_or_ip(&result, pow2(i));
-                    }
-                }
-                ++toRet[result];
-            }
+        std::set<bitLenInt> qubits;
+        for (const bitCapInt& qPow : qPowers) {
+            qubits.insert(log2(qPow));
         }
-
+        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->MultiShotMeasureMask(qPowers, shots); }, qubits);
         return toRet;
     }
     void MultiShotMeasureMask(const std::vector<bitCapInt>& qPowers, unsigned shots, unsigned long long* shotsArray)
     {
         std::map<bitCapInt, int> toRet;
-        if (qubitCount <= GetThresholdQb()) {
-            std::set<bitLenInt> qubits;
-            for (const bitCapInt& qPow : qPowers) {
-                qubits.insert(log2(qPow));
-            }
-            RunAsAmplitudes([&](QInterfacePtr ls) { ls->MultiShotMeasureMask(qPowers, shots, shotsArray); }, qubits);
-        } else {
-            std::vector<bitLenInt> qubits;
-            qubits.reserve(qPowers.size());
-            for (const bitCapInt& qPow : qPowers) {
-                qubits.push_back(log2(qPow));
-            }
-#if ENABLE_QBDT && !ENABLE_QBDT_CPU_PARALLEL
-            if (isQBdt) {
-                return par_for(0U, shots, [&](const bitCapIntOcl& shot, const unsigned& ignored) {
-                    QInterfacePtr clone = Clone();
-                    bitCapInt result = ZERO_BCI;
-                    for (size_t i = 0U; i < qubits.size(); ++i) {
-                        if (clone->M(qubits[i])) {
-                            bi_or_ip(&result, pow2(i));
-                        }
-                    }
-                    shotsArray[shot] = (bitCapIntOcl)result;
-                });
-            }
-#endif
-            for (unsigned shot = 0U; shot < shots; ++shot) {
-                QInterfacePtr clone = Clone();
-                bitCapInt result = ZERO_BCI;
-                for (size_t i = 0U; i < qubits.size(); ++i) {
-                    if (clone->M(qubits[i])) {
-                        bi_or_ip(&result, pow2(i));
-                    }
-                }
-                shotsArray[shot] = (bitCapIntOcl)result;
-            }
+        std::set<bitLenInt> qubits;
+        for (const bitCapInt& qPow : qPowers) {
+            qubits.insert(log2(qPow));
         }
+        RunAsAmplitudes([&](QInterfacePtr ls) { ls->MultiShotMeasureMask(qPowers, shots, shotsArray); }, qubits);
     }
 
     void Mtrx(const complex* mtrx, bitLenInt target)

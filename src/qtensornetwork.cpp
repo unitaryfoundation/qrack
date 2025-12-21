@@ -163,7 +163,10 @@ void QTensorNetwork::MakeLayerStack()
     layerStack = nullptr;
     layerStack = CreateQuantumInterface(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
         randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor, deviceIDs,
-        qbThreshold, separabilityThreshold);
+        qbThreshold);
+    layerStack->SetReactiveSeparate(isReactiveSeparate);
+    layerStack->SetSdrp(separabilityThreshold);
+    layerStack->SetNcrp(ncrp);
     layerStack->SetReactiveSeparate(isReactiveSeparate);
     layerStack->SetTInjection(useTGadget);
     if (aceQubits) {
@@ -178,12 +181,20 @@ QInterfacePtr QTensorNetwork::Clone()
 {
     QTensorNetworkPtr clone = std::make_shared<QTensorNetwork>(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX,
         doNormalize, randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor,
-        deviceIDs, qbThreshold, separabilityThreshold);
+        deviceIDs, qbThreshold);
 
     clone->circuit = circuit->Clone();
     clone->layerStack = layerStack->Clone();
+    clone->SetSdrp(separabilityThreshold);
+    clone->SetNcrp(ncrp);
     clone->SetReactiveSeparate(isReactiveSeparate);
     clone->SetTInjection(useTGadget);
+    if (aceQubits) {
+        clone->SetAceMaxQubits(aceQubits);
+    }
+    if (aceMb) {
+        clone->SetSparseAceMaxMb(aceMb);
+    }
 
     return clone;
 }
