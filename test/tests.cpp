@@ -3088,10 +3088,10 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_compose", "[sd_xfail]")
 
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_trydecompose", "[sd_xfail]")
 {
-    if (testEngineType == QINTERFACE_QUNIT_MULTI || testEngineType == QINTERFACE_QPAGER ||
-        testEngineType == QINTERFACE_STABILIZER_HYBRID || testSubEngineType == QINTERFACE_STABILIZER_HYBRID ||
-        testEngineType == QINTERFACE_BDT || testSubEngineType == QINTERFACE_BDT ||
-        testSubSubEngineType == QINTERFACE_BDT) {
+    if (testEngineType == QINTERFACE_TENSOR_NETWORK || testEngineType == QINTERFACE_QUNIT_MULTI ||
+        testEngineType == QINTERFACE_QPAGER || testEngineType == QINTERFACE_STABILIZER_HYBRID ||
+        testSubEngineType == QINTERFACE_STABILIZER_HYBRID || testEngineType == QINTERFACE_BDT ||
+        testSubEngineType == QINTERFACE_BDT || testSubSubEngineType == QINTERFACE_BDT) {
         // Not yet supported.
         return;
     }

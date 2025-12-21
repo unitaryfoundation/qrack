@@ -211,7 +211,7 @@ void QCircuit::Run(QInterfacePtr qsim)
             // Each must be a single-control CNOT/AntiCNOT by construction of IsCnot/IsAntiCnot,
             // but we still assume controls.size()==1 and read the only control.
             const bitLenInt a = *((*gate)->controls.begin()); // control of gate1
-            const bitLenInt b = (*gate)->target;              // target of gate1
+            const bitLenInt b = (*gate)->target; // target of gate1
 
             const bitLenInt g2c = *((*g2)->controls.begin());
             const bitLenInt g2t = (*g2)->target;

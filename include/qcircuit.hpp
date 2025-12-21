@@ -615,7 +615,8 @@ protected:
     std::list<QCircuitGatePtr> gates;
 
     // Method provided by Google search AI:
-    bool setsIntersect(const std::set<bitLenInt>& set1, const std::set<bitLenInt>& set2) {
+    bool setsIntersect(const std::set<bitLenInt>& set1, const std::set<bitLenInt>& set2)
+    {
         auto it1 = set1.begin();
         auto it2 = set2.begin();
 
@@ -850,7 +851,8 @@ public:
     }
 
     /**
-     * Return (as a new QCircuit) just the gates on the past light cone of a set of qubit indices, while removing these gates from the original circuit.
+     * Return (as a new QCircuit) just the gates on the past light cone of a set of qubit indices, while removing these
+     * gates from the original circuit.
      */
     QCircuitPtr RemovePastLightCone(std::set<bitLenInt>& qubits)
     {

@@ -215,9 +215,7 @@ void QStabilizerHybrid::FlushIfBlocked(bitLenInt control, bitLenInt target, bool
     shard->gate[3U] = complex(angleCos, angleSin);
 
     // Form a representation of state that can entangle a new (or reused) ancilla.
-    bitLenInt ancillaIndex = deadAncillaCount
-        ? (qubitCount + ancillaCount)
-        : stabilizer->Allocate(1U);
+    bitLenInt ancillaIndex = deadAncillaCount ? (qubitCount + ancillaCount) : stabilizer->Allocate(1U);
     ++ancillaCount;
     shards.emplace_back(nullptr);
     if (deadAncillaCount) {
@@ -1131,9 +1129,7 @@ void QStabilizerHybrid::Mtrx(const complex* lMtrx, bitLenInt target)
                 shard->gate[3U] = complex(angleCos, angleSin);
 
                 // Form potentially entangled representation, with this.
-                bitLenInt ancillaIndex = deadAncillaCount
-                    ? (qubitCount + ancillaCount)
-                    : stabilizer->Allocate(1U);
+                bitLenInt ancillaIndex = deadAncillaCount ? (qubitCount + ancillaCount) : stabilizer->Allocate(1U);
                 ++ancillaCount;
                 shards.emplace_back(nullptr);
                 if (deadAncillaCount) {

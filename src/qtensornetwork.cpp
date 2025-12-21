@@ -160,9 +160,9 @@ bitLenInt QTensorNetwork::GetThresholdQb()
 void QTensorNetwork::MakeLayerStack()
 {
     layerStack = nullptr;
-    layerStack = CreateQuantumInterface(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
-        randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor, deviceIDs,
-        qbThreshold);
+    layerStack =
+        CreateQuantumInterface(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize, randGlobalPhase,
+            useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor, deviceIDs, qbThreshold);
     layerStack->SetReactiveSeparate(isReactiveSeparate);
     layerStack->SetSdrp(separabilityThreshold);
     layerStack->SetNcrp(ncrp);

@@ -149,22 +149,13 @@ public:
     int64_t GetDevice() { return devID; }
     std::vector<int64_t> GetDeviceList() { return deviceIDs; }
 
-    void Finish()
-    {
-        layerStack->Finish();
-    };
+    void Finish() { layerStack->Finish(); };
 
     bool isFinished() { return layerStack->isFinished(); }
 
-    void Dump()
-    {
-        layerStack->Dump();
-    }
+    void Dump() { layerStack->Dump(); }
 
-    void UpdateRunningNorm(real1_f norm_thresh = REAL1_DEFAULT_ARG)
-    {
-        layerStack->UpdateRunningNorm(norm_thresh);
-    }
+    void UpdateRunningNorm(real1_f norm_thresh = REAL1_DEFAULT_ARG) { layerStack->UpdateRunningNorm(norm_thresh); }
 
     void NormalizeState(
         real1_f nrm = REAL1_DEFAULT_ARG, real1_f norm_thresh = REAL1_DEFAULT_ARG, real1_f phaseArg = ZERO_R1_F)
@@ -179,7 +170,7 @@ public:
     real1_f SumSqrDiff(QTensorNetworkPtr toCompare)
     {
         real1_f toRet;
-        toCompare->RunAsAmplitudes([&](QInterfacePtr ls) { });
+        toCompare->RunAsAmplitudes([&](QInterfacePtr ls) {});
         RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->SumSqrDiff(toCompare->layerStack); });
         return toRet;
     }
@@ -232,13 +223,19 @@ public:
     bitLenInt Compose(QInterfacePtr toCopy, bitLenInt start)
     {
         bitLenInt toRet;
-        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->Compose(std::dynamic_pointer_cast<QTensorNetwork>(toCopy)->layerStack, start); });
+        std::dynamic_pointer_cast<QTensorNetwork>(toCopy)->RunAsAmplitudes([&](QInterfacePtr ls) {});
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            toRet = ls->Compose(std::dynamic_pointer_cast<QTensorNetwork>(toCopy)->layerStack, start);
+        });
         SetQubitCount(qubitCount + toCopy->GetQubitCount());
         return toRet;
     }
     void Decompose(bitLenInt start, QInterfacePtr dest)
     {
-        RunAsAmplitudes([&](QInterfacePtr ls) { ls->Decompose(start, std::dynamic_pointer_cast<QTensorNetwork>(dest)->layerStack); });
+        dest->SetPermutation(0U);
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            ls->Decompose(start, std::dynamic_pointer_cast<QTensorNetwork>(dest)->layerStack);
+        });
         SetQubitCount(qubitCount - dest->GetQubitCount());
     }
     QInterfacePtr Decompose(bitLenInt start, bitLenInt length)
@@ -258,6 +255,19 @@ public:
         RunAsAmplitudes([&](QInterfacePtr ls) { ls->Dispose(start, length, disposedPerm); });
         SetQubitCount(qubitCount - length);
     }
+    bool TryDecompose(bitLenInt start, QInterfacePtr dest, real1_f error_tol = TRYDECOMPOSE_EPSILON)
+    {
+        bool toRet;
+        dest->SetPermutation(0U);
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            toRet = ls->TryDecompose(start, std::dynamic_pointer_cast<QTensorNetwork>(dest)->layerStack, error_tol);
+        });
+        SetQubitCount(qubitCount - dest->GetQubitCount());
+        return toRet;
+    }
+    bool TrySeparate(const std::vector<bitLenInt>& qubits, real1_f error_tol) { return layerStack->TrySeparate(qubits, error_tol); }
+    bool TrySeparate(bitLenInt qubit) { return layerStack->TrySeparate(qubit); }
+    bool TrySeparate(bitLenInt qubit1, bitLenInt qubit2) { return layerStack->TrySeparate(qubit1, qubit2); }
 
     using QInterface::Allocate;
     bitLenInt Allocate(bitLenInt start, bitLenInt length)
@@ -332,16 +342,14 @@ public:
         CheckQubitCount(target, controls);
         bitCapInt m = pow2(controls.size());
         bi_decrement(&m, 1U);
-        circuit
-            ->AppendGate(std::make_shared<QCircuitGate>(
-                target, mtrx, std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
+        circuit->AppendGate(
+            std::make_shared<QCircuitGate>(target, mtrx, std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
     }
     void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
     {
         CheckQubitCount(target, controls);
-        circuit
-            ->AppendGate(std::make_shared<QCircuitGate>(
-                target, mtrx, std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
+        circuit->AppendGate(std::make_shared<QCircuitGate>(
+            target, mtrx, std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
     }
     void MCPhase(
         const std::vector<bitLenInt>& controls, const complex& topLeft, const complex& bottomRight, bitLenInt target)
@@ -354,9 +362,8 @@ public:
         lMtrx.get()[3U] = bottomRight;
         bitCapInt m = pow2(controls.size());
         bi_decrement(&m, 1U);
-        circuit
-            ->AppendGate(std::make_shared<QCircuitGate>(
-                target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
+        circuit->AppendGate(std::make_shared<QCircuitGate>(
+            target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
     }
     void MACPhase(
         const std::vector<bitLenInt>& controls, const complex& topLeft, const complex& bottomRight, bitLenInt target)
@@ -367,9 +374,8 @@ public:
         lMtrx.get()[1U] = ZERO_CMPLX;
         lMtrx.get()[2U] = ZERO_CMPLX;
         lMtrx.get()[3U] = bottomRight;
-        circuit
-            ->AppendGate(std::make_shared<QCircuitGate>(
-                target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
+        circuit->AppendGate(std::make_shared<QCircuitGate>(
+            target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
     }
     void MCInvert(
         const std::vector<bitLenInt>& controls, const complex& topRight, const complex& bottomLeft, bitLenInt target)
@@ -382,9 +388,8 @@ public:
         lMtrx.get()[3U] = ZERO_CMPLX;
         bitCapInt m = pow2(controls.size());
         bi_decrement(&m, 1U);
-        circuit
-            ->AppendGate(std::make_shared<QCircuitGate>(
-                target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
+        circuit->AppendGate(std::make_shared<QCircuitGate>(
+            target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
     }
     void MACInvert(
         const std::vector<bitLenInt>& controls, const complex& topRight, const complex& bottomLeft, bitLenInt target)
@@ -395,9 +400,8 @@ public:
         lMtrx.get()[1U] = topRight;
         lMtrx.get()[2U] = bottomLeft;
         lMtrx.get()[3U] = ZERO_CMPLX;
-        circuit
-            ->AppendGate(std::make_shared<QCircuitGate>(
-                target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
+        circuit->AppendGate(std::make_shared<QCircuitGate>(
+            target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
     }
 };
 } // namespace Qrack
