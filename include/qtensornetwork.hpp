@@ -81,12 +81,6 @@ protected:
         return fn(layerStack);
     }
 
-    void Copy(QInterfacePtr orig)
-    {
-        throw std::domain_error("Can't TryDecompose() on QTensorNetwork! (QTensorNetwork does not allow Schmidt "
-                                "decomposition in general!)");
-    }
-
 public:
     QTensorNetwork(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCapInt& initState = ZERO_BCI,
         qrack_rand_gen_ptr rgp = nullptr, const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false,
