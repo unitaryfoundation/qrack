@@ -516,7 +516,7 @@ int main(int argc, char* argv[])
         testEngineType = QINTERFACE_TENSOR_NETWORK;
         testSubEngineType = QINTERFACE_QUNIT;
         testSubSubEngineType = QINTERFACE_STABILIZER_HYBRID;
-        testSubSubSubEngineType = QINTERFACE_BDT_HYBRID;
+        testSubSubSubEngineType = QINTERFACE_HYBRID;
         session.config().stream() << "############ QTensorNetwork (QStabilizerHybrid) ############" << std::endl;
         num_failed = session.run();
     }
