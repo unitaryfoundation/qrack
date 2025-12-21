@@ -176,39 +176,74 @@ void QCircuit::Run(QInterfacePtr qsim)
         qsim->Allocate(qubitCount - qsim->GetQubitCount());
     }
 
+    // Peephole rewrite provided by Elara (the OpenAI custom GPT)
+    // Peephole: CNOT(a->b); CNOT(b->a); CNOT(a->b) == SWAP(a,b)
+    // Also valid for "AntiCNOT" (control-on-|0>) when all three are AntiCNOT.
     std::list<QCircuitGatePtr> nGates;
     if (gates.size() < 3U) {
         nGates = gates;
     } else {
-        std::list<QCircuitGatePtr>::iterator end = gates.begin();
-        std::advance(end, gates.size() - 2U);
-        std::list<QCircuitGatePtr>::iterator gate;
-        for (gate = gates.begin(); gate != end; ++gate) {
-            bool isAnti = (*gate)->IsAntiCnot();
-            if (!((*gate)->IsCnot() || isAnti)) {
+        auto end = gates.begin();
+        std::advance(end, gates.size() - 2U); // we will look ahead 2 gates
+
+        auto gate = gates.begin();
+        for (; gate != end; ++gate) {
+            const bool isAnti = (*gate)->IsAntiCnot();
+            const bool isCnotType = (*gate)->IsCnot() || isAnti;
+
+            if (!isCnotType) {
                 nGates.push_back(*gate);
                 continue;
             }
-            std::list<QCircuitGatePtr>::iterator adv = gate;
-            ++adv;
-            if (!((isAnti && (*adv)->IsAntiCnot()) || (!isAnti && (*adv)->IsCnot())) ||
-                ((*adv)->target != *((*gate)->controls.begin())) || ((*gate)->target != *((*adv)->controls.begin()))) {
+
+            // Look ahead to next two gates
+            auto g2 = std::next(gate);
+            auto g3 = std::next(g2);
+
+            // All three must be the same type: either all CNOT or all AntiCNOT
+            const bool g2ok = (isAnti && (*g2)->IsAntiCnot()) || (!isAnti && (*g2)->IsCnot());
+            const bool g3ok = (isAnti && (*g3)->IsAntiCnot()) || (!isAnti && (*g3)->IsCnot());
+            if (!g2ok || !g3ok) {
                 nGates.push_back(*gate);
                 continue;
             }
-            ++adv;
-            if (!((isAnti && (*adv)->IsAntiCnot()) || (!isAnti && (*adv)->IsCnot())) ||
-                ((*adv)->target != (*gate)->target) || (*((*gate)->controls.begin()) != *((*adv)->controls.begin()))) {
+
+            // Each must be a single-control CNOT/AntiCNOT by construction of IsCnot/IsAntiCnot,
+            // but we still assume controls.size()==1 and read the only control.
+            const bitLenInt a = *((*gate)->controls.begin()); // control of gate1
+            const bitLenInt b = (*gate)->target;              // target of gate1
+
+            const bitLenInt g2c = *((*g2)->controls.begin());
+            const bitLenInt g2t = (*g2)->target;
+
+            const bitLenInt g3c = *((*g3)->controls.begin());
+            const bitLenInt g3t = (*g3)->target;
+
+            // Match canonical SWAP decomposition:
+            // gate1: CNOT(a->b)
+            // gate2: CNOT(b->a)
+            // gate3: CNOT(a->b)
+            if (!(g2c == b && g2t == a && g3c == a && g3t == b)) {
                 nGates.push_back(*gate);
                 continue;
             }
-            nGates.push_back(std::make_shared<QCircuitGate>((*gate)->target, *((*gate)->controls.begin())));
-            gate = adv;
+
+            // Replace with SWAP(a,b). The Swap gate ctor is QCircuitGate(q1,q2) with target=q1 and controls={q2}.
+            // In Run(), payloads.empty() triggers Swap(controls[0], target), i.e. Swap(q2,q1).
+            // So pass (b,a) here to produce Swap(a,b) (order doesn't matter for swap, but keep canonical).
+            nGates.push_back(std::make_shared<QCircuitGate>(b, a));
+
+            // Skip the next two gates that we consumed (g2 and g3).
+            gate = g3;
+
+            // If fewer than 3 gates remain ahead, break and copy the tail below.
             if (std::distance(gate, gates.end()) < 3) {
-                ++gate;
+                ++gate; // move to the first unprocessed gate
                 break;
             }
         }
+
+        // Copy any remaining gates (including tail after break)
         for (; gate != gates.end(); ++gate) {
             nGates.push_back(*gate);
         }
