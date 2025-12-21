@@ -214,11 +214,18 @@ public:
     }
     void SetQuantumState(const complex* state)
     {
-        throw std::domain_error("QTensorNetwork::SetQuantumState() not implemented!");
+        RunAsAmplitudes([&](QInterfacePtr ls) { ls->SetQuantumState(state); });
     }
     void SetQuantumState(QInterfacePtr eng)
     {
-        throw std::domain_error("QTensorNetwork::SetQuantumState() not implemented!");
+        const QTensorNetworkPtr tnEng = std::dynamic_pointer_cast<QTensorNetwork>(eng);
+
+        if (tnEng->qubitCount != qubitCount) {
+            throw std::invalid_argument("QTensorNetwork::SetQuantumState() argument must match in qubit count!");
+        }
+
+        layerStack = tnEng->layerStack->Clone();
+        circuit = tnEng->circuit->Clone();
     }
     void GetProbs(real1* outputProbs)
     {
@@ -233,29 +240,38 @@ public:
     }
     void SetAmplitude(const bitCapInt& perm, const complex& amp)
     {
-        throw std::domain_error("QTensorNetwork::SetAmplitude() not implemented!");
+        RunAsAmplitudes([&](QInterfacePtr ls) { ls->SetAmplitude(perm, amp); });
     }
 
     using QInterface::Compose;
     bitLenInt Compose(QInterfacePtr toCopy, bitLenInt start)
     {
-        throw std::domain_error("QTensorNetwork::Compose() not implemented!");
+        bitLenInt toRet;
+        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->Compose(std::dynamic_pointer_cast<QTensorNetwork>(toCopy)->layerStack, start); });
+        SetQubitCount(qubitCount + toCopy->GetQubitCount());
+        return toRet;
     }
     void Decompose(bitLenInt start, QInterfacePtr dest)
     {
-        throw std::domain_error("QTensorNetwork::Decompose() not implemented!");
+        RunAsAmplitudes([&](QInterfacePtr ls) { ls->Decompose(start, std::dynamic_pointer_cast<QTensorNetwork>(dest)->layerStack); });
+        SetQubitCount(qubitCount - dest->GetQubitCount());
     }
     QInterfacePtr Decompose(bitLenInt start, bitLenInt length)
     {
-        throw std::domain_error("QTensorNetwork::Decompose() not implemented!");
+        QInterfacePtr toRet;
+        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->Decompose(start, length); });
+        SetQubitCount(qubitCount - toRet->GetQubitCount());
+        return toRet;
     }
     void Dispose(bitLenInt start, bitLenInt length)
     {
-        throw std::domain_error("QTensorNetwork::Dispose() not implemented!");
+        RunAsAmplitudes([&](QInterfacePtr ls) { ls->Dispose(start, length); });
+        SetQubitCount(qubitCount - length);
     }
     void Dispose(bitLenInt start, bitLenInt length, const bitCapInt& disposedPerm)
     {
-        throw std::domain_error("QTensorNetwork::Dispose() not implemented!");
+        RunAsAmplitudes([&](QInterfacePtr ls) { ls->Dispose(start, length, disposedPerm); });
+        SetQubitCount(qubitCount - length);
     }
 
     using QInterface::Allocate;
@@ -470,28 +486,6 @@ public:
         circuit
             ->AppendGate(std::make_shared<QCircuitGate>(
                 target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
-    }
-
-    void DepolarizingChannelWeak1Qb(bitLenInt qubit, real1_f lambda)
-    {
-        if (lambda <= ZERO_R1) {
-            return;
-        }
-
-        // "lambda" is the overall depolarization strength.
-        // ChatGPT (custom GPT "Elara") reasons that
-        // \epsilon(p) = (1 - p) * \rho + (p / 3) * (X \rho X + Y \rho Y + Z \rho Z),
-        // so we use lambda / 3 for 3 checks.
-        lambda = lambda / 3;
-        if (Rand() < lambda) {
-            Z(qubit);
-        }
-        if (Rand() < lambda) {
-            X(qubit);
-        }
-        if (Rand() < lambda) {
-            Y(qubit);
-        }
     }
 };
 } // namespace Qrack
