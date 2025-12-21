@@ -822,11 +822,9 @@ public:
      */
     QCircuitPtr PastLightCone(std::set<bitLenInt>& qubits)
     {
-        // We're working from latest gate to earliest gate.
-        gates.reverse();
-
         std::list<QCircuitGatePtr> nGates;
-        for (auto gIt = gates.begin(); gIt != gates.end(); ++gIt) {
+        // We're working from latest gate to earliest gate.
+        for (auto gIt = gates.rbegin(); gIt != gates.rend(); ++gIt) {
             QCircuitGatePtr& gate = *gIt;
 
             std::set<bitLenInt> toCheck = gate->controls;
@@ -856,12 +854,10 @@ public:
      */
     QCircuitPtr RemovePastLightCone(std::set<bitLenInt>& qubits)
     {
-        // We're working from latest gate to earliest gate.
-        gates.reverse();
-
         std::list<QCircuitGatePtr> oGates;
         std::list<QCircuitGatePtr> nGates;
-        for (auto gIt = gates.begin(); gIt != gates.end(); ++gIt) {
+        // We're working from latest gate to earliest gate.
+        for (auto gIt = gates.rbegin(); gIt != gates.rend(); ++gIt) {
             QCircuitGatePtr& gate = *gIt;
 
             std::set<bitLenInt> toCheck = gate->controls;
