@@ -1,3 +1,27 @@
+libqrack (9.34.4) bionic; urgency=medium
+
+  * QTensorNetwork redesign (Bionic 4/4)
+
+ -- Daniel Strano <stranoj@gmail.com>  Tue, 23 Dec 2025 22:11:51 -0500
+
+libqrack (9.34.3) focal; urgency=medium
+
+  * QTensorNetwork redesign (Focal 3/4)
+
+ -- Daniel Strano <stranoj@gmail.com>  Tue, 23 Dec 2025 22:09:56 -0500
+
+libqrack (9.34.2) jammy; urgency=medium
+
+  * QTensorNetwork redesign (Jammy 2/4)
+
+ -- Daniel Strano <stranoj@gmail.com>  Tue, 23 Dec 2025 22:07:45 -0500
+
+libqrack (9.34.1) noble; urgency=medium
+
+  * QTensorNetwork redesign (Noble 1/4)
+
+ -- Daniel Strano <stranoj@gmail.com>  Tue, 23 Dec 2025 21:55:51 -0500
+
 libqrack (9.32.5) bionic; urgency=medium
 
   * Debug Boost backwards compatibility (Bionic 2/)
