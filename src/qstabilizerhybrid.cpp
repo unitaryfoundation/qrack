@@ -392,7 +392,7 @@ QInterfacePtr QStabilizerHybrid::CloneBody(bool isCopy)
 
 real1_f QStabilizerHybrid::ProbAllRdm(bool roundRz, const bitCapInt& fullRegister)
 {
-    if (engine || (!ancillaCount && !deadAncillaCount)) {
+    if (engine || !ancillaCount) {
         return ProbAll(fullRegister);
     }
 
@@ -409,7 +409,7 @@ real1_f QStabilizerHybrid::ProbMaskRdm(bool roundRz, const bitCapInt& mask, cons
         return ProbAllRdm(roundRz, permutation);
     }
 
-    if (engine || (!ancillaCount && !deadAncillaCount)) {
+    if (engine || !ancillaCount) {
         return ProbMask(mask, permutation);
     }
 
@@ -718,7 +718,7 @@ complex QStabilizerHybrid::GetAmplitudeOrProb(const bitCapInt& perm, bool isProb
         RdmCloneFlush(roundingThreshold);
     }
 
-    if ((isProb && !ancillaCount && !deadAncillaCount && !IsLogicalProbBuffered()) || !IsBuffered()) {
+    if ((isProb && !ancillaCount && !IsLogicalProbBuffered()) || !IsBuffered()) {
         const complex toRet = stabilizer->GetAmplitude(perm);
 
         if (isRounded) {
@@ -741,7 +741,7 @@ complex QStabilizerHybrid::GetAmplitudeOrProb(const bitCapInt& perm, bool isProb
         perms.push_back(perm ^ pow2(i));
     }
 
-    if (!ancillaCount && !deadAncillaCount) {
+    if (!ancillaCount) {
         std::vector<complex> amps;
         amps.reserve(perms.size());
         if (stateMapCache) {
