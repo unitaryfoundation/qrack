@@ -215,7 +215,10 @@ void QStabilizerHybrid::FlushIfBlocked(bitLenInt control, bitLenInt target, bool
     shard->gate[3U] = complex(angleCos, angleSin);
 
     // Form a representation of state that can entangle a new (or reused) ancilla.
-    bitLenInt ancillaIndex = deadAncillaCount ? (qubitCount + ancillaCount) : stabilizer->Allocate(1U);
+    const bitLenInt ancillaIndex = deadAncillaCount
+        ? (qubitCount + ancillaCount)
+        : stabilizer->Compose(std::make_shared<QUnitClifford>(
+              1U, ZERO_BCI, rand_generator, CMPLX_DEFAULT_ARG, false, randGlobalPhase, false, -1, useRDRAND));
     ++ancillaCount;
     shards.emplace_back(nullptr);
     if (deadAncillaCount) {
@@ -1129,7 +1132,10 @@ void QStabilizerHybrid::Mtrx(const complex* lMtrx, bitLenInt target)
                 shard->gate[3U] = complex(angleCos, angleSin);
 
                 // Form potentially entangled representation, with this.
-                bitLenInt ancillaIndex = deadAncillaCount ? (qubitCount + ancillaCount) : stabilizer->Allocate(1U);
+                const bitLenInt ancillaIndex = deadAncillaCount
+                    ? (qubitCount + ancillaCount)
+                    : stabilizer->Compose(std::make_shared<QUnitClifford>(1U, ZERO_BCI, rand_generator,
+                          CMPLX_DEFAULT_ARG, false, randGlobalPhase, false, -1, useRDRAND));
                 ++ancillaCount;
                 shards.emplace_back(nullptr);
                 if (deadAncillaCount) {
