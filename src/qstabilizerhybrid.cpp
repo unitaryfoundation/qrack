@@ -518,8 +518,8 @@ bitLenInt QStabilizerHybrid::ComposeEither(QStabilizerHybridPtr toCopy, bool wil
         toRet = willDestroy ? engine->ComposeNoClone(toCopy->engine) : engine->Compose(toCopy->engine);
     } else {
         toRet = stabilizer->Compose(toCopy->stabilizer, qubitCount);
-        stabilizer->ROR(deadAncillaCount, qubitCount + ancillaCount,
-            deadAncillaCount + toCopy->ancillaCount + toCopy->deadAncillaCount);
+        stabilizer->ROR(toCopy->deadAncillaCount, qubitCount + toCopy->qubitCount + toCopy->ancillaCount,
+            toCopy->deadAncillaCount + ancillaCount);
         ancillaCount += toCopy->ancillaCount;
         deadAncillaCount += toCopy->deadAncillaCount;
     }
