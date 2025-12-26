@@ -24,7 +24,6 @@ target_link_libraries (cosmology ${QRACK_LIBS})
 
 if ((FPPOW EQUAL 5) OR (FPPOW EQUAL 6))
     if(POLICY CMP0074)
-        cmake_policy(SET CMP0074 NEW)
         find_package(Eigen3 CONFIG)
     else(POLICY CMP0074)
         find_package(Eigen3)
