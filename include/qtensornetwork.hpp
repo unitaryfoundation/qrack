@@ -265,7 +265,10 @@ public:
         SetQubitCount(qubitCount - dest->GetQubitCount());
         return toRet;
     }
-    bool TrySeparate(const std::vector<bitLenInt>& qubits, real1_f error_tol) { return layerStack->TrySeparate(qubits, error_tol); }
+    bool TrySeparate(const std::vector<bitLenInt>& qubits, real1_f error_tol)
+    {
+        return layerStack->TrySeparate(qubits, error_tol);
+    }
     bool TrySeparate(bitLenInt qubit) { return layerStack->TrySeparate(qubit); }
     bool TrySeparate(bitLenInt qubit1, bitLenInt qubit2) { return layerStack->TrySeparate(qubit1, qubit2); }
 
