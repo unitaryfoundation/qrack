@@ -16,10 +16,15 @@
 
 #if defined(_WIN32)
 #include <intrin.h>
-#elif ENABLE_SSE3
+#else
+#if ENABLE_SSE3
 #include <pmmintrin.h>
 #else
 #include <xmmintrin.h>
+#endif
+#if ENABLE_FMA
+#include <immintrin.h>
+#endif
 #endif
 
 #include <complex>
