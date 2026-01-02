@@ -250,10 +250,10 @@ $ cmake -DENABLE_COMPLEX_X2=ON ..
 ```
 Multiply complex numbers two at a time instead of one at a time. Requires AVX for double and SSE 1.0 (with optional SSE 3.0) for float. On by default, but can be turned off for double accuracy without the AVX requirement, or to completely remove vectorization with single float accuracy.
 
-If `-DENABLE_COMPLEX_X2=ON`, then SSE 3.0 is used by default. Turn off the following option to limit to SSE 1.0 level:
+If `-DENABLE_COMPLEX_X2=ON`, then SSE 3.0 is used by default (for 32-bit and 64-bit floating-point builds), AVX2 is used for 64-bit floating-point builds, and FMA instruction is emitted. For cross-platform compatibility of newer binaries to older `x86_64` targets, each of these can be separately toggled on-or-off:
 
 ```sh
-$ cmake -DENABLE_SSE3=OFF ..
+$ cmake -DENABLE_SSE3=OFF -DENABLE_AVX=OFF -DENABLE_FMA=OFF ..
 ```
 ## Random number generation options (on-chip by default)
 
