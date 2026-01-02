@@ -134,10 +134,17 @@ inline complex2 matrixMul(const complex2& mtrxCol1, const complex2& mtrxCol2, co
     );
 #else
     return _mm_add_ps(
-        _mm_add_ps(_mm_mul_ps(mtrxCol1Shuff.c2, _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(dupeLo, dupeLo, 245))),
-            _mm_mul_ps(col1, _mm_shuffle_ps(dupeLo, dupeLo, 160))),
-        _mm_add_ps(_mm_mul_ps(mtrxCol2Shuff.c2, _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(dupeHi, dupeHi, 245))),
-            _mm_mul_ps(col2, _mm_shuffle_ps(dupeHi, dupeHi, 160))));
+        _mm_add_ps(_mm_mul_ps(
+            mtrxCol1Shuff.c2,
+            _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(dupeLo, dupeLo, 245))),
+            _mm_mul_ps(col1, _mm_shuffle_ps(dupeLo, dupeLo, 160)
+        )),
+        _mm_add_ps(_mm_mul_ps(
+            mtrxCol2Shuff.c2,
+            _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(dupeHi, dupeHi, 245))),
+            _mm_mul_ps(col2, _mm_shuffle_ps(dupeHi, dupeHi, 160)
+        ))
+    );
 #endif
 }
 inline complex2 matrixMul(const float& nrm, const complex2& mtrxCol1, const complex2& mtrxCol2,
