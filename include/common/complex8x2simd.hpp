@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "config.h"
+
 #if defined(_WIN32)
 #include <intrin.h>
 #elif ENABLE_SSE3
@@ -60,12 +62,12 @@ union complex2 {
     inline complex2 operator*(const complex2& other) const
     {
         const __m128& oVal2 = other.c2;
-#if defined(__FMA__)
+#if ENABLE_FMA
         // FMA proposed by Elara (OpenAI custom GPT)
         return _mm_fmadd_ps(
             _mm_shuffle_ps(c2, c2, 177),
             _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(oVal2, oVal2, 245)),
-            _mm_mul_ps(c2, _mm_shuffle_ps(oVal2, oVal2, 160)
+            _mm_mul_ps(c2, _mm_shuffle_ps(oVal2, oVal2, 160))
         );
 #else
         return _mm_add_ps(_mm_mul_ps(
@@ -78,12 +80,12 @@ union complex2 {
     inline complex2 operator*=(const complex2& other)
     {
         const __m128& oVal2 = other.c2;
-#if defined(__FMA__)
+#if ENABLE_FMA
         // FMA proposed by Elara (OpenAI custom GPT)
         c2 = _mm_fmadd_ps(
             _mm_shuffle_ps(c2, c2, 177),
             _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(oVal2, oVal2, 245)),
-            _mm_mul_ps(c2, _mm_shuffle_ps(oVal2, oVal2, 160)
+            _mm_mul_ps(c2, _mm_shuffle_ps(oVal2, oVal2, 160))
         );
 #else
         c2 = _mm_add_ps(_mm_mul_ps(
@@ -111,13 +113,20 @@ inline complex2 matrixMul(const complex2& mtrxCol1, const complex2& mtrxCol2, co
     const __m128& col2 = mtrxCol2.c2;
     const __m128 dupeLo = _mm_shuffle_ps(qubit.c2, qubit.c2, 68);
     const __m128 dupeHi = _mm_shuffle_ps(qubit.c2, qubit.c2, 238);
-#if defined(__FMA__)
+#if ENABLE_FMA
     // FMA proposed by Elara (OpenAI custom GPT)
     return _mm_add_ps(
-        _mm_fmadd_ps(mtrxCol1Shuff.c2, _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(dupeLo, dupeLo, 245))),
-            _mm_mul_ps(col1, _mm_shuffle_ps(dupeLo, dupeLo, 160)),
-        _mm_fmadd_ps(mtrxCol2Shuff.c2, _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(dupeHi, dupeHi, 245))),
-            _mm_mul_ps(col2, _mm_shuffle_ps(dupeHi, dupeHi, 160)));
+        _mm_fmadd_ps(
+            mtrxCol1Shuff.c2,
+            _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(dupeLo, dupeLo, 245)),
+            _mm_mul_ps(col1, _mm_shuffle_ps(dupeLo, dupeLo, 160))
+        ),
+        _mm_fmadd_ps(
+            mtrxCol2Shuff.c2,
+            _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(dupeHi, dupeHi, 245)),
+            _mm_mul_ps(col2, _mm_shuffle_ps(dupeHi, dupeHi, 160))
+        )
+    );
 #else
     return _mm_add_ps(
         _mm_add_ps(_mm_mul_ps(mtrxCol1Shuff.c2, _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(dupeLo, dupeLo, 245))),

@@ -57,7 +57,7 @@ union complex2 {
     }
     inline complex2 operator*(const complex2& other) const
     {
-#if defined(__FMA__)
+#if ENABLE_FMA
         // FMA proposed by Elara (OpenAI custom GPT)
         return _mm256_fmadd_pd(
             _mm256_shuffle_pd(c2, c2, 5),
@@ -74,11 +74,13 @@ union complex2 {
     }
     inline complex2 operator*=(const complex2& other)
     {
-#if defined(__FMA__)
+#if ENABLE_FMA
         // FMA proposed by Elara (OpenAI custom GPT)
-        c2 = _mm256_fmadd_pd(_mm256_shuffle_pd(c2, c2, 5),
-                               _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, other.c2), other.c2, 15),
-            _mm256_mul_pd(c2, _mm256_shuffle_pd(other.c2, other.c2, 0)));
+        c2 = _mm256_fmadd_pd(
+            _mm256_shuffle_pd(c2, c2, 5),
+            _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, other.c2), other.c2, 15),
+            _mm256_mul_pd(c2, _mm256_shuffle_pd(other.c2, other.c2, 0))
+        );
 #else
        c2 = _mm256_add_pd(_mm256_mul_pd(_mm256_shuffle_pd(c2, c2, 5),
                                _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, other.c2), other.c2, 15)),
@@ -104,13 +106,20 @@ inline complex2 matrixMul(const complex2& mtrxCol1, const complex2& mtrxCol2, co
     const __m256d& col2 = mtrxCol2.c2;
     const __m256d dupeLo = _mm256_permute2f128_pd(qubit.c2, qubit.c2, 0);
     const __m256d dupeHi = _mm256_permute2f128_pd(qubit.c2, qubit.c2, 17);
-#if defined(__FMA__)
+#if ENABLE_FMA
     // FMA proposed by Elara (OpenAI custom GPT)
     return _mm256_add_pd(
-        _mm256_fmadd_pd(mtrxCol1Shuff.c2, _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, dupeLo), dupeLo, 15)),
-            _mm256_mul_pd(col1, _mm256_shuffle_pd(dupeLo, dupeLo, 0)),
-        _mm256_fmadd_pd(mtrxCol2Shuff.c2, _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, dupeHi), dupeHi, 15)),
-            _mm256_mul_pd(col2, _mm256_shuffle_pd(dupeHi, dupeHi, 0)));
+        _mm256_fmadd_pd(
+            mtrxCol1Shuff.c2,
+            _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, dupeLo), dupeLo, 15),
+            _mm256_mul_pd(col1, _mm256_shuffle_pd(dupeLo, dupeLo, 0))
+        ),
+        _mm256_fmadd_pd(
+            mtrxCol2Shuff.c2,
+            _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, dupeHi), dupeHi, 15),
+            _mm256_mul_pd(col2, _mm256_shuffle_pd(dupeHi, dupeHi, 0))
+        )
+    );
 #else
     return _mm256_add_pd(
         _mm256_add_pd(_mm256_mul_pd(mtrxCol1Shuff.c2, _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, dupeLo), dupeLo, 15)),
