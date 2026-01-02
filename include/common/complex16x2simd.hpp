@@ -77,7 +77,7 @@ union complex2 {
 #if defined(__FMA__)
         // FMA proposed by Elara (OpenAI custom GPT)
         c2 = _mm256_fmadd_pd(_mm256_shuffle_pd(c2, c2, 5),
-                               _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, other.c2), other.c2, 15)),
+                               _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, other.c2), other.c2, 15),
             _mm256_mul_pd(c2, _mm256_shuffle_pd(other.c2, other.c2, 0)));
 #else
        c2 = _mm256_add_pd(_mm256_mul_pd(_mm256_shuffle_pd(c2, c2, 5),

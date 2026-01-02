@@ -64,7 +64,7 @@ union complex2 {
         // FMA proposed by Elara (OpenAI custom GPT)
         return _mm_fmadd_ps(
             _mm_shuffle_ps(c2, c2, 177),
-            _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(oVal2, oVal2, 245))),
+            _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(oVal2, oVal2, 245)),
             _mm_mul_ps(c2, _mm_shuffle_ps(oVal2, oVal2, 160)
         );
 #else
@@ -82,7 +82,7 @@ union complex2 {
         // FMA proposed by Elara (OpenAI custom GPT)
         c2 = _mm_fmadd_ps(
             _mm_shuffle_ps(c2, c2, 177),
-            _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(oVal2, oVal2, 245))),
+            _mm_xor_ps(SIGNMASK, _mm_shuffle_ps(oVal2, oVal2, 245)),
             _mm_mul_ps(c2, _mm_shuffle_ps(oVal2, oVal2, 160)
         );
 #else
