@@ -57,9 +57,20 @@ union complex2 {
     }
     inline complex2 operator*(const complex2& other) const
     {
-        return _mm256_add_pd(_mm256_mul_pd(_mm256_shuffle_pd(c2, c2, 5),
-                                 _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, other.c2), other.c2, 15)),
-            _mm256_mul_pd(c2, _mm256_shuffle_pd(other.c2, other.c2, 0)));
+#if defined(__FMA__)
+        // Proposed by Elara (OpenAI custom GPT)
+        return _mm256_fmadd_pd(
+            _mm256_shuffle_pd(c2, c2, 5),
+            _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, other.c2), other.c2, 15),
+            _mm256_mul_pd(c2, _mm256_shuffle_pd(other.c2, other.c2, 0))
+        );
+#else
+        return _mm256_add_pd(_mm256_mul_pd(
+            _mm256_shuffle_pd(c2, c2, 5),
+            _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, other.c2), other.c2, 15)),
+            _mm256_mul_pd(c2, _mm256_shuffle_pd(other.c2, other.c2, 0)
+        ));
+#endif
     }
     inline complex2 operator*=(const complex2& other)
     {
@@ -70,9 +81,9 @@ union complex2 {
     }
     inline complex2 operator*(const double& rhs) const { return _mm256_mul_pd(c2, _mm256_set1_pd(rhs)); }
     inline complex2 operator-() const { return _mm256_mul_pd(_mm256_set1_pd(-1.0), c2); }
-    inline complex2 operator*=(const double& other)
+    inline complex2 operator*=(const double& rhs)
     {
-        c2 = _mm256_mul_pd(c2, _mm256_set1_pd(other));
+        c2 = _mm256_mul_pd(c2, _mm256_set1_pd(rhs));
         return c2;
     }
 };
@@ -85,11 +96,20 @@ inline complex2 matrixMul(const complex2& mtrxCol1, const complex2& mtrxCol2, co
     const __m256d& col2 = mtrxCol2.c2;
     const __m256d dupeLo = _mm256_permute2f128_pd(qubit.c2, qubit.c2, 0);
     const __m256d dupeHi = _mm256_permute2f128_pd(qubit.c2, qubit.c2, 17);
+#if defined(__FMA__)
+    // Proposed by Elara (OpenAI custom GPT)
+    return _mm256_add_pd(
+        _mm256_fmadd_pd(mtrxCol1Shuff.c2, _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, dupeLo), dupeLo, 15)),
+            _mm256_mul_pd(col1, _mm256_shuffle_pd(dupeLo, dupeLo, 0)),
+        _mm256_fmadd_pd(mtrxCol2Shuff.c2, _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, dupeHi), dupeHi, 15)),
+            _mm256_mul_pd(col2, _mm256_shuffle_pd(dupeHi, dupeHi, 0)));
+#else
     return _mm256_add_pd(
         _mm256_add_pd(_mm256_mul_pd(mtrxCol1Shuff.c2, _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, dupeLo), dupeLo, 15)),
             _mm256_mul_pd(col1, _mm256_shuffle_pd(dupeLo, dupeLo, 0))),
         _mm256_add_pd(_mm256_mul_pd(mtrxCol2Shuff.c2, _mm256_shuffle_pd(_mm256_xor_pd(SIGNMASK, dupeHi), dupeHi, 15)),
             _mm256_mul_pd(col2, _mm256_shuffle_pd(dupeHi, dupeHi, 0))));
+#endif
 }
 inline complex2 matrixMul(const float& nrm, const complex2& mtrxCol1, const complex2& mtrxCol2,
     const complex2& mtrxCol1Shuff, const complex2& mtrxCol2Shuff, const complex2& qubit)
@@ -100,8 +120,10 @@ inline complex2 operator*(const double& lhs, const complex2& rhs) { return _mm25
 
 inline double norm(const complex2& c)
 {
-    const complex2 cu(_mm256_mul_pd(c.c2, c.c2));
-    return (cu.f[0] + cu.f[1] + cu.f[2] + cu.f[3]);
+    // Suggested by Elara (OpenAI custom GPT)
+    const __m256d sq = _mm256_mul_pd(c.c2, c.c2);
+    const __m256d sum = _mm256_hadd_pd(sq, sq);
+    return _mm_cvtsd_f64(_mm_add_pd(_mm256_castpd256_pd128(sum), _mm256_extractf128_pd(sum, 1)));
 }
 
 } // namespace Qrack
