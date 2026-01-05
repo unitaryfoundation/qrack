@@ -82,6 +82,25 @@
 #define SIMULATOR_LOCK_GUARD_INT(sid) SIMULATOR_LOCK_GUARD_TYPED(sid, 0U)
 
 #if CPP_STD > 13
+#define NEURON_ONLY_LOCK_GUARD(neuron)                                                                                 \
+    std::unique_ptr<const std::lock_guard<std::mutex>> neuronLock;                                                     \
+    if (true) {                                                                                                        \
+        std::lock(metaOperationMutex, neuronMutexes[neuron.get()]);                                                    \
+        const std::lock_guard<std::mutex> metaLock(metaOperationMutex, std::adopt_lock);                               \
+        neuronLock =                                                                                                   \
+            std::make_unique<const std::lock_guard<std::mutex>>(neuronMutexes[neuron.get()], std::adopt_lock);         \
+    }
+#else
+#define NEURON_ONLY_LOCK_GUARD(neuron)                                                                                 \
+    std::unique_ptr<const std::lock_guard<std::mutex>> neuronLock;                                                     \
+    if (true) {                                                                                                        \
+        const std::lock_guard<std::mutex> metaLock(metaOperationMutex, std::adopt_lock);                               \
+        neuronLock = std::unique_ptr<const std::lock_guard<std::mutex>>(                                               \
+            new const std::lock_guard<std::mutex>(neuronMutexes[neuron.get()], std::adopt_lock));                      \
+    }
+#endif
+
+#if CPP_STD > 13
 #define NEURON_LOCK_GUARD(neuron)                                                                                      \
     std::unique_ptr<const std::lock_guard<std::mutex>> neuronLock;                                                     \
     std::unique_ptr<const std::lock_guard<std::mutex>> simulatorLock;                                                  \
@@ -116,6 +135,19 @@
                                                                                                                        \
     QNeuronPtr neuron = neurons[nid];                                                                                  \
     NEURON_LOCK_GUARD(neuron)                                                                                          \
+    if (!neuron) {                                                                                                     \
+        return;                                                                                                        \
+    }
+
+#define NEURON_ONLY_LOCK_GUARD_VOID(nid)                                                                               \
+    if (nid > neurons.size()) {                                                                                        \
+        std::cout << "Invalid argument: neuron ID not found!" << std::endl;                                            \
+        metaError = 2;                                                                                                 \
+        return;                                                                                                        \
+    }                                                                                                                  \
+                                                                                                                       \
+    QNeuronPtr neuron = neurons[nid];                                                                                  \
+    NEURON_ONLY_LOCK_GUARD(neuron)                                                                                     \
     if (!neuron) {                                                                                                     \
         return;                                                                                                        \
     }
@@ -3841,6 +3873,14 @@ MICROSOFT_QUANTUM_DECL void get_qneuron_angles(_In_ uintq nid, _In_ real1_s* ang
     std::transform(_angles.get(), _angles.get() + inputPower, angles, [](real1 d) { return (double)d; });
 #endif
 #endif
+}
+
+MICROSOFT_QUANTUM_DECL void set_qneuron_sim(_In_ uintq nid, _In_ uintq sid)
+{
+    NEURON_ONLY_LOCK_GUARD_VOID(nid)
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+
+    neuron->SetSimulator(simulator);
 }
 
 MICROSOFT_QUANTUM_DECL void set_qneuron_alpha(_In_ uintq nid, _In_ double alpha)

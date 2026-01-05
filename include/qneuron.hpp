@@ -115,6 +115,12 @@ public:
         return *this;
     }
 
+    /** Replace the simulator **/
+    void SetSimulator(QInterfacePtr sim) { qReg = sim; }
+
+    /** Retrieve the simulator **/
+    QInterfacePtr GetSimulator() { return qReg; }
+
     /** Set the "alpha" sharpness parameter of this QNeuron */
     void SetAlpha(real1_f a) { alpha = a; }
 
