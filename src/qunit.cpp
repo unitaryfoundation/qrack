@@ -2109,7 +2109,7 @@ void QUnit::IS(bitLenInt target)
             }                                                                                                          \
             unit->ctrld;                                                                                               \
         },                                                                                                             \
-        false, false, controlPerm, 1.0 - PhaseFidelity(mtrx[0U]) * PhaseFidelity(mtrx[3U]));
+        false, controlPerm, 1.0 - PhaseFidelity(mtrx[0U]) * PhaseFidelity(mtrx[3U]));
 
 #define CTRLED_PHASE_INVERT_WRAP(ctrld, ctrldgen, isInvert, top, bottom)                                               \
     ApplyEitherControlled(                                                                                             \
@@ -2135,8 +2135,7 @@ void QUnit::IS(bitLenInt target)
                 unit->ctrld;                                                                                           \
             }                                                                                                          \
         },                                                                                                             \
-        !isInvert, !(IS_NORM_0(ONE_CMPLX - top) || IS_NORM_0(ONE_CMPLX - bottom)), controlPerm,                        \
-        isInvert ? 1.0 : (1.0 - PhaseFidelity(top) * PhaseFidelity(bottom)));
+        !isInvert, controlPerm, isInvert ? 1.0 : (1.0 - PhaseFidelity(top) * PhaseFidelity(bottom)));
 
 #define CTRLED_SWAP_WRAP(ctrld, bare, anti)                                                                            \
     ThrowIfQbIdArrayIsBad(controls, qubitCount,                                                                        \
@@ -2163,7 +2162,7 @@ void QUnit::IS(bitLenInt target)
     }                                                                                                                  \
     ApplyEitherControlled(                                                                                             \
         controlVec, { qubit1, qubit2 },                                                                                \
-        [&](QInterfacePtr unit, std::vector<bitLenInt> mappedControls) { unit->ctrld; }, false, false,                 \
+        [&](QInterfacePtr unit, std::vector<bitLenInt> mappedControls) { unit->ctrld; }, false,                        \
         anti ? ZERO_BCI : (pow2(controls.size()) - ONE_BCI), 1.0)
 #define CTRL_GEN_ARGS mappedControls, trnsMtrx, shards[target].mapped, controlPerm
 #define CTRL_S_ARGS mappedControls, shards[qubit1].mapped, shards[qubit2].mapped
@@ -2347,12 +2346,7 @@ void QUnit::UCPhase(const std::vector<bitLenInt>& lControls, const complex& topL
         }
     }
 
-    try {
-        CTRLED_PHASE_INVERT_WRAP(UCPhase(CTRL_P_ARGS), UCMtrx(CTRL_GEN_ARGS), false, topLeft, bottomRight);
-    } catch (const bad_alloc& e) {
-        UCPhase(lControls, topLeft, ONE_CMPLX, target, _controlPerm);
-        UCPhase(lControls, ONE_CMPLX, bottomRight, target, _controlPerm);
-    }
+    CTRLED_PHASE_INVERT_WRAP(UCPhase(CTRL_P_ARGS), UCMtrx(CTRL_GEN_ARGS), false, topLeft, bottomRight);
 }
 
 void QUnit::UCInvert(const std::vector<bitLenInt>& lControls, const complex& topRight, const complex& bottomLeft,
@@ -2651,7 +2645,7 @@ bool QUnit::TrimControls(const std::vector<bitLenInt>& controls, std::vector<bit
 
 template <typename CF>
 void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::vector<bitLenInt> targets, CF cfn,
-    bool isPhase, bool isDoublePhase, const bitCapInt& controlPerm, const double payloadInfidelity)
+    bool isPhase, const bitCapInt& controlPerm, const double payloadInfidelity)
 {
     // If we've made it this far, we have to form the entangled representation and apply the gate.
 
@@ -2700,7 +2694,7 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
         cfn(unit, controlVec);
     } catch (const bad_alloc& e) {
         // We overallocated; use a really primitive classical shadow, at least.
-        if (freezeBasis2Qb || isDoublePhase) {
+        if (freezeBasis2Qb) {
             throw e;
         }
 
@@ -3988,8 +3982,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
-        logFidelity +=
-            (double)log(ONE_R1_F - (ONE_R1_F - pState ? pHi : (ONE_R1_F - pLo)) * (1.0 - PhaseFidelity(polarBottom)));
+        logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - pState ? pHi : (ONE_R1_F - pLo)) * (1.0 - PhaseFidelity(polarBottom)));
         CheckFidelity();
 
         pc = ONE_R1_F - pc;
@@ -4008,8 +4001,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
-        logFidelity +=
-            (double)log(ONE_R1_F - (ONE_R1_F - pState ? pHi : (ONE_R1_F - pLo)) * (1.0 - PhaseFidelity(polarTop)));
+        logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - pState ? pHi : (ONE_R1_F - pLo)) * (1.0 - PhaseFidelity(polarTop)));
         CheckFidelity();
 
         if (phaseShard->isInvert && !didNegate) {
