@@ -2109,7 +2109,7 @@ void QUnit::IS(bitLenInt target)
             }                                                                                                          \
             unit->ctrld;                                                                                               \
         },                                                                                                             \
-        false, controlPerm);
+        false, controlPerm, PayloadInfidelity2x2(mtrx[0U], mtrx[3U]));
 
 #define CTRLED_PHASE_INVERT_WRAP(ctrld, ctrldgen, isInvert, top, bottom)                                               \
     ApplyEitherControlled(                                                                                             \
@@ -2135,7 +2135,7 @@ void QUnit::IS(bitLenInt target)
                 unit->ctrld;                                                                                           \
             }                                                                                                          \
         },                                                                                                             \
-        !isInvert, controlPerm);
+        !isInvert, controlPerm, isInvert ? 1.0 : PayloadInfidelity2x2(top, bottom));
 
 #define CTRLED_SWAP_WRAP(ctrld, bare, anti)                                                                            \
     ThrowIfQbIdArrayIsBad(controls, qubitCount,                                                                        \
@@ -2163,7 +2163,7 @@ void QUnit::IS(bitLenInt target)
     ApplyEitherControlled(                                                                                             \
         controlVec, { qubit1, qubit2 },                                                                                \
         [&](QInterfacePtr unit, std::vector<bitLenInt> mappedControls) { unit->ctrld; }, false,                        \
-        anti ? ZERO_BCI : (pow2(controls.size()) - ONE_BCI))
+        anti ? ZERO_BCI : (pow2(controls.size()) - ONE_BCI), 1.0)
 #define CTRL_GEN_ARGS mappedControls, trnsMtrx, shards[target].mapped, controlPerm
 #define CTRL_S_ARGS mappedControls, shards[qubit1].mapped, shards[qubit2].mapped
 #define CTRL_P_ARGS mappedControls, topLeft, bottomRight, shards[target].mapped, controlPerm
@@ -2645,7 +2645,7 @@ bool QUnit::TrimControls(const std::vector<bitLenInt>& controls, std::vector<bit
 
 template <typename CF>
 void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::vector<bitLenInt> targets, CF cfn,
-    bool isPhase, const bitCapInt& controlPerm)
+    bool isPhase, const bitCapInt& controlPerm, const double payloadInfidelity)
 {
     // If we've made it this far, we have to form the entangled representation and apply the gate.
 
@@ -2741,9 +2741,9 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
             shard.isPhaseDirty = true;
             shard.isProbDirty |= (shard.pauliBasis != PauliZ) || !isPhase;
             cfn(unit, intraControlVec);
-            logFidelity += (double)log(p);
+            logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - p) * payloadInfidelity);
         } else {
-            logFidelity += (double)log(ONE_R1_F - p);
+            logFidelity += (double)log(ONE_R1_F - p * payloadInfidelity);
         }
 
         CheckFidelity();

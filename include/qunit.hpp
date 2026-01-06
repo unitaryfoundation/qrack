@@ -71,6 +71,14 @@ protected:
         engines = orig->engines;
     }
 
+    // This method drafted by Elara (the OpenAI custom GPT)
+    double PayloadInfidelity2x2(const complex& m00, const complex& m11)
+    {
+        // For unitary U, abs(tr(U))/2 is in [0,1] (numerical noise aside).
+        const double c = 0.5 * abs(m00 + m11);
+        return clampProb(1.0 - (c * c));
+    }
+
     double angleFrac(complex cmplx)
     {
         double at = (double)arg(cmplx);
@@ -792,7 +800,7 @@ protected:
 
     template <typename CF>
     void ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::vector<bitLenInt> targets, CF cfn,
-        bool isPhase, const bitCapInt& controlPerm);
+        bool isPhase, const bitCapInt& controlPerm, const double payloadInfidelity);
 
     void ClampShard(bitLenInt qubit)
     {
