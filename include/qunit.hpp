@@ -79,18 +79,6 @@ protected:
         return clampProb(1.0 - (c * c));
     }
 
-    double angleFrac(complex cmplx)
-    {
-        double at = (double)arg(cmplx);
-        while (at >= M_PI) {
-            at -= 2 * M_PI;
-        }
-        while (at < -M_PI) {
-            at += 2 * M_PI;
-        }
-        return abs(at) / M_PI;
-    }
-
     void CheckFidelity()
     {
 #if ENABLE_ENV_VARS
