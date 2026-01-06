@@ -2109,7 +2109,7 @@ void QUnit::IS(bitLenInt target)
             }                                                                                                          \
             unit->ctrld;                                                                                               \
         },                                                                                                             \
-        false, controlPerm, PayloadInfidelity2x2(mtrx[0U], mtrx[3U]));
+        false, controlPerm, 1.0 - PhaseFidelity(mtrx[0U]) * PhaseFidelity(mtrx[3U]));
 
 #define CTRLED_PHASE_INVERT_WRAP(ctrld, ctrldgen, isInvert, top, bottom)                                               \
     ApplyEitherControlled(                                                                                             \
@@ -2135,7 +2135,7 @@ void QUnit::IS(bitLenInt target)
                 unit->ctrld;                                                                                           \
             }                                                                                                          \
         },                                                                                                             \
-        !isInvert, controlPerm, isInvert ? 1.0 : PayloadInfidelity2x2(top, bottom));
+        !isInvert, controlPerm, isInvert ? 1.0 : (1.0 - PhaseFidelity(top) * PhaseFidelity(bottom)));
 
 #define CTRLED_SWAP_WRAP(ctrld, bare, anti)                                                                            \
     ThrowIfQbIdArrayIsBad(controls, qubitCount,                                                                        \
@@ -3982,7 +3982,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
-        logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - pState ? pHi : (ONE_R1_F - pLo)) * PayloadInfidelity2x2(1.0, polarBottom));
+        logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - pState ? pHi : (ONE_R1_F - pLo)) * (1.0 - PhaseFidelity(polarBottom)));
         CheckFidelity();
 
         pc = ONE_R1_F - pc;
@@ -4001,7 +4001,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
-        logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - pState ? pHi : (ONE_R1_F - pLo)) * PayloadInfidelity2x2(polarTop, 1.0));
+        logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - pState ? pHi : (ONE_R1_F - pLo)) * (1.0 - PhaseFidelity(polarTop)));
         CheckFidelity();
 
         if (phaseShard->isInvert && !didNegate) {

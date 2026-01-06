@@ -71,12 +71,9 @@ protected:
         engines = orig->engines;
     }
 
-    // This method drafted by Elara (the OpenAI custom GPT)
-    double PayloadInfidelity2x2(const complex& m00, const complex& m11)
+    double PhaseFidelity(const complex& p)
     {
-        // For unitary U, abs(tr(U))/2 is in [0,1] (numerical noise aside).
-        const double c = 0.5 * abs(m00 + m11);
-        return clampProb(1.0 - (c * c));
+        return (0.5 * abs(ONE_CMPLX + p));
     }
 
     void CheckFidelity()
