@@ -39,7 +39,7 @@ protected:
 #if ENABLE_QUNIT_CPU_PARALLEL && ENABLE_PTHREAD
     DispatchQueue dispatchQueue;
 #endif
-    double fidelity;
+    double logFidelity;
     bool isSparse;
 
     using QEngine::Copy;
@@ -48,7 +48,7 @@ protected:
     {
         QEngine::Copy(std::dynamic_pointer_cast<QEngine>(orig));
         stateVec = orig->stateVec;
-        fidelity = orig->fidelity;
+        logFidelity = orig->logFidelity;
         isSparse = orig->isSparse;
     }
 
@@ -100,13 +100,13 @@ public:
         Dump();
         FreeStateVec();
         runningNorm = ZERO_R1;
-        fidelity = 1.0;
+        logFidelity = 0.0;
     }
 
     void TruncateBySize()
     {
         if (isSparse) {
-            fidelity *= CastStateVecSparse()->truncate_to_size(QRACK_SPARSE_MAX_KEYS);
+            logFidelity += (double)log(CastStateVecSparse()->truncate_to_size(QRACK_SPARSE_MAX_KEYS));
         }
     }
 
@@ -115,10 +115,10 @@ public:
         StateVectorSparsePtr sv = CastStateVecSparse();
         if ((totFidelityLoss > REAL1_EPSILON) && (sv->size() <= QRACK_SPARSE_MAX_KEYS)) {
             const double f = 1.0 - (double)totFidelityLoss;
-            fidelity *= f;
+            logFidelity += (double)log(f);
             sv->mult((real1_f)std::sqrt(1.0 / f));
         } else {
-            fidelity *= sv->truncate_to_size(QRACK_SPARSE_MAX_KEYS);
+            logFidelity += (double)log(sv->truncate_to_size(QRACK_SPARSE_MAX_KEYS));
         }
     }
 
@@ -131,8 +131,8 @@ public:
         return maxQPower;
     }
 
-    double GetUnitaryFidelity() { return fidelity; }
-    void ResetUnitaryFidelity() { fidelity = 1.0; }
+    double GetUnitaryFidelity() { return exp(logFidelity); }
+    void ResetUnitaryFidelity() { logFidelity = 0.0; }
 
     bool IsZeroAmplitude() { return !stateVec; }
     void GetAmplitudePage(complex* pagePtr, bitCapIntOcl offset, bitCapIntOcl length);

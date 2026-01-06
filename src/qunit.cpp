@@ -2746,7 +2746,7 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
             logFidelity += (double)log(ONE_R1_F - p);
         }
 
-        return CheckFidelity();
+        CheckFidelity();
     }
 
     if (!isReactiveSeparate || freezeBasis2Qb) {
