@@ -3971,6 +3971,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         real1_f pHi = ptHi ? pt : pc;
         real1_f pLo = ptHi ? pc : pt;
         bool pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
+        real1_f infidelity = (ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo))) * (1.0 - PhaseFidelity(polarBottom));
 
         if (pState) {
             if (!ptHi) {
@@ -3982,14 +3983,12 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
-        logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo))) * (1.0 - PhaseFidelity(polarBottom)));
-        CheckFidelity();
-
         pc = ONE_R1_F - pc;
         ptHi = pt > pc;
         pHi = ptHi ? pt : pc;
         pLo = ptHi ? pc : pt;
         pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
+        infidelity = (infidelity + (ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo))) * (1.0 - PhaseFidelity(polarTop))) / 2;
 
         if (!pState) {
             if (ptHi) {
@@ -4001,7 +4000,8 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
-        logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo))) * (1.0 - PhaseFidelity(polarTop)));
+
+        logFidelity += (double)log(ONE_R1_F - infidelity);
         CheckFidelity();
 
         if (phaseShard->isInvert && !didNegate) {
