@@ -71,7 +71,10 @@ protected:
         engines = orig->engines;
     }
 
-    double PhaseFidelity(const complex& p) { return (0.5 * abs(ONE_CMPLX + p)); }
+    double PhaseFidelity(const complex& p)
+    {
+        return (0.5 * abs(ONE_CMPLX + p));
+    }
 
     void CheckFidelity()
     {
@@ -782,7 +785,7 @@ protected:
 
     template <typename CF>
     void ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::vector<bitLenInt> targets, CF cfn,
-        bool isPhase, bool isDoublePhase, const bitCapInt& controlPerm, const double payloadInfidelity);
+        bool isPhase, const bitCapInt& controlPerm, const double payloadInfidelity);
 
     void ClampShard(bitLenInt qubit)
     {
