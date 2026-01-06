@@ -3971,9 +3971,8 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         real1_f pHi = ptHi ? pt : pc;
         real1_f pLo = ptHi ? pc : pt;
         bool pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
-        const real1_f probBottom = (pState ? pHi : (ONE_R1_F - pLo));
+        const real1_f probInfidelityBottom = ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo));
         const real1_f bottomFactor = ONE_R1_F - PhaseFidelity(polarBottom);
-        const real1_f infidelityBottom = (ONE_R1_F - probBottom) * bottomFactor;
 
         if (pState) {
             if (!ptHi) {
@@ -3990,9 +3989,8 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         pHi = ptHi ? pt : pc;
         pLo = ptHi ? pc : pt;
         pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
-        const real1_f probTop = (pState ? pHi : (ONE_R1_F - pLo));
+        const real1_f probInfidelityTop = ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo));
         const real1_f topFactor = ONE_R1_F - PhaseFidelity(polarTop);
-        const real1_f infidelityTop = (ONE_R1_F - probTop) * topFactor;
 
         if (!pState) {
             if (ptHi) {
@@ -4004,8 +4002,8 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
-        const double composedLogFidelity = (double)(log(ONE_R1_F - infidelityBottom) + log(ONE_R1_F - infidelityTop));
-        const double maxLogFidelity = (double)log(ONE_R1_F - (infidelityBottom + infidelityTop) / 2);
+        const double composedLogFidelity = (double)(log(ONE_R1_F - probInfidelityBottom * bottomFactor) + log(ONE_R1_F - probInfidelityTop * bottomFactor));
+        const double maxLogFidelity = (double)log(ONE_R1_F - bottomFactor * topFactor * (probInfidelityBottom + probInfidelityTop) / 2);
 
         logFidelity += std::max(composedLogFidelity, maxLogFidelity);
         CheckFidelity();
