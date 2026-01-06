@@ -4003,7 +4003,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         }
 
         const double composedLogFidelity = (double)(log(ONE_R1_F - probInfidelityBottom * bottomFactor) + log(ONE_R1_F - probInfidelityTop * bottomFactor));
-        const double maxLogFidelity = (double)log(ONE_R1_F - bottomFactor * topFactor * (probInfidelityBottom + probInfidelityTop) / 2);
+        const double maxLogFidelity = (double)log(ONE_R1_F - sqrt(bottomFactor * probInfidelityBottom * topFactor * probInfidelityTop));
 
         logFidelity += std::max(composedLogFidelity, maxLogFidelity);
         CheckFidelity();
