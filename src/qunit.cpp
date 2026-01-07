@@ -2708,6 +2708,7 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
             unit = Entangle(targets);
         }
 
+        bitLenInt interControlCount = 0U;
         std::vector<bitLenInt> intraControlVec;
         std::map<QInterfacePtr, bitCapInt> intraMaskMap;
         std::map<QInterfacePtr, bitCapInt> intraPermMap;
@@ -2718,6 +2719,7 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
             if (!shard.unit) {
                 const real1_f b = Prob(c);
                 p *= (bi_and_1(controlPerm >> i) != 0U) ? b : (ONE_R1_F - b);
+                ++interControlCount;
             } else if (unit == shard.unit) {
                 intraControlVec.push_back(c);
             } else {
@@ -2727,6 +2729,7 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
                 if (bi_and_1(controlPerm >> i) != 0U) {
                     intraPermMap[u] = intraPermMap[u] | offset;
                 }
+                ++interControlCount;
             }
         }
 
@@ -2735,15 +2738,17 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
             p *= u->ProbMask(intraMaskMap[u], intraPermMap[u]);
         }
 
+        const real1_f infidelityFactor = ONE_R1_F / pow2Ocl(interControlCount);
+
         // Act the classical shadow of the gate payload.
         if ((2 * p) > ONE_R1_F) {
             QEngineShard& shard = shards[t];
             shard.isPhaseDirty = true;
             shard.isProbDirty |= (shard.pauliBasis != PauliZ) || !isPhase;
             cfn(unit, intraControlVec);
-            logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - p) * payloadInfidelity);
+            logFidelity += (double)log(ONE_R1_F - (ONE_R1_F - p) * payloadInfidelity * infidelityFactor);
         } else {
-            logFidelity += (double)log(ONE_R1_F - p * payloadInfidelity);
+            logFidelity += (double)log(ONE_R1_F - p * payloadInfidelity * infidelityFactor);
         }
 
         CheckFidelity();
@@ -3971,8 +3976,8 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         real1_f pHi = ptHi ? pt : pc;
         real1_f pLo = ptHi ? pc : pt;
         bool pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
-        const real1_f probFidelityBottom = pState ? pHi : (ONE_R1_F - pLo);
         const real1_f bottomFidelity = PhaseFidelity(polarBottom);
+        const real1_f probInfidelity = (ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo))) / 2;
 
         if (pState) {
             if (!ptHi) {
@@ -3989,7 +3994,6 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         pHi = ptHi ? pt : pc;
         pLo = ptHi ? pc : pt;
         pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
-        const real1_f probFidelityTop = pState ? pHi : (ONE_R1_F - pLo);
         const real1_f topFidelity = PhaseFidelity(polarTop);
 
         if (!pState) {
@@ -4002,11 +4006,8 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
-        const double composedLogFidelity =
-            (double)(log(ONE_R1_F - (ONE_R1_F - probFidelityBottom) * (ONE_R1_F - bottomFidelity)) +
-                log(ONE_R1_F - (ONE_R1_F - probFidelityTop) * (ONE_R1_F - topFidelity)));
-        const double maxLogFidelity = (double)log(ONE_R1_F -
-            (ONE_R1_F - bottomFidelity * topFidelity) * (ONE_R1_F - sqrt(probFidelityBottom * probFidelityTop)));
+        const double composedLogFidelity = (double)(log(ONE_R1_F - probInfidelity * (ONE_R1_F - bottomFidelity)) + log(ONE_R1_F - probInfidelity * (ONE_R1_F - topFidelity)));
+        const double maxLogFidelity = (double)log(ONE_R1_F - probInfidelity * (ONE_R1_F - bottomFidelity * topFidelity));
 
         logFidelity += std::max(composedLogFidelity, maxLogFidelity);
         CheckFidelity();
