@@ -71,7 +71,7 @@ protected:
         engines = orig->engines;
     }
 
-    double PhaseFidelity(const complex& p) { return (0.5 * abs(ONE_CMPLX + p)); }
+    double PhaseInfidelity(const complex& p) { return clampProb(1.0 - (0.5 * abs(ONE_CMPLX + p))); }
 
     void CheckFidelity()
     {

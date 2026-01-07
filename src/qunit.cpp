@@ -2109,7 +2109,7 @@ void QUnit::IS(bitLenInt target)
             }                                                                                                          \
             unit->ctrld;                                                                                               \
         },                                                                                                             \
-        false, controlPerm, 1.0 - PhaseFidelity(mtrx[0U]) * PhaseFidelity(mtrx[3U]));
+        false, controlPerm, 2.0);
 
 #define CTRLED_PHASE_INVERT_WRAP(ctrld, ctrldgen, isInvert, top, bottom)                                               \
     ApplyEitherControlled(                                                                                             \
@@ -2135,7 +2135,7 @@ void QUnit::IS(bitLenInt target)
                 unit->ctrld;                                                                                           \
             }                                                                                                          \
         },                                                                                                             \
-        !isInvert, controlPerm, isInvert ? 1.0 : (1.0 - PhaseFidelity(top) * PhaseFidelity(bottom)));
+        !isInvert, controlPerm, (isInvert ? 1.0 : 0.0) + ((PhaseInfidelity(top) + PhaseInfidelity(bottom)) / 2));
 
 #define CTRLED_SWAP_WRAP(ctrld, bare, anti)                                                                            \
     ThrowIfQbIdArrayIsBad(controls, qubitCount,                                                                        \
@@ -3976,8 +3976,8 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         real1_f pHi = ptHi ? pt : pc;
         real1_f pLo = ptHi ? pc : pt;
         bool pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
-        const real1_f bottomFidelity = PhaseFidelity(polarBottom);
-        const real1_f probInfidelity = (ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo))) / 2;
+        const real1_f bottomInfidelity = PhaseInfidelity(polarBottom);
+        const real1_f probInfidelity = ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo));
 
         if (pState) {
             if (!ptHi) {
@@ -3989,12 +3989,15 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
+        logFidelity += (double)log(ONE_R1_F - probInfidelity * bottomInfidelity / 2);
+        CheckFidelity();
+
         pc = ONE_R1_F - pc;
         ptHi = pt > pc;
         pHi = ptHi ? pt : pc;
         pLo = ptHi ? pc : pt;
         pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
-        const real1_f topFidelity = PhaseFidelity(polarTop);
+        const real1_f topInfidelity = PhaseInfidelity(polarTop);
 
         if (!pState) {
             if (ptHi) {
@@ -4006,10 +4009,7 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
 
-        const double composedLogFidelity = (double)(log(ONE_R1_F - probInfidelity * (ONE_R1_F - bottomFidelity)) + log(ONE_R1_F - probInfidelity * (ONE_R1_F - topFidelity)));
-        const double maxLogFidelity = (double)log(ONE_R1_F - probInfidelity * (ONE_R1_F - bottomFidelity * topFidelity));
-
-        logFidelity += std::max(composedLogFidelity, maxLogFidelity);
+        logFidelity += (double)(log(ONE_R1_F - probInfidelity * topInfidelity / 2));
         CheckFidelity();
 
         if (phaseShard->isInvert && !didNegate) {
