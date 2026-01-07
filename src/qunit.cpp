@@ -2135,7 +2135,7 @@ void QUnit::IS(bitLenInt target)
                 unit->ctrld;                                                                                           \
             }                                                                                                          \
         },                                                                                                             \
-        !isInvert, controlPerm, (isInvert ? 1.0 : 0.0) + ((PhaseInfidelity(top) + PhaseInfidelity(bottom)) / 2));
+        !isInvert, controlPerm, (isInvert ? 1.0 : 0.0) + (PhaseInfidelity(top) + PhaseInfidelity(bottom)) / 2);
 
 #define CTRLED_SWAP_WRAP(ctrld, bare, anti)                                                                            \
     ThrowIfQbIdArrayIsBad(controls, qubitCount,                                                                        \
