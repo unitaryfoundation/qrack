@@ -87,14 +87,15 @@ protected:
         // Negator strength: average off-diagonal power
         const real1_f n01 = norm(u01);
         const real1_f n10 = norm(u10);
+        const real1_f N = clampProb((n01 + n10) / 2);
 
         // Phase contributions per "input basis branch", weighted by where amplitude goes
         const real1_f n00 = norm(u00);
         const real1_f n11 = norm(u11);
-        const real1_f p0 = clampProb(n00 * PhaseInfidelity(u00) + n10 * PhaseInfidelity(u10));
-        const real1_f p1 = clampProb(n11 * PhaseInfidelity(u11) + n01 * PhaseInfidelity(u01));
+        const real1_f P0 = clampProb(n00 * PhaseInfidelity(u00) + n10 * PhaseInfidelity(u10));
+        const real1_f P1 = clampProb(n11 * PhaseInfidelity(u11) + n01 * PhaseInfidelity(u01));
 
-        return clampProb((n01 + n10 + p0 + p1) / 2) * 2;
+        return clampProb((N + P0 + P1) / 2) * 2;
     }
 
     void CheckFidelity()
