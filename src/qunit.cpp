@@ -2109,7 +2109,7 @@ void QUnit::IS(bitLenInt target)
             }                                                                                                          \
             unit->ctrld;                                                                                               \
         },                                                                                                             \
-        false, controlPerm, 2.0);
+        false, controlPerm, PayloadInfidelityFactor3(mtrx));
 
 #define CTRLED_PHASE_INVERT_WRAP(ctrld, ctrldgen, isInvert, top, bottom)                                               \
     ApplyEitherControlled(                                                                                             \
