@@ -84,7 +84,9 @@ jobs:
 
       - name: Build Qrack MacOS
         run: |
-          cmake -G Xcode -B build -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_Swift_COMPILER_FORCED=true -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          mkdir build
+          cd build
+          cmake -G Xcode -B build -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_Swift_COMPILER_FORCED=true -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=11 -DCPP_STD=14 ..
           xcodebuild build -project qrack.xcodeproj -scheme qrack_pinvoke -sdk iphoneos -configuration Release ARCHS="arm64" ONLY_ACTIVE_ARCH=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES
 
       - name: Upload artifacts (optional)
