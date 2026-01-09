@@ -65,7 +65,7 @@ if (ENABLE_OPENCL)
         set(QRACK_OpenCL_COMPILATION_OPTIONS ${MPI_CXX_COMPILE_FLAGS} ${OpenCL_COMPILATION_OPTIONS} -Wno-deprecated-declarations -Wno-ignored-attributes)
         find_library(
             SNUCL_CLUSTER
-            NAMES snucl_cluster
+            NAMES snucl_cluster snucl_cpu snucl_single
             PATHS ${QRACK_OpenCL_LINK_DIRS}
             REQUIRED
         )
