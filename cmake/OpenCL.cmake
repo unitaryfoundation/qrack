@@ -59,10 +59,17 @@ if (ENABLE_OPENCL)
 
     if (ENABLE_SNUCL)
         find_package(MPI REQUIRED)
-        set(QRACK_OpenCL_LIBRARIES snucl_cluster)
         set(QRACK_OpenCL_INCLUDE_DIRS ${MPI_CXX_INCLUDE_PATH} $ENV{SNUCLROOT}/inc)
         set(QRACK_OpenCL_LINK_DIRS $ENV{SNUCLROOT}/lib)
+        message(${QRACK_OpenCL_LINK_DIRS})
         set(QRACK_OpenCL_COMPILATION_OPTIONS ${MPI_CXX_COMPILE_FLAGS} ${OpenCL_COMPILATION_OPTIONS} -Wno-deprecated-declarations -Wno-ignored-attributes)
+        find_library(
+            SNUCL_CLUSTER
+            NAMES snucl_cluster
+            PATHS ${QRACK_OpenCL_LINK_DIRS}
+            REQUIRED
+        )
+        target_link_libraries (qrack PUBLIC ${SNUCL_CLUSTER})
     else (ENABLE_SNUCL)
         set(QRACK_OpenCL_LIBRARIES ${OpenCL_LIBRARIES})
         set(QRACK_OpenCL_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS})
