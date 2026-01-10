@@ -210,6 +210,18 @@ cmake -DENABLE_CUDA=ON [-DENABLE_OPENCL=OFF] [-DQRACK_CUDA_ARCHITECTURES=86] ..
 
 where `-DENABLE_CUDA=ON` is required to enable CUDA, `-DENABLE_OPENCL=OFF` will cause CUDA to be used in the default optimal simulation layer stack instead of OpenCL, and `-DQRACK_CUDA_ARCHITECTURES` optionally specifies an explicit list of CUDA architectures for which to build. (If `-DQRACK_CUDA_ARCHITECTURES` is not set, Qrack will attempt to detect your native installed GPU architectures and build for exactly that set.)
 
+## Distributed OpenCL (and CUDA)
+
+We maintain a [fork](https://github.com/vm6502q/snucl) of [SnuCL](http://snucl.snu.ac.kr/), by authors at Seoul National University. (We have no association with or endorsement from them, but we give proper credit). Linking against (open-source) SnuCL enables Qrack to achieve MPI integration while maintaining a tidy _separation of concerns_ such that simulation logic isn't coupled to MPI logic or semantics: in the abstract, Qrack can handle it in code internals the same way as single-node multi-device OpenCL.
+
+To use SnuCL, you must first download, build, and configure our SnuCL fork itself, then give the appropriate CMake option:
+
+```sh
+cmake -DENABLE_SNUCL=ON ..
+```
+
+We have similarly attempted to support distributed CUDA through a [fork](https://github.com/vm6502q/gvirtus) of [GVirtus](https://github.com/gvirtus/GVirtuS). The authors of Qrack have not had success with any proof-of-concept of CUDA distribution this way, though we have attempted to update the fork to compile with more recent CUDA toolkit support, anyway: you might have more success in your own experimentation, or you could hypothetically limit your build support to earlier versions of the CUDA toolkit. (No special CMake option is necessary for GVirtus support.)
+
 ## WebAssembly (WASM) builds
 
 By nature of its pure C++11 design, Qrack happens to offer excellent compatibility with Emscripten ("WebAssembly") projects. See [the qrack.net repository](https://github.com/vm6502q/qrack.net) for an example and [qrack.net](https://qrack.net) for a live demo. OpenCL GPU operation is not yet available for WASM builds. While CPU multithreading might be possible in WASM, it is advisable that `pthread` usage and linking is disabled for most conventional Web applications, with `-DENABLE_PTHREAD=OFF` in CMake:
