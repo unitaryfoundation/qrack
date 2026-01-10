@@ -220,7 +220,11 @@ To use SnuCL, you must first download, build, and configure our SnuCL fork itsel
 cmake -DENABLE_SNUCL=ON ..
 ```
 
-We have similarly attempted to support distributed CUDA through a [fork](https://github.com/vm6502q/gvirtus) of [GVirtus](https://github.com/gvirtus/GVirtuS). The authors of Qrack have not had success with any proof-of-concept of CUDA distribution this way, though we have attempted to update the fork to compile with more recent CUDA toolkit support, anyway: you might have more success in your own experimentation, or you could hypothetically limit your build support to earlier versions of the CUDA toolkit. (No special CMake option is necessary for GVirtus support.)
+We have similarly attempted to support distributed CUDA through a [fork](https://github.com/vm6502q/gvirtus) of [GVirtus](https://github.com/gvirtus/GVirtuS). The authors of Qrack have not had success with any proof-of-concept of CUDA distribution this way, though we have attempted to update the fork to compile with more recent CUDA toolkit support, anyway: you might have more success in your own experimentation, or you could hypothetically limit your build support to earlier versions of the CUDA toolkit. For GVirtus linkage, similarly pass an option to `cmake` for Qrack builds:
+
+```sh
+cmake -DENABLE_GVIRTUS=ON ..
+```
 
 ## WebAssembly (WASM) builds
 
