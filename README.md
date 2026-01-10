@@ -214,7 +214,7 @@ where `-DENABLE_CUDA=ON` is required to enable CUDA, `-DENABLE_OPENCL=OFF` will 
 
 We maintain a [fork](https://github.com/vm6502q/snucl) of [SnuCL](http://snucl.snu.ac.kr/), by authors at Seoul National University. (We have no association with or endorsement from them, but we give proper credit). Linking against (open-source) SnuCL enables Qrack to achieve MPI integration while maintaining a tidy _separation of concerns_ such that simulation logic isn't coupled to MPI logic or semantics: in the abstract, Qrack can handle it in code internals the same way as single-node multi-device OpenCL.
 
-To use SnuCL, you must first download, build, and configure our SnuCL fork itself, then give the appropriate CMake option:
+To use SnuCL, you must first download, build, and configure our SnuCL fork itself, then give the appropriate CMake option to Qrack builds:
 
 ```sh
 cmake -DENABLE_SNUCL=ON ..
