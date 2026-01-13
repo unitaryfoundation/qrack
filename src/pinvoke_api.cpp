@@ -3736,8 +3736,7 @@ MICROSOFT_QUANTUM_DECL void TimeEvolve(_In_ uintq sid, _In_ double t, _In_ uintq
 }
 #endif
 
-MICROSOFT_QUANTUM_DECL uintq init_qneuron(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q, _In_ uintq f, _In_ double a, _In_ double tol)
+MICROSOFT_QUANTUM_DECL uintq init_qneuron(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q)
 {
     META_LOCK_GUARD()
 
@@ -3774,8 +3773,7 @@ MICROSOFT_QUANTUM_DECL uintq init_qneuron(
         }
     }
 
-    QNeuronPtr neuron = std::make_shared<QNeuron>(
-        simulator, ctrlsArray, GetSimShardId(simulator, q), (QNeuronActivationFn)f, (real1_f)a, (real1_f)tol);
+    QNeuronPtr neuron = std::make_shared<QNeuron>(simulator, ctrlsArray, GetSimShardId(simulator, q));
     neuronSimulators[neuron] = simulator.get();
 
     if (nid == neurons.size()) {
@@ -3883,35 +3881,11 @@ MICROSOFT_QUANTUM_DECL void set_qneuron_sim(_In_ uintq nid, _In_ uintq sid)
     neuron->SetSimulator(simulator);
 }
 
-MICROSOFT_QUANTUM_DECL void set_qneuron_alpha(_In_ uintq nid, _In_ double alpha)
-{
-    NEURON_LOCK_GUARD_VOID(nid)
-    neuron->SetAlpha((real1_f)alpha);
-}
-
-MICROSOFT_QUANTUM_DECL double get_qneuron_alpha(_In_ uintq nid)
-{
-    NEURON_LOCK_GUARD_DOUBLE(nid)
-    return (double)neuron->GetAlpha();
-}
-
-MICROSOFT_QUANTUM_DECL void set_qneuron_activation_fn(_In_ uintq nid, _In_ uintq f)
-{
-    NEURON_LOCK_GUARD_VOID(nid)
-    neuron->SetActivationFn((QNeuronActivationFn)f);
-}
-
-MICROSOFT_QUANTUM_DECL uintq get_qneuron_activation_fn(_In_ uintq nid)
-{
-    NEURON_LOCK_GUARD_INT(nid)
-    return (uintq)neuron->GetActivationFn();
-}
-
-MICROSOFT_QUANTUM_DECL double qneuron_predict(_In_ uintq nid, _In_ bool e, _In_ bool r)
+MICROSOFT_QUANTUM_DECL double qneuron_predict(_In_ uintq nid, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
     try {
-        return (double)neuron->Predict(e, r);
+        return (double)neuron->Predict(e, r, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3920,11 +3894,11 @@ MICROSOFT_QUANTUM_DECL double qneuron_predict(_In_ uintq nid, _In_ bool e, _In_ 
     }
 }
 
-MICROSOFT_QUANTUM_DECL double qneuron_unpredict(_In_ uintq nid, _In_ bool e)
+MICROSOFT_QUANTUM_DECL double qneuron_unpredict(_In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
     try {
-        return (double)neuron->Unpredict(e);
+        return (double)neuron->Unpredict(e, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3933,11 +3907,11 @@ MICROSOFT_QUANTUM_DECL double qneuron_unpredict(_In_ uintq nid, _In_ bool e)
     }
 }
 
-MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(_In_ uintq nid, _In_ bool e)
+MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(_In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
     try {
-        return (double)neuron->LearnCycle(e);
+        return (double)neuron->LearnCycle(e, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3946,22 +3920,22 @@ MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(_In_ uintq nid, _In_ bool e)
     }
 }
 
-MICROSOFT_QUANTUM_DECL void qneuron_learn(_In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r)
+MICROSOFT_QUANTUM_DECL void qneuron_learn(_In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_VOID(nid)
     try {
-        neuron->Learn(eta, e, r);
+        neuron->Learn(eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
     }
 }
 
-MICROSOFT_QUANTUM_DECL void qneuron_learn_permutation(_In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r)
+MICROSOFT_QUANTUM_DECL void qneuron_learn_permutation(_In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_VOID(nid)
     try {
-        neuron->LearnPermutation(eta, e, r);
+        neuron->LearnPermutation(eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;

@@ -24,24 +24,20 @@ typedef std::shared_ptr<QNeuron> QNeuronPtr;
 
 class QNeuron {
 protected:
-    bitCapIntOcl inputPower;
     bitLenInt outputIndex;
-    QNeuronActivationFn activationFn;
-    real1_f alpha;
-    real1_f tolerance;
     std::vector<bitLenInt> inputIndices;
     std::unique_ptr<real1[]> angles;
     QInterfacePtr qReg;
 
-    static real1_f applyRelu(real1_f angle) { return std::max((real1_f)ZERO_R1_F, (real1_f)angle); }
+    static real1_f applyRelu(const real1_f& angle) { return std::max((real1_f)ZERO_R1_F, (real1_f)angle); }
 
-    static real1_f negApplyRelu(real1_f angle) { return -std::max((real1_f)ZERO_R1_F, (real1_f)angle); }
+    static real1_f negApplyRelu(const real1_f& angle) { return -std::max((real1_f)ZERO_R1_F, (real1_f)angle); }
 
-    static real1_f applyGelu(real1_f angle) { return angle * (1 + erf((real1_s)(angle * SQRT1_2_R1))); }
+    static real1_f applyGelu(const real1_f& angle) { return angle * (1 + erf((real1_s)(angle * SQRT1_2_R1))); }
 
-    static real1_f negApplyGelu(real1_f angle) { return -angle * (1 + erf((real1_s)(angle * SQRT1_2_R1))); }
+    static real1_f negApplyGelu(const real1_f& angle) { return -angle * (1 + erf((real1_s)(angle * SQRT1_2_R1))); }
 
-    static real1_f applyAlpha(real1_f angle, real1_f alpha)
+    static real1_f applyAlpha(real1_f angle, const real1_f& alpha)
     {
         real1_f toRet = ZERO_R1;
         if (angle > PI_R1) {
@@ -55,16 +51,18 @@ protected:
         return toRet + (pow((2 * abs(angle) / PI_R1), alpha) * (PI_R1 / 2) * ((angle < 0) ? -1 : 1));
     }
 
-    static real1_f applyLeakyRelu(real1_f angle, real1_f alpha) { return std::max(alpha * angle, angle); }
+    static real1_f applyLeakyRelu(const real1_f& angle, const real1_f& alpha) { return std::max(alpha * angle, angle); }
 
     static real1_f clampAngle(real1_f angle)
     {
         // From Tiama, (OpenAI ChatGPT instance)
-        angle = fmod(angle, 4 * PI_R1);
-        if (angle <= -2 * PI_R1) {
-            angle += 4 * PI_R1;
-        } else if (angle > 2 * PI_R1) {
-            angle -= 4 * PI_R1;
+        QRACK_CONST real1_f PI_2 = 2 * PI_R1;
+        QRACK_CONST real1_f PI_4 = 4 * PI_R1;
+        angle = fmod(angle, PI_4);
+        if (angle <= -PI_2) {
+            angle += PI_4;
+        } else if (angle > PI_2) {
+            angle -= PI_4;
         }
 
         return angle;
@@ -81,36 +79,27 @@ public:
      * variational parameters are Pauli Y-axis rotation angles divided by 2 * Pi (such that a learning parameter of 0.5
      * will train from a default output of 0.5/0.5 probability to either 1.0 or 0.0 on one training input).
      */
-    QNeuron(QInterfacePtr reg, const std::vector<bitLenInt>& inputIndcs, bitLenInt outputIndx,
-        QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F, real1_f tol = FP_NORM_EPSILON / 2)
-        : inputPower(pow2Ocl(inputIndcs.size()))
-        , outputIndex(outputIndx)
-        , activationFn(activationFn)
-        , alpha(alpha)
-        , tolerance(tol)
+    QNeuron(QInterfacePtr reg, const std::vector<bitLenInt>& inputIndcs, const bitLenInt& outputIndx)
+        : outputIndex(outputIndx)
         , inputIndices(inputIndcs)
-        , angles(new real1[inputPower]())
+        , angles(new real1[pow2Ocl(inputIndcs.size())]())
         , qReg(reg)
     {
     }
 
     /** Create a new QNeuron which is an exact duplicate of another, including its learned state. */
-    QNeuron(const QNeuron& toCopy)
-        : QNeuron(toCopy.qReg, toCopy.inputIndices, toCopy.outputIndex, toCopy.activationFn, (real1_f)toCopy.alpha,
-              (real1_f)toCopy.tolerance)
+    QNeuron(QNeuron& toCopy)
+        : QNeuron(toCopy.qReg, toCopy.inputIndices, toCopy.outputIndex)
     {
-        std::copy(toCopy.angles.get(), toCopy.angles.get() + toCopy.inputPower, angles.get());
+        std::copy(toCopy.angles.get(), toCopy.angles.get() + toCopy.GetInputPower(), angles.get());
     }
 
-    QNeuron& operator=(const QNeuron& toCopy)
+    QNeuron& operator=(QNeuron& toCopy)
     {
         qReg = toCopy.qReg;
         inputIndices = toCopy.inputIndices;
-        std::copy(toCopy.angles.get(), toCopy.angles.get() + toCopy.inputPower, angles.get());
+        std::copy(toCopy.angles.get(), toCopy.angles.get() + toCopy.GetInputPower(), angles.get());
         outputIndex = toCopy.outputIndex;
-        activationFn = toCopy.activationFn;
-        alpha = toCopy.alpha;
-        tolerance = toCopy.tolerance;
 
         return *this;
     }
@@ -121,27 +110,15 @@ public:
     /** Retrieve the simulator **/
     QInterfacePtr GetSimulator() { return qReg; }
 
-    /** Set the "alpha" sharpness parameter of this QNeuron */
-    void SetAlpha(real1_f a) { alpha = a; }
-
-    /** Get the "alpha" sharpness parameter of this QNeuron */
-    real1_f GetAlpha() { return alpha; }
-
-    /** Sets activation function enum */
-    void SetActivationFn(QNeuronActivationFn f) { activationFn = f; }
-
-    /** Get activation function enum */
-    QNeuronActivationFn GetActivationFn() { return activationFn; }
-
     /** Set the angles of this QNeuron */
-    void SetAngles(real1* nAngles) { std::copy(nAngles, nAngles + inputPower, angles.get()); }
+    void SetAngles(const real1* nAngles) { std::copy(nAngles, nAngles + GetInputPower(), angles.get()); }
 
     /** Get the angles of this QNeuron */
-    void GetAngles(real1* oAngles) { std::copy(angles.get(), angles.get() + inputPower, oAngles); }
+    void GetAngles(real1* oAngles) { std::copy(angles.get(), angles.get() + GetInputPower(), oAngles); }
 
     bitLenInt GetInputCount() { return inputIndices.size(); }
 
-    bitCapIntOcl GetInputPower() { return inputPower; }
+    bitCapIntOcl GetInputPower() { return pow2Ocl(inputIndices.size()); }
 
     /** Predict a binary classification.
      *
@@ -149,7 +126,7 @@ public:
      * binary categories, if false. "resetInit," if true, resets the result qubit to 0.5/0.5 |0>/|1> superposition
      * before proceeding to predict.
      */
-    real1_f Predict(bool expected = true, bool resetInit = true)
+    real1_f Predict(bool expected = true, bool resetInit = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
     {
         if (resetInit) {
             qReg->SetBit(outputIndex, false);
@@ -178,6 +155,7 @@ public:
         } else if (activationFn == Sigmoid) {
             qReg->UniformlyControlledRY(inputIndices, outputIndex, angles.get());
         } else {
+            const bitCapIntOcl inputPower = GetInputPower();
             std::unique_ptr<real1[]> nAngles(new real1[inputPower]);
             switch (activationFn) {
             case ReLU:
@@ -188,11 +166,11 @@ public:
                 break;
             case Generalized_Logistic:
                 std::transform(angles.get(), angles.get() + inputPower, nAngles.get(),
-                    [this](real1 a) { return applyAlpha(a, alpha); });
+                    [this, &alpha](real1 a) { return applyAlpha(a, alpha); });
                 break;
             case Leaky_ReLU:
                 std::transform(angles.get(), angles.get() + inputPower, nAngles.get(),
-                    [this](real1 a) { return applyLeakyRelu(a, alpha); });
+                    [this, &alpha](real1 a) { return applyLeakyRelu(a, alpha); });
                 break;
             case Sigmoid:
             default:
@@ -208,7 +186,7 @@ public:
     }
 
     /** "Uncompute" the Predict() method */
-    real1_f Unpredict(bool expected = true)
+    real1_f Unpredict(bool expected = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
     {
         if (inputIndices.empty()) {
             // If there are no controls, this "neuron" is actually just a bias.
@@ -230,6 +208,7 @@ public:
                 qReg->RY((real1_f)(-angles.get()[0U]), outputIndex);
             }
         } else {
+            const bitCapIntOcl inputPower = GetInputPower();
             std::unique_ptr<real1[]> nAngles(new real1[inputPower]);
             switch (activationFn) {
             case ReLU:
@@ -242,12 +221,12 @@ public:
                 break;
             case Generalized_Logistic:
                 std::transform(angles.get(), angles.get() + inputPower, nAngles.get(),
-                    [this](real1 a) { return -applyAlpha(a, alpha); });
+                    [this, &alpha](real1 a) { return -applyAlpha(a, alpha); });
                 qReg->UniformlyControlledRY(inputIndices, outputIndex, nAngles.get());
                 break;
             case Leaky_ReLU:
                 std::transform(angles.get(), angles.get() + inputPower, nAngles.get(),
-                    [this](real1 a) { return -applyLeakyRelu(a, alpha); });
+                    [this, &alpha](real1 a) { return -applyLeakyRelu(a, alpha); });
                 qReg->UniformlyControlledRY(inputIndices, outputIndex, nAngles.get());
                 break;
             case Sigmoid:
@@ -263,10 +242,10 @@ public:
         return prob;
     }
 
-    real1_f LearnCycle(bool expected = true)
+    real1_f LearnCycle(bool expected = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
     {
-        const real1_f result = Predict(expected, false);
-        Unpredict(expected);
+        const real1_f result = Predict(expected, false, activationFn, alpha);
+        Unpredict(expected, activationFn, alpha);
         return result;
     }
 
@@ -278,16 +257,13 @@ public:
      * In the feedback process of learning, default initial conditions forward untrained predictions to 1/sqrt(2) * (|0>
      * + |1>) for the output bit. If you want to initialize other conditions before "Learn()," set "resetInit" to false.
      */
-    void Learn(real1_f eta, bool expected = true, bool resetInit = true)
+    void Learn(real1_f eta, bool expected = true, bool resetInit = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
     {
-        real1_f startProb = Predict(expected, resetInit);
-        Unpredict(expected);
-        if ((ONE_R1 - startProb) <= tolerance) {
-            return;
-        }
-
+        real1_f startProb = Predict(expected, resetInit, activationFn, alpha);
+        Unpredict(expected, activationFn, alpha);
+        const bitCapIntOcl inputPower = GetInputPower();
         for (bitCapIntOcl perm = 0U; perm < inputPower; ++perm) {
-            startProb = LearnInternal(expected, eta, perm, startProb);
+            startProb = LearnInternal(expected, eta, perm, startProb, activationFn, alpha);
             if (0 > startProb) {
                 break;
             }
@@ -303,14 +279,10 @@ public:
      * + |1>) for the output bit. If you want to initialize other conditions before "LearnPermutation()," set
      * "resetInit" to false.
      */
-    void LearnPermutation(real1_f eta, bool expected = true, bool resetInit = true)
+    void LearnPermutation(real1_f eta, bool expected = true, bool resetInit = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
     {
-        real1_f startProb = Predict(expected, resetInit);
-        Unpredict(expected);
-        if ((ONE_R1 - startProb) <= tolerance) {
-            return;
-        }
-
+        real1_f startProb = Predict(expected, resetInit, activationFn, alpha);
+        Unpredict(expected, activationFn, alpha);
         bitCapIntOcl perm = 0U;
         for (size_t i = 0U; i < inputIndices.size(); ++i) {
             if (qReg->M(inputIndices[i])) {
@@ -322,27 +294,19 @@ public:
     }
 
 protected:
-    real1_f LearnInternal(bool expected, real1_f eta, bitCapIntOcl permOcl, real1_f startProb)
+    real1_f LearnInternal(bool expected, real1_f eta, bitCapIntOcl permOcl, real1_f startProb, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
     {
         const real1 origAngle = angles.get()[permOcl];
         real1& angle = angles.get()[permOcl];
 
         // Try positive angle increment:
         angle += eta * PI_R1;
-        const real1_f plusProb = LearnCycle(expected);
-        if ((ONE_R1_F - plusProb) <= tolerance) {
-            angle = clampAngle(angle);
-            return -ONE_R1_F;
-        }
+        const real1_f plusProb = LearnCycle(expected, activationFn, alpha);
 
         // If positive angle increment is not an improvement,
         // try negative angle increment:
         angle = origAngle - eta * PI_R1;
-        const real1_f minusProb = LearnCycle(expected);
-        if ((ONE_R1_F - minusProb) <= tolerance) {
-            angle = clampAngle(angle);
-            return -ONE_R1_F;
-        }
+        const real1_f minusProb = LearnCycle(expected, activationFn, alpha);
 
         if ((startProb >= plusProb) && (startProb >= minusProb)) {
             // If neither increment is an improvement,
