@@ -166,11 +166,11 @@ public:
                 break;
             case Generalized_Logistic:
                 std::transform(angles.get(), angles.get() + inputPower, nAngles.get(),
-                    [this, &alpha](real1 a) { return applyAlpha(a, alpha); });
+                    [&alpha](real1 a) { return applyAlpha(a, alpha); });
                 break;
             case Leaky_ReLU:
                 std::transform(angles.get(), angles.get() + inputPower, nAngles.get(),
-                    [this, &alpha](real1 a) { return applyLeakyRelu(a, alpha); });
+                    [&alpha](real1 a) { return applyLeakyRelu(a, alpha); });
                 break;
             case Sigmoid:
             default:
@@ -221,12 +221,12 @@ public:
                 break;
             case Generalized_Logistic:
                 std::transform(angles.get(), angles.get() + inputPower, nAngles.get(),
-                    [this, &alpha](real1 a) { return -applyAlpha(a, alpha); });
+                    [&alpha](real1 a) { return -applyAlpha(a, alpha); });
                 qReg->UniformlyControlledRY(inputIndices, outputIndex, nAngles.get());
                 break;
             case Leaky_ReLU:
                 std::transform(angles.get(), angles.get() + inputPower, nAngles.get(),
-                    [this, &alpha](real1 a) { return -applyLeakyRelu(a, alpha); });
+                    [&alpha](real1 a) { return -applyLeakyRelu(a, alpha); });
                 qReg->UniformlyControlledRY(inputIndices, outputIndex, nAngles.get());
                 break;
             case Sigmoid:
@@ -261,6 +261,9 @@ public:
     {
         real1_f startProb = Predict(expected, resetInit, activationFn, alpha);
         Unpredict(expected, activationFn, alpha);
+        if ((ONE_R1 - startProb) <= FP_NORM_EPSILON) {
+            return;
+        }
         const bitCapIntOcl inputPower = GetInputPower();
         for (bitCapIntOcl perm = 0U; perm < inputPower; ++perm) {
             startProb = LearnInternal(expected, eta, perm, startProb, activationFn, alpha);
@@ -281,8 +284,11 @@ public:
      */
     void LearnPermutation(const real1_f& eta, const bool& expected = true, const bool& resetInit = true, const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
-        real1_f startProb = Predict(expected, resetInit, activationFn, alpha);
+        const real1_f startProb = Predict(expected, resetInit, activationFn, alpha);
         Unpredict(expected, activationFn, alpha);
+        if ((ONE_R1 - startProb) <= FP_NORM_EPSILON) {
+            return;
+        }
         bitCapIntOcl perm = 0U;
         for (size_t i = 0U; i < inputIndices.size(); ++i) {
             if (qReg->M(inputIndices[i])) {
