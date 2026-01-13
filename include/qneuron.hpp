@@ -126,7 +126,7 @@ public:
      * binary categories, if false. "resetInit," if true, resets the result qubit to 0.5/0.5 |0>/|1> superposition
      * before proceeding to predict.
      */
-    real1_f Predict(bool expected = true, bool resetInit = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
+    real1_f Predict(const bool& expected = true, const bool& resetInit = true, const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         if (resetInit) {
             qReg->SetBit(outputIndex, false);
@@ -186,7 +186,7 @@ public:
     }
 
     /** "Uncompute" the Predict() method */
-    real1_f Unpredict(bool expected = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
+    real1_f Unpredict(const bool& expected = true, const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         if (inputIndices.empty()) {
             // If there are no controls, this "neuron" is actually just a bias.
@@ -242,7 +242,7 @@ public:
         return prob;
     }
 
-    real1_f LearnCycle(bool expected = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
+    real1_f LearnCycle(const bool& expected = true, const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         const real1_f result = Predict(expected, false, activationFn, alpha);
         Unpredict(expected, activationFn, alpha);
@@ -257,7 +257,7 @@ public:
      * In the feedback process of learning, default initial conditions forward untrained predictions to 1/sqrt(2) * (|0>
      * + |1>) for the output bit. If you want to initialize other conditions before "Learn()," set "resetInit" to false.
      */
-    void Learn(real1_f eta, bool expected = true, bool resetInit = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
+    void Learn(const real1_f& eta, const bool& expected = true, const bool& resetInit = true, const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         real1_f startProb = Predict(expected, resetInit, activationFn, alpha);
         Unpredict(expected, activationFn, alpha);
@@ -279,7 +279,7 @@ public:
      * + |1>) for the output bit. If you want to initialize other conditions before "LearnPermutation()," set
      * "resetInit" to false.
      */
-    void LearnPermutation(real1_f eta, bool expected = true, bool resetInit = true, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
+    void LearnPermutation(const real1_f& eta, const bool& expected = true, const bool& resetInit = true, const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         real1_f startProb = Predict(expected, resetInit, activationFn, alpha);
         Unpredict(expected, activationFn, alpha);
@@ -294,7 +294,7 @@ public:
     }
 
 protected:
-    real1_f LearnInternal(bool expected, real1_f eta, bitCapIntOcl permOcl, real1_f startProb, QNeuronActivationFn activationFn = Sigmoid, real1_f alpha = ONE_R1_F)
+    real1_f LearnInternal(const bool& expected, const real1_f& eta, const bitCapIntOcl& permOcl, const real1_f& startProb, const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         const real1 origAngle = angles.get()[permOcl];
         real1& angle = angles.get()[permOcl];
