@@ -3873,12 +3873,18 @@ MICROSOFT_QUANTUM_DECL void get_qneuron_angles(_In_ uintq nid, _In_ real1_s* ang
 #endif
 }
 
-MICROSOFT_QUANTUM_DECL void set_qneuron_sim(_In_ uintq nid, _In_ uintq sid)
+MICROSOFT_QUANTUM_DECL void set_qneuron_sim(_In_ uintq nid, _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q)
 {
     NEURON_ONLY_LOCK_GUARD_VOID(nid)
     SIMULATOR_LOCK_GUARD_VOID(sid)
 
+    std::vector<bitLenInt> ctrlsArray(n);
+    for (uintq i = 0; i < n; ++i) {
+        ctrlsArray[i] = GetSimShardId(simulator, c[i]);
+    }
+
     neuron->SetSimulator(simulator);
+    neuron->SetIndices(ctrlsArray, GetSimShardId(simulator, q));
 }
 
 MICROSOFT_QUANTUM_DECL double qneuron_predict(_In_ uintq nid, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)

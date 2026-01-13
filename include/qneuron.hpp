@@ -107,6 +107,13 @@ public:
     /** Replace the simulator **/
     void SetSimulator(QInterfacePtr sim) { qReg = sim; }
 
+    /** Replace the input and output indices **/
+    void SetIndices(const std::vector<bitLenInt>& inputIndcs, const bitLenInt& outputIndx)
+    {
+        inputIndices = inputIndcs;
+        outputIndex = outputIndx;
+    }
+
     /** Retrieve the simulator **/
     QInterfacePtr GetSimulator() { return qReg; }
 
