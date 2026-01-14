@@ -10,12 +10,6 @@ add_executable (teleport
 set_target_properties(teleport PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples")
 target_link_libraries (teleport ${QRACK_LIBS})
 
-add_executable (qneuron_classification
-    examples/qneuron_classification.cpp
-    )
-set_target_properties(qneuron_classification PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples")
-target_link_libraries (qneuron_classification ${QRACK_LIBS})
-
 add_executable (cosmology
     examples/cosmology.cpp
     )
@@ -93,7 +87,6 @@ configure_file(examples/data/powers_of_2.csv examples/data/powers_of_2.csv COPYO
 set(EXAMPLE_COMPILE_OPTS ${TEST_COMPILE_OPTS} -DCATCH_CONFIG_FAST_COMPILE)
 target_compile_options (quantum_associative_memory PUBLIC ${EXAMPLE_COMPILE_OPTS})
 target_compile_options (teleport PUBLIC ${EXAMPLE_COMPILE_OPTS})
-target_compile_options (qneuron_classification PUBLIC ${EXAMPLE_COMPILE_OPTS})
 if (ENABLE_ALU)
     target_compile_options (grovers PUBLIC ${EXAMPLE_COMPILE_OPTS})
     target_compile_options (grovers_lookup PUBLIC ${EXAMPLE_COMPILE_OPTS})

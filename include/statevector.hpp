@@ -252,8 +252,9 @@ public:
 
     void mult(real1_f nrm)
     {
+        const real1 _nrm = (real1)nrm;
         for (auto& pair : amplitudes) {
-            pair.second *= nrm;
+            pair.second *= _nrm;
         }
     }
 
@@ -276,7 +277,7 @@ public:
 
         const real1 limit = *(nrms.begin());
         const real1 fidelity = std::accumulate(nrms.begin(), nrms.end(), ZERO_R1);
-        const real1 nrm = ONE_R1 / std::sqrt((real1_s)fidelity);
+        const real1 nrm = ONE_R1 / (real1)std::sqrt((real1_s)fidelity);
         nrms.clear();
 
         SparseStateVecMap nAmplitudes;

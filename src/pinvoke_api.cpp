@@ -1299,7 +1299,7 @@ MICROSOFT_QUANTUM_DECL void OutReducedDensityMatrix(_In_ uintq sid, _In_ uintq n
     std::unique_ptr<complex[]> _rdm(new complex[maxQPower]);
 
     try {
-        simulator->GetQuantumState(_q, _rdm.get());
+        simulator->GetReducedDensityMatrix(_q, _rdm.get());
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3839,41 +3839,8 @@ MICROSOFT_QUANTUM_DECL void destroy_qneuron(_In_ uintq nid)
     neuronReservations[nid] = false;
 }
 
-MICROSOFT_QUANTUM_DECL void set_qneuron_angles(_In_ uintq nid, _In_ real1_s* angles)
-{
-    NEURON_LOCK_GUARD_VOID(nid)
-#if (FPPOW == 5) || (FPPOW == 6)
-    neuron->SetAngles(angles);
-#else
-    const bitCapIntOcl inputPower = (bitCapIntOcl)neuron->GetInputPower();
-    std::unique_ptr<real1[]> _angles(new real1[inputPower]);
-#if (FPPOW == 4)
-    std::copy(angles, angles + inputPower, _angles.get());
-#else
-    std::transform(angles, angles + inputPower, _angles.get(), [](double d) { return (real1)d; });
-#endif
-    neuron->SetAngles(_angles.get());
-#endif
-}
-
-MICROSOFT_QUANTUM_DECL void get_qneuron_angles(_In_ uintq nid, _In_ real1_s* angles)
-{
-    NEURON_LOCK_GUARD_VOID(nid)
-#if (FPPOW == 5) || (FPPOW == 6)
-    neuron->GetAngles(angles);
-#else
-    const bitCapIntOcl inputPower = (bitCapIntOcl)neuron->GetInputPower();
-    std::unique_ptr<real1[]> _angles(new real1[inputPower]);
-    neuron->GetAngles(_angles.get());
-#if (FPPOW == 4)
-    std::copy(_angles.get(), _angles.get() + inputPower, angles);
-#else
-    std::transform(_angles.get(), _angles.get() + inputPower, angles, [](real1 d) { return (double)d; });
-#endif
-#endif
-}
-
-MICROSOFT_QUANTUM_DECL void set_qneuron_sim(_In_ uintq nid, _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q)
+MICROSOFT_QUANTUM_DECL void set_qneuron_sim(
+    _In_ uintq nid, _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q)
 {
     NEURON_ONLY_LOCK_GUARD_VOID(nid)
     SIMULATOR_LOCK_GUARD_VOID(sid)
@@ -3887,11 +3854,12 @@ MICROSOFT_QUANTUM_DECL void set_qneuron_sim(_In_ uintq nid, _In_ uintq sid, _In_
     neuron->SetIndices(ctrlsArray, GetSimShardId(simulator, q));
 }
 
-MICROSOFT_QUANTUM_DECL double qneuron_predict(_In_ uintq nid, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
+MICROSOFT_QUANTUM_DECL double qneuron_predict(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
     try {
-        return (double)neuron->Predict(e, r, (QNeuronActivationFn)f, (real1_f)a);
+        return (double)neuron->Predict(angles, e, r, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3900,11 +3868,12 @@ MICROSOFT_QUANTUM_DECL double qneuron_predict(_In_ uintq nid, _In_ bool e, _In_ 
     }
 }
 
-MICROSOFT_QUANTUM_DECL double qneuron_unpredict(_In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a)
+MICROSOFT_QUANTUM_DECL double qneuron_unpredict(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
     try {
-        return (double)neuron->Unpredict(e, (QNeuronActivationFn)f, (real1_f)a);
+        return (double)neuron->Unpredict(angles, e, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3913,11 +3882,12 @@ MICROSOFT_QUANTUM_DECL double qneuron_unpredict(_In_ uintq nid, _In_ bool e, _In
     }
 }
 
-MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(_In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a)
+MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
     try {
-        return (double)neuron->LearnCycle(e, (QNeuronActivationFn)f, (real1_f)a);
+        return (double)neuron->LearnCycle(angles, e, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3926,22 +3896,24 @@ MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(_In_ uintq nid, _In_ bool e, _
     }
 }
 
-MICROSOFT_QUANTUM_DECL void qneuron_learn(_In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
+MICROSOFT_QUANTUM_DECL void qneuron_learn(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_VOID(nid)
     try {
-        neuron->Learn(eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
+        neuron->Learn(angles, eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
     }
 }
 
-MICROSOFT_QUANTUM_DECL void qneuron_learn_permutation(_In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
+MICROSOFT_QUANTUM_DECL void qneuron_learn_permutation(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_VOID(nid)
     try {
-        neuron->LearnPermutation(eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
+        neuron->LearnPermutation(angles, eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;

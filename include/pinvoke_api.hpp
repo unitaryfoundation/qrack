@@ -31,6 +31,12 @@ typedef bool (*ProbAmpCallback)(size_t, double, double);
 struct _QrackTimeEvolveOpHeader;
 #endif
 
+#if FPPOW < 6
+typedef float real1_s;
+#else
+typedef double real1_s;
+#endif
+
 extern "C" {
 // non-quantum
 MICROSOFT_QUANTUM_DECL int get_error(_In_ uintq sid);
@@ -52,11 +58,7 @@ MICROSOFT_QUANTUM_DECL void qstabilizer_in_from_file(_In_ uintq sid, _In_ char* 
 // pseudo-quantum
 MICROSOFT_QUANTUM_DECL void HighestProbAll(_In_ uintq sid, uintq* r);
 MICROSOFT_QUANTUM_DECL void HighestProbAllN(_In_ uintq sid, _In_ uintq n, uintq* r);
-#if FPPOW < 6
-MICROSOFT_QUANTUM_DECL void ProbAll(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, float* p);
-#else
-MICROSOFT_QUANTUM_DECL void ProbAll(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, double* p);
-#endif
+MICROSOFT_QUANTUM_DECL void ProbAll(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, real1_s* p);
 MICROSOFT_QUANTUM_DECL double Prob(_In_ uintq sid, _In_ uintq q);
 MICROSOFT_QUANTUM_DECL double ProbRdm(_In_ uintq sid, _In_ uintq q);
 MICROSOFT_QUANTUM_DECL double PermutationProb(
@@ -76,53 +78,28 @@ MICROSOFT_QUANTUM_DECL double FactorizedVariance(
     _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_ uintq m, uintq* c);
 MICROSOFT_QUANTUM_DECL double FactorizedVarianceRdm(
     _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_ uintq m, uintq* c, _In_ bool r);
-#if FPPOW < 6
-MICROSOFT_QUANTUM_DECL double FactorizedExpectationFp(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, float* c);
+MICROSOFT_QUANTUM_DECL double FactorizedExpectationFp(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, real1_s* c);
 MICROSOFT_QUANTUM_DECL double FactorizedExpectationFpRdm(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, float* c, _In_ bool r);
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, real1_s* c, _In_ bool r);
 MICROSOFT_QUANTUM_DECL double UnitaryExpectation(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) float* b);
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) real1_s* b);
 MICROSOFT_QUANTUM_DECL double MatrixExpectation(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) float* b);
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) real1_s* b);
 MICROSOFT_QUANTUM_DECL double UnitaryExpectationEigenVal(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) float* b, _In_reads_(2 * n) float* e);
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) real1_s* b, _In_reads_(2 * n) real1_s* e);
 MICROSOFT_QUANTUM_DECL double MatrixExpectationEigenVal(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) float* b, _In_reads_(2 * n) float* e);
-MICROSOFT_QUANTUM_DECL double FactorizedVarianceFp(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, float* c);
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) real1_s* b, _In_reads_(2 * n) real1_s* e);
+MICROSOFT_QUANTUM_DECL double FactorizedVarianceFp(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, real1_s* c);
 MICROSOFT_QUANTUM_DECL double FactorizedVarianceFpRdm(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, float* c, _In_ bool r);
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, real1_s* c, _In_ bool r);
 MICROSOFT_QUANTUM_DECL double UnitaryVariance(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) float* b);
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) real1_s* b);
 MICROSOFT_QUANTUM_DECL double MatrixVariance(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) float* b);
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) real1_s* b);
 MICROSOFT_QUANTUM_DECL double UnitaryVarianceEigenVal(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) float* b, _In_reads_(2 * n) float* e);
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) real1_s* b, _In_reads_(2 * n) real1_s* e);
 MICROSOFT_QUANTUM_DECL double MatrixVarianceEigenVal(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) float* b, _In_reads_(2 * n) float* e);
-#else
-MICROSOFT_QUANTUM_DECL double FactorizedExpectationFp(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, double* c);
-MICROSOFT_QUANTUM_DECL double FactorizedExpectationFpRdm(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, double* c, _In_ bool r);
-MICROSOFT_QUANTUM_DECL double UnitaryExpectation(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) double* b);
-MICROSOFT_QUANTUM_DECL double MatrixExpectation(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) double* b);
-MICROSOFT_QUANTUM_DECL double UnitaryExpectationEigenVal(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) double* b, _In_reads_(2 * n) double* e);
-MICROSOFT_QUANTUM_DECL double MatrixExpectationEigenVal(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) double* b, _In_reads_(2 * n) double* e);
-MICROSOFT_QUANTUM_DECL double FactorizedVarianceFp(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, double* c);
-MICROSOFT_QUANTUM_DECL double FactorizedVarianceFpRdm(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, double* c, _In_ bool r);
-MICROSOFT_QUANTUM_DECL double UnitaryVariance(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) double* b);
-MICROSOFT_QUANTUM_DECL double MatrixVariance(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) double* b);
-MICROSOFT_QUANTUM_DECL double UnitaryVarianceEigenVal(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(3 * n) double* b, _In_reads_(2 * n) double* e);
-MICROSOFT_QUANTUM_DECL double MatrixVarianceEigenVal(
-    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) double* b, _In_reads_(2 * n) double* e);
-#endif
+    _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(8 * n) real1_s* b, _In_reads_(2 * n) real1_s* e);
 MICROSOFT_QUANTUM_DECL double PauliExpectation(
     _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(n) uintq* b);
 MICROSOFT_QUANTUM_DECL double PauliVariance(
@@ -131,17 +108,10 @@ MICROSOFT_QUANTUM_DECL double PauliVariance(
 MICROSOFT_QUANTUM_DECL void DumpIds(_In_ uintq sid, _In_ IdCallback callback);
 MICROSOFT_QUANTUM_DECL void Dump(_In_ uintq sid, _In_ ProbAmpCallback callback);
 
-#if FPPOW < 6
-MICROSOFT_QUANTUM_DECL void InKet(_In_ uintq sid, _In_ float* ket);
-MICROSOFT_QUANTUM_DECL void OutKet(_In_ uintq sid, _In_ float* ket);
-MICROSOFT_QUANTUM_DECL void OutProbs(_In_ uintq sid, _In_ float* ket);
-MICROSOFT_QUANTUM_DECL void OutReducedDensityMatrix(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, float* rdm);
-#else
-MICROSOFT_QUANTUM_DECL void InKet(_In_ uintq sid, _In_ double* ket);
-MICROSOFT_QUANTUM_DECL void OutKet(_In_ uintq sid, _In_ double* ket);
-MICROSOFT_QUANTUM_DECL void OutProbs(_In_ uintq sid, _In_ double* ket);
-MICROSOFT_QUANTUM_DECL void OutReducedDensityMatrix(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, double* rdm);
-#endif
+MICROSOFT_QUANTUM_DECL void InKet(_In_ uintq sid, _In_ real1_s* ket);
+MICROSOFT_QUANTUM_DECL void OutKet(_In_ uintq sid, _In_ real1_s* ket);
+MICROSOFT_QUANTUM_DECL void OutProbs(_In_ uintq sid, _In_ real1_s* ket);
+MICROSOFT_QUANTUM_DECL void OutReducedDensityMatrix(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, real1_s* rdm);
 
 MICROSOFT_QUANTUM_DECL size_t random_choice(_In_ uintq sid, _In_ size_t n, _In_reads_(n) double* p);
 
@@ -334,23 +304,22 @@ MICROSOFT_QUANTUM_DECL uintq init_qneuron(_In_ uintq sid, _In_ uintq n, _In_read
 MICROSOFT_QUANTUM_DECL uintq clone_qneuron(_In_ uintq nid);
 MICROSOFT_QUANTUM_DECL void destroy_qneuron(_In_ uintq nid);
 
-#if FPPOW < 6
-MICROSOFT_QUANTUM_DECL void set_qneuron_angles(_In_ uintq nid, _In_ float* angles);
-MICROSOFT_QUANTUM_DECL void get_qneuron_angles(_In_ uintq nid, _In_ float* angles);
-#else
-MICROSOFT_QUANTUM_DECL void set_qneuron_angles(_In_ uintq nid, _In_ double* angles);
-MICROSOFT_QUANTUM_DECL void get_qneuron_angles(_In_ uintq nid, _In_ double* angles);
-#endif
+MICROSOFT_QUANTUM_DECL void set_qneuron_angles(_In_ uintq nid, _In_ real1_s* angles);
+MICROSOFT_QUANTUM_DECL void get_qneuron_angles(_In_ uintq nid, _In_ real1_s* angles);
 
-MICROSOFT_QUANTUM_DECL void set_qneuron_sim(_In_ uintq nid, _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q);
+MICROSOFT_QUANTUM_DECL void set_qneuron_sim(
+    _In_ uintq nid, _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q);
 
-MICROSOFT_QUANTUM_DECL double qneuron_predict(_In_ uintq nid, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
-MICROSOFT_QUANTUM_DECL double qneuron_unpredict(_In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a);
-
-MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(_In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a);
-
-MICROSOFT_QUANTUM_DECL void qneuron_learn(_In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
-MICROSOFT_QUANTUM_DECL void qneuron_learn_permutation(_In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
+MICROSOFT_QUANTUM_DECL double qneuron_predict(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
+MICROSOFT_QUANTUM_DECL double qneuron_unpredict(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a);
+MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a);
+MICROSOFT_QUANTUM_DECL void qneuron_learn(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
+MICROSOFT_QUANTUM_DECL void qneuron_learn_permutation(
+    _In_ real1_s* angles, _In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
 
 MICROSOFT_QUANTUM_DECL uintq init_qcircuit(_In_ bool collapse, _In_ bool clifford);
 MICROSOFT_QUANTUM_DECL uintq init_qcircuit_clone(_In_ uintq cid);

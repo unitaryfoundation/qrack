@@ -5071,6 +5071,7 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_qneuron", "[sd_xfail]")
     const bitCapIntOcl InputPower = 1U << InputCount;
     const bitCapIntOcl OutputPower = 1U << OutputCount;
     const real1_f eta = 0.5f;
+    std::unique_ptr<real1_s[]> angles(new real1_s[pow2Ocl(InputCount)]());
 
     qftReg->Dispose(0, qftReg->GetQubitCount() - (InputCount + OutputCount));
 
@@ -5092,14 +5093,14 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_qneuron", "[sd_xfail]")
         for (bitLenInt i = 0; i < OutputCount; i++) {
             qftReg->SetPermutation(perm);
             bit = (comp & pow2Ocl(i)) != 0;
-            outputLayer[i]->LearnPermutation(eta, bit);
+            outputLayer[i]->LearnPermutation(angles.get(), eta, bit);
         }
     }
 
     for (perm = 0; perm < InputPower; perm++) {
         qftReg->SetPermutation(perm);
         for (bitLenInt i = 0; i < OutputCount; i++) {
-            outputLayer[i]->Predict();
+            outputLayer[i]->Predict(angles.get());
         }
         comp = (bitCapIntOcl)qftReg->MReg(InputCount, OutputCount);
         test = ((~perm) + 1U) & (OutputPower - 1);

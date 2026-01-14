@@ -71,7 +71,7 @@ protected:
         engines = orig->engines;
     }
 
-    double PhaseInfidelity(const complex& p) { return clampProb(abs(arg(p)) / PI_R1); }
+    double PhaseInfidelity(const complex& p) { return (double)clampProb(abs(arg(p)) / PI_R1); }
 
     // Drafted by Ellie (the OpenAI custom GPT instance), refined by Dan
     // Returns payload factor in [0,3] = negator + phase0 + phase1
@@ -95,7 +95,7 @@ protected:
         const real1_f P0 = clampProb(n00 * PhaseInfidelity(u00) + n10 * PhaseInfidelity(u10));
         const real1_f P1 = clampProb(n11 * PhaseInfidelity(u11) + n01 * PhaseInfidelity(u01));
 
-        return clampProb((N + P0 + P1) / 2) * 2;
+        return (double)clampProb((N + P0 + P1) / 2) * 2;
     }
 
     void CheckFidelity()

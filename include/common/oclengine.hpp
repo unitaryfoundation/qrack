@@ -30,8 +30,8 @@
 #include <sys/stat.h>
 
 #if ENABLE_SNUCL
-#include <stdexcept>
 #include <CL/cl.hpp>
+#include <stdexcept>
 #elif defined(OPENCL_V3)
 #include <CL/opencl.hpp>
 #elif defined(__APPLE__)

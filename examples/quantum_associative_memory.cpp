@@ -26,6 +26,7 @@ int main()
     const bitCapInt InputPower = 1U << InputCount;
     // const bitCapInt OutputPower = 1U << OutputCount;
     const real1 eta = ONE_R1 / (real1)2.0f;
+    std::unique_ptr<real1_s[]> angles(new real1_s[pow2Ocl(InputCount)]());
 
     // QINTERFACE_OPTIMAL uses the (single-processor) OpenCL engine type, if available. Otherwise, it falls back to
     // QEngineCPU.
@@ -48,7 +49,7 @@ int main()
         const bitCapInt comp = (~perm) + ONE_BCI;
         qReg->SetPermutation(perm);
         for (bitLenInt i = 0; i < OutputCount; i++) {
-            outputLayer[i]->LearnPermutation((real1_f)eta, bi_compare_0(comp & pow2(i)) != 0);
+            outputLayer[i]->LearnPermutation(angles.get(), (real1_f)eta, bi_compare_0(comp & pow2(i)) != 0);
         }
     }
 
@@ -56,7 +57,7 @@ int main()
     for (bitCapInt perm = ZERO_BCI; bi_compare(perm, InputPower) < 0; bi_increment(&perm, 1U)) {
         qReg->SetPermutation(perm);
         for (bitLenInt i = 0; i < OutputCount; i++) {
-            outputLayer[i]->Predict();
+            outputLayer[i]->Predict(angles.get());
         }
         const bitCapInt comp = qReg->MReg(InputCount, OutputCount);
         std::cout << "Input: " << perm << ", Output: " << comp << std::endl;
