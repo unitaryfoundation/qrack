@@ -5066,45 +5066,34 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_timeevolve_uniform")
 
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_qneuron", "[sd_xfail]")
 {
-    const bitLenInt InputCount = 4;
-    const bitLenInt OutputCount = 4;
-    const bitCapIntOcl InputPower = 1U << InputCount;
-    const bitCapIntOcl OutputPower = 1U << OutputCount;
-    const real1_f eta = 0.5f;
-    std::unique_ptr<real1_s[]> angles(new real1_s[pow2Ocl(InputCount)]());
+    const bitLenInt ControlCount = 4;
+    const bitCapInt ControlPower = 1U << ControlCount;
+    const real1 eta = ONE_R1 / (real1)2.0f;
+    std::unique_ptr<real1_s[]> angles(new real1_s[pow2Ocl(ControlCount)]());
 
-    qftReg->Dispose(0, qftReg->GetQubitCount() - (InputCount + OutputCount));
+    qftReg->Dispose(0, qftReg->GetQubitCount() - (ControlCount + 1U));
 
-    std::vector<bitLenInt> inputIndices(InputCount);
-    for (bitLenInt i = 0; i < InputCount; i++) {
+    std::vector<bitLenInt> inputIndices(ControlCount);
+    for (bitLenInt i = 0; i < ControlCount; i++) {
         inputIndices[i] = i;
     }
 
-    std::vector<QNeuronPtr> outputLayer;
-    for (bitLenInt i = 0; i < OutputCount; i++) {
-        outputLayer.push_back(std::make_shared<QNeuron>(qftReg, inputIndices, InputCount + i));
-    }
+    QNeuronPtr qPerceptron = std::make_shared<QNeuron>(qftReg, inputIndices, ControlCount);
 
-    // Train the network to associate powers of 2 with their log2()
-    bitCapIntOcl perm, comp, test;
-    bool bit;
-    for (perm = 0; perm < InputPower; perm++) {
-        comp = (~perm) + 1U;
-        for (bitLenInt i = 0; i < OutputCount; i++) {
-            qftReg->SetPermutation(perm);
-            bit = (comp & pow2Ocl(i)) != 0;
-            outputLayer[i]->LearnPermutation(angles.get(), eta, bit);
-        }
-    }
-
-    for (perm = 0; perm < InputPower; perm++) {
+    // Train the network to recognize powers of 2
+    bool isPowerOf2;
+    bitCapInt perm;
+    for (perm = ZERO_BCI; bi_compare(perm, ControlPower) < 0; bi_increment(&perm, 1U)) {
         qftReg->SetPermutation(perm);
-        for (bitLenInt i = 0; i < OutputCount; i++) {
-            outputLayer[i]->Predict(angles.get());
-        }
-        comp = (bitCapIntOcl)qftReg->MReg(InputCount, OutputCount);
-        test = ((~perm) + 1U) & (OutputPower - 1);
-        REQUIRE(comp == test);
+        isPowerOf2 = (bi_compare_0(perm) != 0) && (bi_compare_0(perm & (perm - ONE_BCI)) == 0);
+        qPerceptron->LearnPermutation(angles.get(), (real1_f)eta, isPowerOf2);
+    }
+
+    for (perm = ZERO_BCI; bi_compare(perm, ControlPower) < 0; bi_increment(&perm, 1U)) {
+        qftReg->SetPermutation(perm);
+        isPowerOf2 = (bi_compare_0(perm) != 0) && (bi_compare_0(perm & (perm - ONE_BCI)) == 0);
+        const bool predict = qPerceptron->Predict(angles.get()) > 0.5f;
+        REQUIRE(isPowerOf2 == predict);
     }
 }
 
