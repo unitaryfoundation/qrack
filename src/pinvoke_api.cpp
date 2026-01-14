@@ -3855,7 +3855,7 @@ MICROSOFT_QUANTUM_DECL void set_qneuron_sim(
 }
 
 MICROSOFT_QUANTUM_DECL double qneuron_predict(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
+    _In_ uintq nid, _In_ real1_s* angles, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
     try {
@@ -3869,7 +3869,7 @@ MICROSOFT_QUANTUM_DECL double qneuron_predict(
 }
 
 MICROSOFT_QUANTUM_DECL double qneuron_unpredict(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a)
+    _In_ uintq nid, _In_ real1_s* angles, _In_ bool e, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
     try {
@@ -3883,7 +3883,7 @@ MICROSOFT_QUANTUM_DECL double qneuron_unpredict(
 }
 
 MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a)
+    _In_ uintq nid, _In_ real1_s* angles, _In_ bool e, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
     try {
@@ -3897,7 +3897,7 @@ MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(
 }
 
 MICROSOFT_QUANTUM_DECL void qneuron_learn(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
+    _In_ uintq nid, _In_ real1_s* angles, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_VOID(nid)
     try {
@@ -3909,7 +3909,7 @@ MICROSOFT_QUANTUM_DECL void qneuron_learn(
 }
 
 MICROSOFT_QUANTUM_DECL void qneuron_learn_permutation(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
+    _In_ uintq nid, _In_ real1_s* angles, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_VOID(nid)
     try {

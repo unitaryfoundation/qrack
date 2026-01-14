@@ -311,15 +311,15 @@ MICROSOFT_QUANTUM_DECL void set_qneuron_sim(
     _In_ uintq nid, _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q);
 
 MICROSOFT_QUANTUM_DECL double qneuron_predict(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
+    _In_ uintq nid, _In_ real1_s* angles, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
 MICROSOFT_QUANTUM_DECL double qneuron_unpredict(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a);
+    _In_ uintq nid, _In_ real1_s* angles, _In_ bool e, _In_ uintq f, _In_ double a);
 MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ bool e, _In_ uintq f, _In_ double a);
+    _In_ uintq nid, _In_ real1_s* angles, _In_ bool e, _In_ uintq f, _In_ double a);
 MICROSOFT_QUANTUM_DECL void qneuron_learn(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
+    _In_ uintq nid, _In_ real1_s* angles, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
 MICROSOFT_QUANTUM_DECL void qneuron_learn_permutation(
-    _In_ real1_s* angles, _In_ uintq nid, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
+    _In_ uintq nid, _In_ real1_s* angles, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a);
 
 MICROSOFT_QUANTUM_DECL uintq init_qcircuit(_In_ bool collapse, _In_ bool clifford);
 MICROSOFT_QUANTUM_DECL uintq init_qcircuit_clone(_In_ uintq cid);
