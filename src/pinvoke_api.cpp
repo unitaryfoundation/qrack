@@ -3852,6 +3852,7 @@ MICROSOFT_QUANTUM_DECL void set_qneuron_sim(
 
     neuron->SetSimulator(simulator);
     neuron->SetIndices(ctrlsArray, GetSimShardId(simulator, q));
+    neuronSimulators[neuron] = simulator.get();
 }
 
 MICROSOFT_QUANTUM_DECL double qneuron_predict(
