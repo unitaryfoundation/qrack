@@ -324,7 +324,7 @@ Prior to the Qrack v7 API, a larger set of convenience methods were included in 
 
 "BCD" arithmetic ("binary coded decimal") is necessary to support emulation based on the MOS-6502. However, this is an outmoded form of binary arithmetic for most or all conceivable purposes for which one would want a quantum computer. (It stores integers as base 10 digits, in binary.) Off by default, turning this option on will slightly increase binary size by including BCD ALU operations from the API, but this is necessary to support the VM6502Q chip-like emulator project.
 
-## Copyright, License, and Acknowledgements
+## Copyright, License, and Acknowledgments
 
 Copyright (c) Daniel Strano and the Qrack contributors 2017-2025. All rights reserved.
 
