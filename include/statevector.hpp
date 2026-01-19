@@ -86,7 +86,7 @@ public:
 
 protected:
 #if defined(__APPLE__)
-    complex* _aligned_state_vec_alloc(bitCapIntOcl allocSize)
+    static complex* _aligned_state_vec_alloc(bitCapIntOcl allocSize)
     {
         void* toRet;
         posix_memalign(&toRet, QRACK_ALIGN_SIZE, allocSize);
@@ -94,7 +94,7 @@ protected:
     }
 #endif
 
-    std::unique_ptr<complex[], void (*)(complex*)> Alloc(bitCapIntOcl elemCount)
+    static std::unique_ptr<complex[], void (*)(complex*)> Alloc(bitCapIntOcl elemCount)
     {
 #if defined(__ANDROID__)
         return std::unique_ptr<complex[], void (*)(complex*)>(new complex[elemCount], [](complex* c) { delete c; });
