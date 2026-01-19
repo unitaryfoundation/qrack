@@ -64,8 +64,6 @@ protected:
             controls, qubitCount, "QTensorNetwork qubit index values must be within allocated qubit bounds!");
     }
 
-    bitLenInt GetThresholdQb();
-
     void MakeLayerStack();
 
     template <typename Fn> void RunAsAmplitudes(Fn fn, std::set<bitLenInt> qubits = std::set<bitLenInt>())

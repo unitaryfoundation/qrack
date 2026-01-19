@@ -112,51 +112,6 @@ QTensorNetwork::QTensorNetwork(std::vector<QInterfaceEngine> eng, bitLenInt qBit
     SetPermutation(initState, phaseFac);
 }
 
-bitLenInt QTensorNetwork::GetThresholdQb()
-{
-#if ENABLE_ENV_VARS
-    if (getenv("QRACK_QTENSORNETWORK_THRESHOLD_QB")) {
-        return (bitLenInt)std::stoi(std::string(getenv("QRACK_QTENSORNETWORK_THRESHOLD_QB")));
-    }
-#endif
-
-#if ENABLE_OPENCL || ENABLE_CUDA
-    if (isCpu) {
-        return QRACK_QRACK_QTENSORNETWORK_THRESHOLD_CPU_QB;
-    }
-
-#if ENABLE_ENV_VARS
-    if (getenv("QRACK_MAX_PAGING_QB")) {
-        return (bitLenInt)std::stoi(std::string(getenv("QRACK_MAX_PAGING_QB")));
-    }
-#endif
-
-    const size_t devCount = QRACK_GPU_SINGLETON.GetDeviceCount();
-    if (!devCount) {
-        return QRACK_QRACK_QTENSORNETWORK_THRESHOLD_CPU_QB;
-    }
-
-    const bitLenInt perPage = log2Ocl(QRACK_GPU_SINGLETON.GetDeviceContextPtr(devID)->GetMaxAlloc() / sizeof(complex));
-
-#if ENABLE_OPENCL
-    if (devCount < 2U) {
-        return perPage + 2U;
-    }
-
-    return perPage + log2Ocl(devCount) + 1U;
-#else
-    if (devCount < 2U) {
-        return perPage;
-    }
-
-    return (perPage + log2Ocl(devCount)) - 1U;
-#endif
-
-#else
-    return QRACK_QRACK_QTENSORNETWORK_THRESHOLD_CPU_QB;
-#endif
-}
-
 void QTensorNetwork::MakeLayerStack()
 {
     layerStack = nullptr;
