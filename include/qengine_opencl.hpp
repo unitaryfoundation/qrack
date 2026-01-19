@@ -430,6 +430,7 @@ public:
     void SetQuantumState(const complex* inputState);
     void GetQuantumState(complex* outputState);
     void GetProbs(real1* outputProbs);
+    using QInterface::HighestProbAll;
     bitCapInt HighestProbAll();
     bitCapInt MAll();
     complex GetAmplitude(const bitCapInt& perm);
