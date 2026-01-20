@@ -14,6 +14,8 @@
 
 #include "qrack_functions.hpp"
 
+#include <functional>
+
 namespace Qrack {
 
 // Called once per value between begin and end.

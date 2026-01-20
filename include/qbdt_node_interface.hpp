@@ -18,6 +18,7 @@
 
 #include "common/qrack_functions.hpp"
 
+#include <functional>
 #include <mutex>
 
 #if ENABLE_COMPLEX_X2
