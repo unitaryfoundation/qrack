@@ -33,6 +33,8 @@ namespace Qrack {
 class QBdtNodeInterface;
 typedef std::shared_ptr<QBdtNodeInterface> QBdtNodeInterfacePtr;
 
+typedef std::function<bitCapInt(const bitCapInt&)> BdtFunc;
+
 class QBdtNodeInterface {
 protected:
     static size_t SelectBit(bitCapInt perm, bitLenInt bit) { return (size_t)(bi_and_1(perm >> bit)); }

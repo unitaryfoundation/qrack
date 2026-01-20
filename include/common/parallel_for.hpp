@@ -16,6 +16,10 @@
 
 namespace Qrack {
 
+// Called once per value between begin and end.
+typedef std::function<void(const bitCapIntOcl&, const unsigned& cpu)> ParallelFunc;
+typedef std::function<bitCapIntOcl(const bitCapIntOcl&)> IncrementFunc;
+
 class ParallelFor {
 private:
     const bitCapIntOcl pStride;

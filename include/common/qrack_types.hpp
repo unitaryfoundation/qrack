@@ -138,14 +138,6 @@ const bitCapInt ONE_BCI = 1U;
 const bitCapInt ZERO_BCI = 0U;
 constexpr bitLenInt bitsInCap = ((bitLenInt)1U) << ((bitLenInt)QBCAPPOW);
 
-typedef std::shared_ptr<complex> BitOp;
-
-// Called once per value between begin and end.
-typedef std::function<void(const bitCapIntOcl&, const unsigned& cpu)> ParallelFunc;
-typedef std::function<bitCapIntOcl(const bitCapIntOcl&)> IncrementFunc;
-typedef std::function<bitCapInt(const bitCapInt&)> BdtFunc;
-typedef std::function<void(const bitCapInt&, const unsigned& cpu)> ParallelFuncBdt;
-
 class StateVector;
 class StateVectorArray;
 class StateVectorSparse;

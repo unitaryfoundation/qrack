@@ -21,6 +21,8 @@ struct _QrackTimeEvolveOpHeader {
 
 namespace Qrack {
 
+typedef std::shared_ptr<complex> BitOp;
+
 /**
  * A Hamiltonian can be specified in terms of arbitrary controlled single bit gates, each one an "HamiltonianOp."
  */

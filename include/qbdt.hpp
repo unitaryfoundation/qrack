@@ -31,6 +31,8 @@ namespace Qrack {
 class QBdt;
 typedef std::shared_ptr<QBdt> QBdtPtr;
 
+typedef std::function<void(const bitCapInt&, const unsigned& cpu)> ParallelFuncBdt;
+
 #if ENABLE_ALU
 class QBdt : public QAlu, public QParity, public QInterface {
 #else
