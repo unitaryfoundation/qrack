@@ -146,8 +146,6 @@ typedef std::shared_ptr<StateVector> StateVectorPtr;
 typedef std::shared_ptr<StateVectorArray> StateVectorArrayPtr;
 typedef std::shared_ptr<StateVectorSparse> StateVectorSparsePtr;
 
-typedef std::function<void(void)> DispatchFn;
-
 class QEngine;
 typedef std::shared_ptr<QEngine> QEnginePtr;
 
