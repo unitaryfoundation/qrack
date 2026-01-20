@@ -6,5 +6,5 @@ unitaryfund/qrack (or vm6502q/qrack) quantum computer simulator library
 .SH SYNOPSIS
 Run this executable to "pre-compile" OpenCL programs for qrack.
 .SH DESCRIPTION
-"qrack_cl_precompile" is an exectuble command built and installed by the "qrack" library. Based upon your available OpenCL ICDs for your GPUs and accelerators, running "qrack_cl_precompile" will compile the OpenCL program of Qrack for all visible ICDs and save intermediate representation in the ~/.qrack directory. When Qrack executables run, instead of recompiling their OpenCL programs every time, the "pre-compiled" intermediate representations in ~/.qrack will be used. (To stop using pre-compiled kernels, delete them from the ~/.qrack directory.)
+"qrack_cl_precompile" is an executable command built and installed by the "qrack" library. Based upon your available OpenCL ICDs for your GPUs and accelerators, running "qrack_cl_precompile" will compile the OpenCL program of Qrack for all visible ICDs and save intermediate representation in the ~/.qrack directory. When Qrack executables run, instead of recompiling their OpenCL programs every time, the "pre-compiled" intermediate representations in ~/.qrack will be used. (To stop using pre-compiled kernels, delete them from the ~/.qrack directory.)
 
