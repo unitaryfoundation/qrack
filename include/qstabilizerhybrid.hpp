@@ -218,7 +218,7 @@ protected:
 
     real1_f FractionalRzAngleWithFlush(bitLenInt i, real1_f angle, bool isGateSuppressed = false)
     {
-        const real1_f sectorAngle = PI_R1 / 2;
+        const real1_f sectorAngle = HALF_PI_R1;
         const real1_f Period = 2 * PI_R1;
         while (angle >= Period) {
             angle -= Period;
@@ -306,7 +306,7 @@ protected:
     std::vector<real1> AnglesToSignedProbs(std::vector<real1> angles)
     {
         std::vector<real1> signedProbs(angles.size());
-        std::transform(angles.begin(), angles.end(), signedProbs.begin(), [](real1 a) { return a / HALF_PI_R1; });
+        std::transform(angles.begin(), angles.end(), signedProbs.begin(), [](real1 a) { return a / PI_R1; });
 
         return signedProbs;
     }
