@@ -306,7 +306,7 @@ protected:
     std::vector<real1> AnglesToSignedProbs(std::vector<real1> angles)
     {
         std::vector<real1> signedProbs(angles.size());
-        std::transform(angles.begin(), angles.end(), signedProbs.begin(), [](real1 a) { return a / HALF_PI; });
+        std::transform(angles.begin(), angles.end(), signedProbs.begin(), [](real1 a) { return a / HALF_PI_R1; });
 
         return signedProbs;
     }
