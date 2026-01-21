@@ -1595,6 +1595,8 @@ bitCapInt QStabilizerHybrid::MAll()
         return toRet;
     }
 
+    std::vector<real1> angles = FlushCliffordFromBuffers();
+
     UpdateRoundingThreshold();
 
     if (roundingThreshold > FP_NORM_EPSILON) {
@@ -1603,6 +1605,21 @@ bitCapInt QStabilizerHybrid::MAll()
 
     if (!IsProbBuffered()) {
         const bitCapInt toRet = stabilizer->MAll();
+        SetPermutation(toRet);
+
+        return toRet;
+    }
+
+#if ENABLE_ENV_VARS
+    const bool isApprox = !isNearCliffordExact || getenv("QRACK_USE_APPROX_NEAR_CLIFFORD");
+#else
+    const bool isApprox = !isNearCliffordExact;
+#endif
+    if (isApprox) {
+        ConcatAncillaeAngles(angles);
+        const std::vector<real1> signedProbs = AnglesToSignedProbs(angles);
+        OneShotApproxNC(signedProbs);
+        const bitCapInt toRet = stabilizer->MAll() & (maxQPower - ONE_BCI);
         SetPermutation(toRet);
 
         return toRet;
@@ -1942,7 +1959,11 @@ void QStabilizerHybrid::RdmCloneFlush(real1_f threshold)
     QRACK_CONST complex h[4U]{ SQRT1_2_R1, SQRT1_2_R1, SQRT1_2_R1, -SQRT1_2_R1 };
     for (size_t i = shards.size() - 1U; i >= qubitCount; --i) {
         // We're going to start by non-destructively "simulating" measurement collapse.
-        MpsShardPtr nShard = shards[i]->Clone();
+        MpsShardPtr nShard = shards[i];
+        if (!nShard) {
+           continue;
+        }
+        nShard = shards[i]->Clone();
 
         for (int p = 0; p < 2; ++p) {
             // Say that we hypothetically collapse ancilla index "i" into state |p>...
@@ -1959,6 +1980,9 @@ void QStabilizerHybrid::RdmCloneFlush(real1_f threshold)
                 }
                 const real1_f prob = clone->stabilizer->Prob(j);
                 const MpsShardPtr& oShard = clone->shards[j];
+                if (!oShard) {
+                    continue;
+                }
                 oShard->Compose(h);
                 if (prob < QUARTER_R1_F) {
                     // Collapsed to 0 - combine buffers

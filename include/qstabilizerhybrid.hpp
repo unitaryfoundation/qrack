@@ -311,41 +311,46 @@ protected:
         return signedProbs;
     }
 
-    bitCapInt SampleCloneNC(const std::vector<bitCapInt>& qPowers, const std::vector<real1>& signedProbs)
+    void OneShotApproxNC(const std::vector<real1>& signedProbs)
     {
-        QStabilizerHybridPtr clone = std::dynamic_pointer_cast<QStabilizerHybrid>(Clone());
-
         // Probabilistically collapse all buffers.
         for (size_t i = 0U; i < qubitCount; ++i) {
-            clone->shards[i] = nullptr;
+            shards[i] = nullptr;
             const real1 prob = abs(signedProbs[i]);
             if (prob <= Rand()) {
                 continue;
             }
             if (signedProbs[i] < 0) {
-                clone->IS(i);
+                stabilizer->IS(i);
             } else {
-                clone->S(i);
+                stabilizer->S(i);
             }
         }
         const size_t maxLcv = qubitCount + ancillaCount;
         for (size_t i = qubitCount; i < maxLcv; ++i) {
-            clone->H(i);
-            clone->shards[i] = nullptr;
+            shards[i] = nullptr;
             const real1 prob = abs(signedProbs[i]);
             if (prob <= Rand()) {
                 continue;
             }
             if (signedProbs[i] < 0) {
-                clone->IS(i);
+                stabilizer->IS(i);
             } else {
-                clone->S(i);
+                stabilizer->S(i);
             }
-            clone->H(i);
-            clone->ForceM(i, false);
+            stabilizer->H(i);
+            stabilizer->ForceM(i, false);
         }
-        clone->deadAncillaCount += clone->ancillaCount;
-        clone->ancillaCount = 0U;
+        deadAncillaCount += ancillaCount;
+        ancillaCount = 0U;
+        shards.resize(qubitCount);
+    }
+
+    bitCapInt SampleCloneNC(const std::vector<bitCapInt>& qPowers, const std::vector<real1>& signedProbs)
+    {
+        QStabilizerHybridPtr clone = std::dynamic_pointer_cast<QStabilizerHybrid>(Clone());
+        // Probabilistically collapse all buffers.
+        clone->OneShotApproxNC(signedProbs);
 
         const bitCapInt rawSample = clone->MAll();
         bitCapInt sample = ZERO_BCI;
