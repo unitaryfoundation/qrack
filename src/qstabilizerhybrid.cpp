@@ -1997,8 +1997,8 @@ void QStabilizerHybrid::RdmCloneFlush(real1_f threshold)
             // Calculate the near-Clifford gate phase angle, but don't change the state:
             const real1 angle =
                 (real1)FractionalRzAngleWithFlush(i, std::arg(nShard->gate[3U] / nShard->gate[0U]), true);
-            const real1 prob = abs(angle) / PI_R1;
-            if (prob > threshold) {
+            const real1 prob = abs(angle) / HALF_PI_R1;
+            if (prob > (2 * threshold)) {
                 // The gate phase angle is too significant to flush.
                 continue;
             }
