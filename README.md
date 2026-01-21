@@ -101,6 +101,11 @@ Set the maximum allowed allocation (in MB) for the global OpenCL pool with envir
 
 Qrack has a novel near-Clifford simulation method based on the "reverse gadget" for non-Clifford phase injection in Appendix A of [PRX Quantum 3, 020361 – Published 23 June 2022](https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.3.020361). To use it, simply restrict your gate set to Clifford gates and only `RZ` for a non-Clifford gate. You probably also want to disable `QTensorNetwork` and `QUnit` layers, to directly expose `QStabilizerHybrid` at the "top" of your simulation method "layer stack."
 
+To skip expensive _exact_ near-Clifford sampling in favor of applying stochastic approximation, you can set the following environment variable for the session:
+```sh
+$ export QRACK_USE_APPROX_NEAR_CLIFFORD=True
+```
+
 ## Approximation and noise options
 `QUnit` can optionally round qubit subsystems proactively or on-demand to the nearest single or double qubit eigenstate with the `QRACK_QUNIT_SEPARABILITY_THRESHOLD=[0.0 - 1.0]` environment variable, with a value between `0.0` and `1.0`. When trying to find separable subsystems, Qrack will start by making 3-axis (independent or conditional) probability measurements. Based on the probability measurements, under the assumption that the state _is_ separable, an inverse state preparation to |0> procedure is fixed. If inverse state preparation would bring any single qubit Bloch sphere projection within parameter range of the edge of the Bloch sphere (with unit length, `1.0`), then the subsystem will be rounded (i.e. **post-selected** for measurement) to that state, then "uncomputed" with the corresponding (forward) state preparation, effectively "hyperpolarizing" one and two qubit separable substates by replacing entanglement with local qubit Bloch sphere extent. (If 3-axis probability is _not_ within rounding range, nothing is done directly to the substate.)
 
