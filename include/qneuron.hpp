@@ -172,8 +172,8 @@ public:
                     angles, angles + inputPower, nAngles.get(), [&alpha](real1_s a) { return applyAlpha(a, alpha); });
                 break;
             case Leaky_ReLU:
-                std::transform(
-                    angles, angles + inputPower, nAngles.get(), [&alpha](real1_s a) { return applyLeakyRelu(a, alpha); });
+                std::transform(angles, angles + inputPower, nAngles.get(),
+                    [&alpha](real1_s a) { return applyLeakyRelu(a, alpha); });
                 break;
             case Sigmoid:
             default:

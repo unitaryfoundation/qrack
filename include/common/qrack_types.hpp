@@ -175,6 +175,7 @@ typedef std::shared_ptr<QEngine> QEnginePtr;
 QRACK_CONST real1 PI_R1 = (real1)M_PI;
 QRACK_CONST real1 SQRT2_R1 = (real1)M_SQRT2;
 QRACK_CONST real1 SQRT1_2_R1 = (real1)M_SQRT1_2;
+QRACK_CONST real1 HALF_PI_R1 = (real1)(M_PI / 2);
 
 #if (FPPOW < 5) || (FPPOW > 6)
 QRACK_CONST real1 ZERO_R1 = (real1)0.0f;

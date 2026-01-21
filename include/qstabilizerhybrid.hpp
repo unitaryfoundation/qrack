@@ -49,6 +49,7 @@ protected:
     bool doNormalize;
     bool useTGadget;
     bool isRoundingFlushed;
+    bool isNearCliffordExact;
     bitLenInt thresholdQubits;
     bitLenInt ancillaCount;
     bitLenInt deadAncillaCount;
@@ -255,8 +256,9 @@ protected:
         return angle;
     }
 
-    void FlushCliffordFromBuffers()
+    std::vector<real1> FlushCliffordFromBuffers()
     {
+        std::vector<real1> angles(qubitCount);
         for (size_t i = 0U; i < qubitCount; ++i) {
             // Flush all buffers as close as possible to Clifford.
             const MpsShardPtr& shard = shards[i];
@@ -273,17 +275,87 @@ protected:
                 // We have a cached non-phase operation.
                 continue;
             }
-            const real1 angle = (real1)(FractionalRzAngleWithFlush(i, std::arg(shard->gate[3U] / shard->gate[0U])) / 2);
-            if ((2 * abs(angle)) <= (FP_NORM_EPSILON * PI_R1)) {
+            real1 angle = (real1)FractionalRzAngleWithFlush(i, std::arg(shard->gate[3U] / shard->gate[0U]));
+            if (abs(angle) <= (FP_NORM_EPSILON * PI_R1)) {
                 shards[i] = nullptr;
                 continue;
             }
+            angles[i] = angle;
+            angle /= 2;
             const real1 angleCos = cos(angle);
             const real1 angleSin = sin(angle);
             shard->gate[0U] = complex(angleCos, -angleSin);
             shard->gate[3U] = complex(angleCos, angleSin);
         }
         RdmCloneFlush();
+
+        return angles;
+    }
+
+    void ConcatAncillaeAngles(std::vector<real1>& angles)
+    {
+        const size_t maxLcv = qubitCount + ancillaCount;
+        for (size_t i = qubitCount; i < maxLcv; ++i) {
+            const MpsShardPtr& shard = shards[i];
+            H(i);
+            angles.push_back((real1)std::arg(shard->gate[3U] / shard->gate[0U]));
+            H(i);
+        }
+    }
+
+    std::vector<real1> AnglesToSignedProbs(std::vector<real1> angles)
+    {
+        std::vector<real1> signedProbs(angles.size());
+        std::transform(angles.begin(), angles.end(), signedProbs.begin(), [](real1 a) { return a / HALF_PI_R1; });
+
+        return signedProbs;
+    }
+
+    bitCapInt SampleCloneNC(const std::vector<bitCapInt>& qPowers, const std::vector<real1>& signedProbs)
+    {
+        QStabilizerHybridPtr clone = std::dynamic_pointer_cast<QStabilizerHybrid>(Clone());
+
+        // Probabilistically collapse all buffers.
+        for (size_t i = 0U; i < qubitCount; ++i) {
+            clone->shards[i] = nullptr;
+            const real1 prob = abs(signedProbs[i]);
+            if (prob <= Rand()) {
+                continue;
+            }
+            if (signedProbs[i] < 0) {
+                clone->IS(i);
+            } else {
+                clone->S(i);
+            }
+        }
+        const size_t maxLcv = qubitCount + ancillaCount;
+        for (size_t i = qubitCount; i < maxLcv; ++i) {
+            clone->H(i);
+            clone->shards[i] = nullptr;
+            const real1 prob = abs(signedProbs[i]);
+            if (prob <= Rand()) {
+                continue;
+            }
+            if (signedProbs[i] < 0) {
+                clone->IS(i);
+            } else {
+                clone->S(i);
+            }
+            clone->H(i);
+            clone->ForceM(i, false);
+        }
+        clone->deadAncillaCount += clone->ancillaCount;
+        clone->ancillaCount = 0U;
+
+        const bitCapInt rawSample = clone->MAll();
+        bitCapInt sample = ZERO_BCI;
+        for (size_t i = 0U; i < qPowers.size(); ++i) {
+            if (bi_compare_0(rawSample & qPowers[i]) != 0) {
+                bi_or_ip(&sample, pow2(i));
+            }
+        }
+
+        return sample;
     }
 
     QStabilizerHybridPtr RdmCloneHelper()
@@ -406,6 +478,8 @@ public:
     };
     void SetTInjection(bool useGadget) { useTGadget = useGadget; }
     bool GetTInjection() { return useTGadget; }
+    void SetUseExactNearClifford(bool useExact) { isNearCliffordExact = useExact; }
+    bool GetUseExactNearClifford() { return isNearCliffordExact; }
     double GetUnitaryFidelity() { return exp(logFidelity); }
     void ResetUnitaryFidelity() { logFidelity = 0.0; }
 

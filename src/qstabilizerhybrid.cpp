@@ -49,6 +49,7 @@ QStabilizerHybrid::QStabilizerHybrid(std::vector<QInterfaceEngine> eng, bitLenIn
     , doNormalize(doNorm)
     , useTGadget(true)
     , isRoundingFlushed(false)
+    , isNearCliffordExact(true)
     , thresholdQubits(qubitThreshold)
     , ancillaCount(0U)
     , deadAncillaCount(0U)
@@ -1701,7 +1702,7 @@ std::map<bitCapInt, int> QStabilizerHybrid::MultiShotMeasureMask(const std::vect
         return engine->MultiShotMeasureMask(qPowers, shots);
     }
 
-    FlushCliffordFromBuffers();
+    std::vector<real1> angles = FlushCliffordFromBuffers();
 
     UpdateRoundingThreshold();
 
@@ -1725,8 +1726,27 @@ std::map<bitCapInt, int> QStabilizerHybrid::MultiShotMeasureMask(const std::vect
         return results;
     }
 
+#if ENABLE_ENV_VARS
+    const bool isApprox = !isNearCliffordExact || getenv("QRACK_USE_APPROX_NEAR_CLIFFORD");
+#else
+    const bool isApprox = !isNearCliffordExact;
+#endif
+    if (isApprox) {
+        ConcatAncillaeAngles(angles);
+        const std::vector<real1> signedProbs = AnglesToSignedProbs(angles);
+        std::mutex resultsMutex;
+        par_for(0U, shots, [&](const bitCapIntOcl& shot, const unsigned& cpu) {
+            const bitCapInt sample = SampleCloneNC(qPowers, signedProbs);
+            std::lock_guard<std::mutex> lock(resultsMutex);
+            ++(results[sample]);
+        });
+
+        return results;
+    }
+
     std::vector<real1_f> rng = GenerateShotProbs(shots);
-    const auto shotFunc = [&](bitCapInt sample, unsigned unused) { ++(results[sample]); };
+    const auto shotFunc = [&](bitCapInt sample, unsigned unused) {
+        ++(results[sample]); };
     real1 partProb = ZERO_R1;
     bitCapInt d = ZERO_BCI;
 
@@ -1807,7 +1827,7 @@ void QStabilizerHybrid::MultiShotMeasureMask(
         return engine->MultiShotMeasureMask(qPowers, shots, shotsArray);
     }
 
-    FlushCliffordFromBuffers();
+    std::vector<real1> angles = FlushCliffordFromBuffers();
 
     UpdateRoundingThreshold();
 
@@ -1824,8 +1844,22 @@ void QStabilizerHybrid::MultiShotMeasureMask(
         });
     }
 
+#if ENABLE_ENV_VARS
+    const bool isApprox = !isNearCliffordExact || getenv("QRACK_USE_APPROX_NEAR_CLIFFORD");
+#else
+    const bool isApprox = !isNearCliffordExact;
+#endif
+    if (isApprox) {
+        ConcatAncillaeAngles(angles);
+        const std::vector<real1> signedProbs = AnglesToSignedProbs(angles);
+        return par_for(0U, shots, [&](const bitCapIntOcl& shot, const unsigned& cpu) {
+            shotsArray[shot] = (bitCapIntOcl)SampleCloneNC(qPowers, signedProbs);
+        });
+    }
+
     std::vector<real1_f> rng = GenerateShotProbs(shots);
-    const auto shotFunc = [&](bitCapInt sample, unsigned shot) { shotsArray[shot] = (bitCapIntOcl)sample; };
+    const auto shotFunc = [&](bitCapInt sample, unsigned shot) {
+        shotsArray[shot] = (bitCapIntOcl)sample; };
     real1 partProb = ZERO_R1;
     bitCapInt d = ZERO_BCI;
 

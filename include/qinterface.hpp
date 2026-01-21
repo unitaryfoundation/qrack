@@ -2961,6 +2961,20 @@ public:
      */
     virtual bool GetTInjection() { return false; }
     /**
+     *  Set the option to use exact-method near-Clifford simulation (on by default)
+     *
+     *  If T-injection gadgets are available and in use, as in Qrack::QStabilizerHybrid, then turning this option on
+     * attempts to simulate Clifford+T exactly. If this option is off, approximate "branch cuts" are used instead.
+     */
+    virtual void SetUseExactNearClifford(bool useExact) {}
+    /**
+     *  Get the option to use exact-method near-Clifford simulation (on by default)
+     *
+     *  If T-injection gadgets are available and in use, as in Qrack::QStabilizerHybrid, then turning this option on
+     * attempts to simulate Clifford+T exactly. If this option is off, approximate "branch cuts" are used instead.
+     */
+    virtual bool GetUseExactNearClifford() { return false; }
+    /**
      *  Set the noise level option (only for a noisy interface)
      *
      *  If this is a QInterfaceNoisy, adjust the noise level per gate.
