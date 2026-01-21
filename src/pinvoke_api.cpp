@@ -3656,6 +3656,17 @@ MICROSOFT_QUANTUM_DECL void SetReactiveSeparate(_In_ uintq sid, _In_ bool irs)
     }
 }
 
+MICROSOFT_QUANTUM_DECL void SetUseExactNearClifford(_In_ uintq sid, _In_ bool enc)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        simulator->SetUseExactNearClifford(enc);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
 MICROSOFT_QUANTUM_DECL void SetTInjection(_In_ uintq sid, _In_ bool irs)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)

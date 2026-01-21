@@ -34,6 +34,7 @@ protected:
     bool useHostRam;
     bool isReactiveSeparate;
     bool useTGadget;
+    bool useExactNC;
     bool isBdt;
     bool isCpu;
     bool isSinglePage;
@@ -60,6 +61,7 @@ protected:
         useHostRam = orig->useHostRam;
         isReactiveSeparate = orig->isReactiveSeparate;
         useTGadget = orig->useTGadget;
+        useExactNC = orig->useExactNC;
         thresholdQubits = orig->thresholdQubits;
         separabilityThreshold = orig->separabilityThreshold;
         roundingThreshold = orig->roundingThreshold;
@@ -181,6 +183,18 @@ public:
                 return true;
             },
             ZERO_R1_F, ZERO_R1_F, ZERO_R1_F, useGadget ? 1U : 0U);
+    }
+
+    virtual void SetUseExactNearClifford(bool useExact)
+    {
+        useExactNC = useExact;
+        ParallelUnitApply(
+            [](QInterfacePtr unit, real1_f unused1, real1_f unused2, real1_f unused3, int64_t useExact,
+                std::vector<int64_t> unused4) {
+                unit->SetUseExactNearClifford((bool)useExact);
+                return true;
+            },
+            ZERO_R1_F, ZERO_R1_F, ZERO_R1_F, useExact ? 1U : 0U);
     }
 
     virtual void SetReactiveSeparate(bool isAggSep) { isReactiveSeparate = isAggSep; }

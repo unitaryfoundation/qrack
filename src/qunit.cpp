@@ -78,6 +78,7 @@ QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCa
     , freezeBasis2Qb(false)
     , useHostRam(useHostMem)
     , useTGadget(true)
+    , useExactNC(true)
     , isBdt(false)
 #if ENABLE_OPENCL || ENABLE_CUDA
     , isCpu(QRACK_GPU_SINGLETON.GetDeviceCount() == 0)
@@ -135,6 +136,7 @@ QInterfacePtr QUnit::MakeEngine(bitLenInt length, const bitCapInt& perm)
         randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor, deviceIDs, thresholdQubits,
         separabilityThreshold);
     toRet->SetTInjection(useTGadget);
+    toRet->SetUseExactNearClifford(useExactNC);
     toRet->SetNcrp(roundingThreshold);
     return toRet;
 }
@@ -524,6 +526,7 @@ bitLenInt QUnit::Allocate(bitLenInt start, bitLenInt length)
         separabilityThreshold);
     nQubits->SetReactiveSeparate(isReactiveSeparate);
     nQubits->SetTInjection(useTGadget);
+    nQubits->SetUseExactNearClifford(useExactNC);
     nQubits->SetNcrp(roundingThreshold);
 
     return Compose(nQubits, start);
@@ -3888,6 +3891,7 @@ QInterfacePtr QUnit::CloneBody(QUnitPtr copyPtr, bool isCopy)
 
     copyPtr->SetReactiveSeparate(isReactiveSeparate);
     copyPtr->SetTInjection(useTGadget);
+    copyPtr->SetUseExactNearClifford(useExactNC);
     copyPtr->SetNcrp(roundingThreshold);
     copyPtr->logFidelity = logFidelity;
 
