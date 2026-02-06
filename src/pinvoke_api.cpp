@@ -51,7 +51,7 @@
 #endif
 
 #define SIMULATOR_LOCK_GUARD_VOID(sid)                                                                                 \
-    if (sid > simulators.size()) {                                                                                     \
+    if (sid >= simulators.size()) {                                                                                    \
         std::cout << "Invalid argument: simulator ID not found!" << std::endl;                                         \
         metaError = 2;                                                                                                 \
         return;                                                                                                        \
@@ -63,7 +63,7 @@
     }
 
 #define SIMULATOR_LOCK_GUARD_TYPED(sid, def)                                                                           \
-    if (sid > simulators.size()) {                                                                                     \
+    if (sid >= simulators.size()) {                                                                                    \
         std::cout << "Invalid argument: simulator ID not found!" << std::endl;                                         \
         metaError = 2;                                                                                                 \
         return def;                                                                                                    \
@@ -127,7 +127,7 @@
 #endif
 
 #define NEURON_LOCK_GUARD_VOID(nid)                                                                                    \
-    if (nid > neurons.size()) {                                                                                        \
+    if (nid >= neurons.size()) {                                                                                       \
         std::cout << "Invalid argument: neuron ID not found!" << std::endl;                                            \
         metaError = 2;                                                                                                 \
         return;                                                                                                        \
@@ -140,7 +140,7 @@
     }
 
 #define NEURON_ONLY_LOCK_GUARD_VOID(nid)                                                                               \
-    if (nid > neurons.size()) {                                                                                        \
+    if (nid >= neurons.size()) {                                                                                       \
         std::cout << "Invalid argument: neuron ID not found!" << std::endl;                                            \
         metaError = 2;                                                                                                 \
         return;                                                                                                        \
@@ -153,7 +153,7 @@
     }
 
 #define NEURON_LOCK_GUARD_TYPED(nid, def)                                                                              \
-    if (nid > neurons.size()) {                                                                                        \
+    if (nid >= neurons.size()) {                                                                                       \
         std::cout << "Invalid argument: neuron ID not found!" << std::endl;                                            \
         metaError = 2;                                                                                                 \
         return def;                                                                                                    \
@@ -190,7 +190,7 @@
 #endif
 
 #define CIRCUIT_LOCK_GUARD_TYPED(cid, def)                                                                             \
-    if (cid > circuits.size()) {                                                                                       \
+    if (cid >= circuits.size()) {                                                                                      \
         std::cout << "Invalid argument: circuit ID not found!" << std::endl;                                           \
         metaError = 2;                                                                                                 \
         return def;                                                                                                    \
@@ -203,7 +203,7 @@
     }
 
 #define CIRCUIT_LOCK_GUARD_VOID(cid)                                                                                   \
-    if (cid > circuits.size()) {                                                                                       \
+    if (cid >= circuits.size()) {                                                                                      \
         std::cout << "Invalid argument: neuron ID not found!" << std::endl;                                            \
         metaError = 2;                                                                                                 \
         return;                                                                                                        \
@@ -219,12 +219,12 @@
 
 #if CPP_STD > 13
 #define CIRCUIT_AND_SIMULATOR_LOCK_GUARD_VOID(cid, sid)                                                                \
-    if (sid > simulators.size()) {                                                                                     \
+    if (sid >= simulators.size()) {                                                                                    \
         std::cout << "Invalid argument: simulator ID not found!" << std::endl;                                         \
         metaError = 2;                                                                                                 \
         return;                                                                                                        \
     }                                                                                                                  \
-    if (cid > circuits.size()) {                                                                                       \
+    if (cid >= circuits.size()) {                                                                                      \
         std::cout << "Invalid argument: neuron ID not found!" << std::endl;                                            \
         metaError = 2;                                                                                                 \
         return;                                                                                                        \
@@ -250,12 +250,12 @@
     }
 #else
 #define CIRCUIT_AND_SIMULATOR_LOCK_GUARD_VOID(cid, sid)                                                                \
-    if (sid > simulators.size()) {                                                                                     \
+    if (sid >= simulators.size()) {                                                                                    \
         std::cout << "Invalid argument: simulator ID not found!" << std::endl;                                         \
         metaError = 2;                                                                                                 \
         return;                                                                                                        \
     }                                                                                                                  \
-    if (cid > circuits.size()) {                                                                                       \
+    if (cid >= circuits.size()) {                                                                                      \
         std::cout << "Invalid argument: neuron ID not found!" << std::endl;                                            \
         metaError = 2;                                                                                                 \
         return;                                                                                                        \
