@@ -15,6 +15,8 @@
 #include "common/qneuron_activation_function.hpp"
 #include "qinterface.hpp"
 
+#include <algorithm>
+
 namespace Qrack {
 
 class QNeuron;
