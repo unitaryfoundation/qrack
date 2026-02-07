@@ -115,6 +115,8 @@ public:
 
     bitCapIntOcl GetInputPower() { return pow2Ocl(inputIndices.size()); }
 
+    bitLenInt GetOutputIndex() { return outputIndex; }
+
     /** Predict a binary classification.
      *
      * Feed-forward from the inputs, loaded in "qReg", to a binary categorical classification. "expected" flips the
