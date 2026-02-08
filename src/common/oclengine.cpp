@@ -17,6 +17,8 @@
 #include <regex>
 #include <sstream>
 
+namespace Qrack {
+
 #if UINTPOW < 4
 #include "qheader_uint8cl.hpp"
 #elif UINTPOW < 5
@@ -45,8 +47,6 @@
 #include "qheader_bcdcl.hpp"
 #endif
 #endif
-
-namespace Qrack {
 
 /// "Qrack::OCLEngine" manages the single OpenCL context
 

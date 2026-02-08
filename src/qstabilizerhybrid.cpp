@@ -1762,8 +1762,7 @@ std::map<bitCapInt, int> QStabilizerHybrid::MultiShotMeasureMask(const std::vect
     }
 
     std::vector<real1_f> rng = GenerateShotProbs(shots);
-    const auto shotFunc = [&](bitCapInt sample, unsigned unused) {
-        ++(results[sample]); };
+    const auto shotFunc = [&](bitCapInt sample, unsigned unused) { ++(results[sample]); };
     real1 partProb = ZERO_R1;
     bitCapInt d = ZERO_BCI;
 
@@ -1875,8 +1874,7 @@ void QStabilizerHybrid::MultiShotMeasureMask(
     }
 
     std::vector<real1_f> rng = GenerateShotProbs(shots);
-    const auto shotFunc = [&](bitCapInt sample, unsigned shot) {
-        shotsArray[shot] = (bitCapIntOcl)sample; };
+    const auto shotFunc = [&](bitCapInt sample, unsigned shot) { shotsArray[shot] = (bitCapIntOcl)sample; };
     real1 partProb = ZERO_R1;
     bitCapInt d = ZERO_BCI;
 
@@ -1961,7 +1959,7 @@ void QStabilizerHybrid::RdmCloneFlush(real1_f threshold)
         // We're going to start by non-destructively "simulating" measurement collapse.
         MpsShardPtr nShard = shards[i];
         if (!nShard) {
-           continue;
+            continue;
         }
         nShard = shards[i]->Clone();
 
