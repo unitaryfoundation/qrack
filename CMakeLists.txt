@@ -290,10 +290,10 @@ include ("cmake/Random.cmake")
 
 include_directories(include/common)
 
-if (NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
+if (ENABLE_TESTS AND NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
     target_include_directories (unittest PUBLIC test)
     target_include_directories (benchmarks PUBLIC test)
-endif (NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
+endif (ENABLE_TESTS AND NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
 
 if (APPLE)
     set(TEST_COMPILE_OPTS -Wno-inconsistent-missing-override)
@@ -333,10 +333,10 @@ else (ENABLE_CUDA)
 endif (ENABLE_CUDA)
 target_compile_definitions(qrack_pinvoke PUBLIC -DDLL_EXPORTS)
 set_property(TARGET qrack_pinvoke PROPERTY SOVERSION ${CMAKE_PROJECT_VERSION} )
-if (NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
+if (ENABLE_TESTS AND NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
     target_compile_options (unittest PUBLIC ${TEST_COMPILE_OPTS} -DCATCH_CONFIG_FAST_COMPILE)
     target_compile_options (benchmarks PUBLIC ${TEST_COMPILE_OPTS} -DCATCH_CONFIG_FAST_COMPILE)
-endif (NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
+endif (ENABLE_TESTS AND NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
 
 if (NOT ENABLE_EMIT_LLVM)
     # Declare the OCL precompilation executable
