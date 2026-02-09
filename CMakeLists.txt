@@ -16,6 +16,7 @@ set(CMAKE_WARN_DEPRECATED FALSE)
 
 option (ENABLE_MAKE_CLEAN_OVERRIDE "Override the 'make clean' recipe for Debian packaging" ON)
 option (ENABLE_EXAMPLES "Include usage examples" ON)
+option (ENABLE_TESTS "Include tests and benchmarks" ON)
 option (ENABLE_INTRINSICS "Use x86_64 intrinsics" ON)
 if (PACK_DEBIAN)
     set(ENABLE_EXAMPLES OFF)
@@ -83,7 +84,7 @@ target_link_libraries (qrack_pinvoke ${QRACK_LIBS})
 if (EMSCRIPTEN)
     target_link_libraries (qrack_wasm ${QRACK_LIBS})
 endif (EMSCRIPTEN)
-if (NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
+if (ENABLE_TESTS AND NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
     # Declare the unittest executable
     add_executable (unittest
         test/test_main.cpp
@@ -100,7 +101,7 @@ if (NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
 
     target_link_libraries (benchmarks ${QRACK_LIBS})
 
-endif (NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
+endif (ENABLE_TESTS AND NOT ENABLE_EMIT_LLVM AND NOT PACK_DEBIAN)
 
 # Included after the library and other modules have been declared
 option (ENABLE_OPENCL "Use OpenCL optimizations" ON)
