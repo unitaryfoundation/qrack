@@ -3870,8 +3870,16 @@ MICROSOFT_QUANTUM_DECL double qneuron_predict(
     _In_ uintq nid, _In_ real1_s* angles, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
+#if (FPPOW == 5) || (FPPOW == 6)
+    real1* ang = angles;
+#else
+    const size_t maxQPower = (size_t)(neuron->GetInputPower());
+    std::unique_ptr<real1[]> _ang(new real1[maxQPower]);
+    std::transform(angles, angles + maxQPower, _ang.get(), [](real1_s c) { return (real1)c; });
+    real1* ang = _ang.get();
+#endif
     try {
-        return (double)neuron->Predict(angles, e, r, (QNeuronActivationFn)f, (real1_f)a);
+        return (double)neuron->Predict(ang, e, r, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3884,8 +3892,16 @@ MICROSOFT_QUANTUM_DECL double qneuron_unpredict(
     _In_ uintq nid, _In_ real1_s* angles, _In_ bool e, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
+#if (FPPOW == 5) || (FPPOW == 6)
+    real1* ang = angles;
+#else
+    const size_t maxQPower = (size_t)(neuron->GetInputPower());
+    std::unique_ptr<real1[]> _ang(new real1[maxQPower]);
+    std::transform(angles, angles + maxQPower, _ang.get(), [](real1_s c) { return (real1)c; });
+    real1* ang = _ang.get();
+#endif
     try {
-        return (double)neuron->Unpredict(angles, e, (QNeuronActivationFn)f, (real1_f)a);
+        return (double)neuron->Unpredict(ang, e, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3898,8 +3914,16 @@ MICROSOFT_QUANTUM_DECL double qneuron_learn_cycle(
     _In_ uintq nid, _In_ real1_s* angles, _In_ bool e, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_DOUBLE(nid)
+#if (FPPOW == 5) || (FPPOW == 6)
+    real1* ang = angles;
+#else
+    const size_t maxQPower = (size_t)(neuron->GetInputPower());
+    std::unique_ptr<real1[]> _ang(new real1[maxQPower]);
+    std::transform(angles, angles + maxQPower, _ang.get(), [](real1_s c) { return (real1)c; });
+    real1* ang = _ang.get();
+#endif
     try {
-        return (double)neuron->LearnCycle(angles, e, (QNeuronActivationFn)f, (real1_f)a);
+        return (double)neuron->LearnCycle(ang, e, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3912,8 +3936,16 @@ MICROSOFT_QUANTUM_DECL void qneuron_learn(
     _In_ uintq nid, _In_ real1_s* angles, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_VOID(nid)
+#if (FPPOW == 5) || (FPPOW == 6)
+    real1* ang = angles;
+#else
+    const size_t maxQPower = (size_t)(neuron->GetInputPower());
+    std::unique_ptr<real1[]> _ang(new real1[maxQPower]);
+    std::transform(angles, angles + maxQPower, _ang.get(), [](real1_s c) { return (real1)c; });
+    real1* ang = _ang.get();
+#endif
     try {
-        neuron->Learn(angles, eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
+        neuron->Learn(ang, eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;
@@ -3924,8 +3956,16 @@ MICROSOFT_QUANTUM_DECL void qneuron_learn_permutation(
     _In_ uintq nid, _In_ real1_s* angles, _In_ double eta, _In_ bool e, _In_ bool r, _In_ uintq f, _In_ double a)
 {
     NEURON_LOCK_GUARD_VOID(nid)
+#if (FPPOW == 5) || (FPPOW == 6)
+    real1* ang = angles;
+#else
+    const size_t maxQPower = (size_t)(neuron->GetInputPower());
+    std::unique_ptr<real1[]> _ang(new real1[maxQPower]);
+    std::transform(angles, angles + maxQPower, _ang.get(), [](real1_s c) { return (real1)c; });
+    real1* ang = _ang.get();
+#endif
     try {
-        neuron->LearnPermutation(angles, eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
+        neuron->LearnPermutation(ang, eta, e, r, (QNeuronActivationFn)f, (real1_f)a);
     } catch (const std::exception& ex) {
         neuronErrors[nid] = 1;
         std::cout << ex.what() << std::endl;

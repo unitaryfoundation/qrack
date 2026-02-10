@@ -125,7 +125,7 @@ public:
      * binary categories, if false. "resetInit," if true, resets the result qubit to 0.5/0.5 |0>/|1> superposition
      * before proceeding to predict.
      */
-    real1_f Predict(const real1_s* angles, const bool& expected = true, const bool& resetInit = true,
+    real1_f Predict(const real1* angles, const bool& expected = true, const bool& resetInit = true,
         const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         if (resetInit) {
@@ -173,11 +173,11 @@ public:
                 break;
             case Generalized_Logistic:
                 std::transform(
-                    angles, angles + inputPower, nAngles.get(), [&alpha](real1_s a) { return applyAlpha(a, alpha); });
+                    angles, angles + inputPower, nAngles.get(), [&alpha](real1 a) { return applyAlpha(a, alpha); });
                 break;
             case Leaky_ReLU:
-                std::transform(angles, angles + inputPower, nAngles.get(),
-                    [&alpha](real1_s a) { return applyLeakyRelu(a, alpha); });
+                std::transform(
+                    angles, angles + inputPower, nAngles.get(), [&alpha](real1 a) { return applyLeakyRelu(a, alpha); });
                 break;
             case Sigmoid:
             default:
@@ -193,7 +193,7 @@ public:
     }
 
     /** "Uncompute" the Predict() method */
-    real1_f Unpredict(const real1_s* angles, const bool& expected = true,
+    real1_f Unpredict(const real1* angles, const bool& expected = true,
         const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         if (inputIndices.empty()) {
@@ -229,17 +229,17 @@ public:
                 break;
             case Generalized_Logistic:
                 std::transform(
-                    angles, angles + inputPower, nAngles.get(), [&alpha](real1_s a) { return -applyAlpha(a, alpha); });
+                    angles, angles + inputPower, nAngles.get(), [&alpha](real1 a) { return -applyAlpha(a, alpha); });
                 qReg->UniformlyControlledRY(inputIndices, outputIndex, nAngles.get());
                 break;
             case Leaky_ReLU:
                 std::transform(angles, angles + inputPower, nAngles.get(),
-                    [&alpha](real1_s a) { return -applyLeakyRelu(a, alpha); });
+                    [&alpha](real1 a) { return -applyLeakyRelu(a, alpha); });
                 qReg->UniformlyControlledRY(inputIndices, outputIndex, nAngles.get());
                 break;
             case Sigmoid:
             default:
-                std::transform(angles, angles + inputPower, nAngles.get(), [](real1_s a) { return -a; });
+                std::transform(angles, angles + inputPower, nAngles.get(), [](real1 a) { return -a; });
                 qReg->UniformlyControlledRY(inputIndices, outputIndex, nAngles.get());
             }
         }
@@ -250,7 +250,7 @@ public:
         return prob;
     }
 
-    real1_f LearnCycle(real1_s* angles, const bool& expected = true, const QNeuronActivationFn& activationFn = Sigmoid,
+    real1_f LearnCycle(real1* angles, const bool& expected = true, const QNeuronActivationFn& activationFn = Sigmoid,
         const real1_f& alpha = ONE_R1_F)
     {
         const real1_f result = Predict(angles, expected, false, activationFn, alpha);
@@ -266,7 +266,7 @@ public:
      * In the feedback process of learning, default initial conditions forward untrained predictions to 1/sqrt(2) * (|0>
      * + |1>) for the output bit. If you want to initialize other conditions before "Learn()," set "resetInit" to false.
      */
-    void Learn(real1_s* angles, const real1_f& eta, const bool& expected = true, const bool& resetInit = true,
+    void Learn(real1* angles, const real1_f& eta, const bool& expected = true, const bool& resetInit = true,
         const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         real1_f startProb = Predict(angles, expected, resetInit, activationFn, alpha);
@@ -292,9 +292,8 @@ public:
      * + |1>) for the output bit. If you want to initialize other conditions before "LearnPermutation()," set
      * "resetInit" to false.
      */
-    void LearnPermutation(real1_s* angles, const real1_f& eta, const bool& expected = true,
-        const bool& resetInit = true, const QNeuronActivationFn& activationFn = Sigmoid,
-        const real1_f& alpha = ONE_R1_F)
+    void LearnPermutation(real1* angles, const real1_f& eta, const bool& expected = true, const bool& resetInit = true,
+        const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
         const real1_f startProb = Predict(angles, expected, resetInit, activationFn, alpha);
         Unpredict(angles, expected, activationFn, alpha);
@@ -312,13 +311,13 @@ public:
     }
 
 protected:
-    real1_f LearnInternal(real1_s* angles, const bool& expected, const real1_f& eta, const bitCapIntOcl& permOcl,
+    real1_f LearnInternal(real1* angles, const bool& expected, const real1_f& eta, const bitCapIntOcl& permOcl,
         const real1_f& startProb, const QNeuronActivationFn& activationFn = Sigmoid, const real1_f& alpha = ONE_R1_F)
     {
-        const real1_s origAngle = angles[permOcl];
-        real1_s& angle = angles[permOcl];
+        const real1 origAngle = angles[permOcl];
+        real1& angle = angles[permOcl];
 
-        const real1_s delta = (real1_s)(eta * PI_R1);
+        const real1 delta = (real1)(eta * PI_R1);
 
         // Try positive angle increment:
         angle += delta;

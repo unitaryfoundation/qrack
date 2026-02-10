@@ -24,7 +24,7 @@ int main()
     const bitCapInt ControlPower = 1U << ControlCount;
     const bitLenInt ControlLog = 2;
     const real1 eta = ONE_R1 / (real1)2.0f;
-    std::unique_ptr<real1_s[]> angles(new real1_s[pow2Ocl(ControlCount)]());
+    std::unique_ptr<real1[]> angles(new real1[pow2Ocl(ControlCount)]());
 
     // QINTERFACE_OPTIMAL uses the (single-processor) OpenCL engine type, if available. Otherwise, it falls back to
     // QEngineCPU.
