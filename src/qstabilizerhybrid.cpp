@@ -382,6 +382,10 @@ QInterfacePtr QStabilizerHybrid::CloneBody(bool isCopy)
     c->ancillaCount = ancillaCount;
     c->deadAncillaCount = deadAncillaCount;
     c->roundingThreshold = roundingThreshold;
+    c->useTGadget = useTGadget;
+    c->isNearCliffordExact = isNearCliffordExact;
+    c->separabilityThreshold = separabilityThreshold;
+    c->roundingThreshold = roundingThreshold;
     for (size_t i = 0U; i < shards.size(); ++i) {
         if (shards[i]) {
             c->shards[i] = shards[i]->Clone();

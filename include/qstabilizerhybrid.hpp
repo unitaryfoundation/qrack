@@ -437,6 +437,7 @@ protected:
         useHostRam = orig->useHostRam;
         doNormalize = orig->doNormalize;
         useTGadget = orig->useTGadget;
+        isNearCliffordExact = orig->isNearCliffordExact;
         isRoundingFlushed = orig->isRoundingFlushed;
         thresholdQubits = orig->thresholdQubits;
         ancillaCount = orig->ancillaCount;
