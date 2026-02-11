@@ -145,7 +145,7 @@ protected:
         if (maxAncillaCount != (bitLenInt)(-1)) {
             origMaxAncillaCount = maxAncillaCount;
         }
-        if ((ONE_R1_F - roundingThreshold) <= FP_NORM_EPSILON) {
+        if (!isNearCliffordExact || ((ONE_R1_F - roundingThreshold) <= FP_NORM_EPSILON)) {
             maxAncillaCount = -1;
         } else {
             maxAncillaCount = origMaxAncillaCount;
@@ -484,11 +484,10 @@ public:
     };
     void SetTInjection(bool useGadget) { useTGadget = useGadget; }
     bool GetTInjection() { return useTGadget; }
-    void SetUseExactNearClifford(bool useExact) {
-      isNearCliffordExact = useExact;
-      if (!useExact) {
-        maxAncillaCount = -1;
-      }
+    void SetUseExactNearClifford(bool useExact)
+    {
+        isNearCliffordExact = useExact;
+        UpdateRoundingThreshold();
     }
     bool GetUseExactNearClifford() { return isNearCliffordExact; }
     double GetUnitaryFidelity() { return exp(logFidelity); }
