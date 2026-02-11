@@ -386,6 +386,7 @@ QInterfacePtr QStabilizerHybrid::CloneBody(bool isCopy)
     c->isNearCliffordExact = isNearCliffordExact;
     c->separabilityThreshold = separabilityThreshold;
     c->roundingThreshold = roundingThreshold;
+    c->maxAncillaCount = maxAncillaCount;
     for (size_t i = 0U; i < shards.size(); ++i) {
         if (shards[i]) {
             c->shards[i] = shards[i]->Clone();

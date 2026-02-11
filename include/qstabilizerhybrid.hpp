@@ -484,7 +484,12 @@ public:
     };
     void SetTInjection(bool useGadget) { useTGadget = useGadget; }
     bool GetTInjection() { return useTGadget; }
-    void SetUseExactNearClifford(bool useExact) { isNearCliffordExact = useExact; }
+    void SetUseExactNearClifford(bool useExact) {
+      isNearCliffordExact = useExact;
+      if (!useExact) {
+        maxAncillaCount = -1;
+      }
+    }
     bool GetUseExactNearClifford() { return isNearCliffordExact; }
     double GetUnitaryFidelity() { return exp(logFidelity); }
     void ResetUnitaryFidelity() { logFidelity = 0.0; }
