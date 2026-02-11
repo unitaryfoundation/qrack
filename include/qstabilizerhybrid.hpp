@@ -145,11 +145,19 @@ protected:
         if (maxAncillaCount != (bitLenInt)(-1)) {
             origMaxAncillaCount = maxAncillaCount;
         }
+#if ENABLE_ENV_VARS
+        if (!isNearCliffordExact || ((ONE_R1_F - roundingThreshold) <= FP_NORM_EPSILON) || getenv("QRACK_USE_APPROX_NEAR_CLIFFORD")) {
+            maxAncillaCount = -1;
+        } else {
+            maxAncillaCount = origMaxAncillaCount;
+        }
+#else
         if (!isNearCliffordExact || ((ONE_R1_F - roundingThreshold) <= FP_NORM_EPSILON)) {
             maxAncillaCount = -1;
         } else {
             maxAncillaCount = origMaxAncillaCount;
         }
+#endif
     }
 
     std::unique_ptr<complex[]> GetQubitReducedDensityMatrix(bitLenInt qubit)
