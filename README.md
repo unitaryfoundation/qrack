@@ -50,6 +50,8 @@ If you just have a single NVIDIA GPU, but Qrack detects other devices that you d
 
 You could probably squeeze out more performance by following the "power user considerations," and other special considerations might be necessary for approximate simulation techniques or custom builds.
 
+If you're looking for usage examples (of PyQrack), [this examples repository](https://github.com/vm6502q/pyqrack-examples) covers many common algorithms and cases of claimed _"advantage"_ or _"supremacy"_ that Qrack might be able to challenge.
+
 ## Power user considerations
 
 1. Run a preliminary round of CPU-only benchmarks (such as on the [quantum Fourier transform algorithm](https://github.com/vm6502q/pyqrack-examples/blob/main/qft.py)) to decide how to **tune the [`PSTRIDEPOW`](https://github.com/unitaryfund/qrack?tab=readme-ov-file#build-and-environment-options-for-cpu-engines) environment variable for best performance** (by trial-and-error comparison of timing results). This can make a _big_ difference to CPU-based simulation performance, and be aware that CPU-based and GPU-based algorithms and implementations in Qrack work **together** to return the best possible performance for even GPU-based benchmarks.
