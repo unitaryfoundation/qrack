@@ -86,7 +86,7 @@ protected:
         while (angle > PI_R1) {
             angle -= 2 * PI_R1;
         }
-        while (angle <= PI_R1) {
+        while (angle <= -PI_R1) {
             angle += 2 * PI_R1;
         }
 
