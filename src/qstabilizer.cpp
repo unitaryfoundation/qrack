@@ -945,8 +945,8 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
-    bBuffer[c] *= -ONE_R1;
+    pBuffer[c] *= -ONE_R1;
+    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -993,8 +993,8 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    bBuffer[c] *= -ONE_R1;
-    bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
+    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
+    pBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     SetTransposeState(true);
@@ -1038,10 +1038,10 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
     bBuffer[c] *= -ONE_R1;
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
+    bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
     pBuffer[c] *= -ONE_R1;
+    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1093,10 +1093,10 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    bBuffer[c] *= -ONE_R1;
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
-    pBuffer[c] *= -ONE_R1;
+    bBuffer[c] *= -ONE_R1;
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
+    pBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1153,8 +1153,8 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
-    pBuffer[c] *= -ONE_R1;
+    bBuffer[c] *= -ONE_R1;
+    bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1209,8 +1209,8 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    pBuffer[c] *= -ONE_R1;
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
+    bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
+    bBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
