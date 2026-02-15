@@ -1298,7 +1298,8 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
 
     std::swap(bBuffer[t], bBuffer[c]);
     std::swap(pBuffer[t], pBuffer[c]);
-    pBuffer[t] = FixAnglePeriod(pBuffer[c] + pBuffer[t] + PI_R1);
+    pBuffer[c] *= -ONE_R1;
+    pBuffer[t] = -FixAnglePeriod(pBuffer[c] + pBuffer[t]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1364,7 +1365,8 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    pBuffer[t] = FixAnglePeriod(pBuffer[c] + pBuffer[t] + PI_R1);
+    pBuffer[c] *= -ONE_R1;
+    pBuffer[t] = -FixAnglePeriod(pBuffer[c] + pBuffer[t]);
     std::swap(bBuffer[t], bBuffer[c]);
     std::swap(pBuffer[t], pBuffer[c]);
 
