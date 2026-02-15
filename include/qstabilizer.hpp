@@ -72,14 +72,19 @@ protected:
     std::vector<BoolVector> z;
 
     // Phase buffers for non-Clifford gates
-    std::vector<real1_f> bBuffer;
-    std::vector<real1_f> pBuffer;
+    std::vector<complex> bBuffer;
+    std::vector<complex> pBuffer;
 
     typedef std::function<void(const bitLenInt&)> StabilizerParallelFunc;
     typedef std::function<void(void)> DispatchFn;
     void Dispatch(DispatchFn fn) { fn(); }
 
     void ParFor(StabilizerParallelFunc fn, std::vector<bitLenInt> qubits);
+
+    complex FixAnglePeriod(complex angle)
+    {
+        return complex(FixAnglePeriod((real1_f)real(angle)), FixAnglePeriod((real1_f)imag(angle)));
+    }
 
     real1_f FixAnglePeriod(real1_f angle)
     {

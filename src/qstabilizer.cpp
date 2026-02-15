@@ -1600,6 +1600,8 @@ void QStabilizer::S(bitLenInt t)
 
     isGaussianCached = false;
 
+    bBuffer[t] *= I_CMPLX;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
 
@@ -1645,6 +1647,8 @@ void QStabilizer::IS(bitLenInt t)
 
     isGaussianCached = false;
 
+    bBuffer[t] *= -I_CMPLX;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
 
@@ -1679,16 +1683,16 @@ void QStabilizer::IS(bitLenInt t)
 void QStabilizer::RZ(real1_f angle, bitLenInt t)
 {
     pBuffer[t] = FixAnglePeriod(pBuffer[t] + angle);
-    while (pBuffer[t] >= HALF_PI_R1) {
+    while (real(pBuffer[t]) >= HALF_PI_R1) {
         S(t);
         pBuffer[t] = FixAnglePeriod(pBuffer[t] - HALF_PI_R1);
     }
-    while (pBuffer[t] <= -HALF_PI_R1) {
+    while (real(pBuffer[t]) <= -HALF_PI_R1) {
         IS(t);
         pBuffer[t] = FixAnglePeriod(pBuffer[t] + HALF_PI_R1);
     }
-    if ((RandFloat() * HALF_PI_R1) < std::abs(pBuffer[t])) {
-        if (pBuffer[t] > 0) {
+    if ((RandFloat() * HALF_PI_R1) < std::abs(real(pBuffer[t]))) {
+        if (real(pBuffer[t]) > 0) {
             S(t);
             pBuffer[t] = FixAnglePeriod(pBuffer[t] - HALF_PI_R1);
         } else {
