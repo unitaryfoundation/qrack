@@ -2299,8 +2299,6 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
 
     nQubits->isGaussianCached = false;
 
-    nQubits->pBuffer.reset();
-    nQubits->bBuffer.reset();
     nQubits->r[0U].reset();
     nQubits->r[1U].reset();
     for (size_t i = 0U; i < nQubits->x.size(); ++i) {
@@ -2309,8 +2307,6 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     }
 
     if (dest) {
-        dest->pBuffer.reset();
-        dest->bBuffer.reset();
         dest->r[0U].reset();
         dest->r[1U].reset();
         for (size_t i = 0U; i < dest->x.size(); ++i) {
