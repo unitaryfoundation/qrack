@@ -1661,36 +1661,6 @@ void QStabilizer::IS(bitLenInt t)
 }
 
 /// Apply half a phase gate
-void QStabilizer::T(bitLenInt t)
-{
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] + PI_R1 / 4);
-    if ((RandFloat() * HALF_PI_R1) < std::abs(pBuffer[t])) {
-        if (pBuffer[t] > 0) {
-            S(t);
-            pBuffer[t] = FixAnglePeriod(pBuffer[t] - HALF_PI_R1);
-        } else {
-            IS(t);
-            pBuffer[t] = FixAnglePeriod(pBuffer[t] + HALF_PI_R1);
-        }
-    }
-}
-
-/// Apply half a phase gate
-void QStabilizer::IT(bitLenInt t)
-{
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] - PI_R1 / 4);
-    if ((RandFloat() * HALF_PI_R1) < std::abs(pBuffer[t])) {
-        if (pBuffer[t] > 0) {
-            S(t);
-            pBuffer[t] = FixAnglePeriod(pBuffer[t] - HALF_PI_R1);
-        } else {
-            IS(t);
-            pBuffer[t] = FixAnglePeriod(pBuffer[t] + HALF_PI_R1);
-        }
-    }
-}
-
-/// Apply half a phase gate
 void QStabilizer::RZ(real1_f angle, bitLenInt t)
 {
     pBuffer[t] = FixAnglePeriod(pBuffer[t] + angle);

@@ -439,9 +439,9 @@ public:
     /// Apply an inverse phase gate (|0>->|0>, |1>->-i|1>, or "S adjoint") to qubit b
     void IS(bitLenInt qubitIndex);
     /// Apply half a phase gate
-    void T(bitLenInt qubitIndex);
+    void T(bitLenInt t) { RZ(PI_R1 / 4, t); }
     /// Apply half an inverse phase gate
-    void IT(bitLenInt qubitIndex);
+    void IT(bitLenInt t)  { RZ(-PI_R1 / 4, t); }
     /// Apply an arbitrary phase angle
     void RZ(real1_f angle, bitLenInt qubitIndex);
     // Swap two bits
