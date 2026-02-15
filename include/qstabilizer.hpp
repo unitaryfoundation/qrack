@@ -71,11 +71,27 @@ protected:
     // (2n+1)*n matrix for z bits
     std::vector<BoolVector> z;
 
+    // Phase buffers for non-Clifford gates
+    std::vector<real1_f> bBuffer;
+    std::vector<real1_f> pBuffer;
+
     typedef std::function<void(const bitLenInt&)> StabilizerParallelFunc;
     typedef std::function<void(void)> DispatchFn;
     void Dispatch(DispatchFn fn) { fn(); }
 
     void ParFor(StabilizerParallelFunc fn, std::vector<bitLenInt> qubits);
+
+    real1_f FixAnglePeriod(real1_f angle)
+    {
+        while (angle > PI_R1) {
+            angle -= 2 * PI_R1;
+        }
+        while (angle <= PI_R1) {
+            angle += 2 * PI_R1;
+        }
+
+        return angle;
+    }
 
     void SetPhaseOffset(real1_f phaseArg)
     {
@@ -221,6 +237,15 @@ public:
         }
     }
 
+    real1_f RandFloat()
+    {
+        if (!!hardware_rand_generator) {
+            return hardware_rand_generator->Next();
+        } else {
+            return rand_distribution(*rand_generator);
+        }
+    }
+
     void Clear()
     {
         x.clear();
@@ -233,6 +258,8 @@ public:
         r[0U].clear();
         r[1U].clear();
 #endif
+        bBuffer.clear();
+        pBuffer.clear();
         phaseOffset = ZERO_R1;
         qubitCount = 0U;
         maxQPower = ONE_BCI;
@@ -411,6 +438,12 @@ public:
     void S(bitLenInt qubitIndex);
     /// Apply an inverse phase gate (|0>->|0>, |1>->-i|1>, or "S adjoint") to qubit b
     void IS(bitLenInt qubitIndex);
+    /// Apply half a phase gate
+    void T(bitLenInt qubitIndex);
+    /// Apply half an inverse phase gate
+    void IT(bitLenInt qubitIndex);
+    /// Apply an arbitrary phase angle
+    void RZ(real1_f angle, bitLenInt qubitIndex);
     // Swap two bits
     void Swap(bitLenInt qubitIndex1, bitLenInt qubitIndex2);
     // Swap two bits and apply a phase factor of i if they are different
