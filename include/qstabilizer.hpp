@@ -441,7 +441,7 @@ public:
     /// Apply half a phase gate
     void T(bitLenInt t) { RZ(PI_R1 / 4, t); }
     /// Apply half an inverse phase gate
-    void IT(bitLenInt t)  { RZ(-PI_R1 / 4, t); }
+    void IT(bitLenInt t) { RZ(-PI_R1 / 4, t); }
     /// Apply an arbitrary phase angle
     void RZ(real1_f angle, bitLenInt qubitIndex);
     // Swap two bits

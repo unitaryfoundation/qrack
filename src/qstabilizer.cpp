@@ -1500,6 +1500,8 @@ void QStabilizer::X(bitLenInt t)
 
     isGaussianCached = false;
 
+    pBuffer[t] *= -ONE_R1;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
     SetTransposeState(true);
@@ -1527,6 +1529,9 @@ void QStabilizer::Y(bitLenInt t)
 
     isGaussianCached = false;
 
+    pBuffer[t] *= -ONE_R1;
+    bBuffer[t] *= -ONE_R1;
+
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
     SetTransposeState(true);
@@ -1553,6 +1558,8 @@ void QStabilizer::Z(bitLenInt t)
     }
 
     isGaussianCached = false;
+
+    bBuffer[t] *= -ONE_R1;
 
     const AmplitudeEntry ampEntry =
         randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(t, false);
