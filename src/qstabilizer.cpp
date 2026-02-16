@@ -934,116 +934,6 @@ real1_f QStabilizer::ProbMask(const bitCapInt& mask, const bitCapInt& perm)
     return prob;
 }
 
-void QStabilizer::CorrectCNOT(bitLenInt c, bitLenInt t, bool isAfter)
-{
-    if (std::abs(8 * real(pBuffer[c])) > PI_R1) {
-        if (real(pBuffer[c]) > ZERO_R1) {
-            if (isAfter) {
-                ISBase(c);
-            }
-        } else if (!isAfter) {
-            SBase(c);
-        }
-    }
-
-    if (std::abs(8 * imag(pBuffer[c])) > PI_R1) {
-        if (imag(pBuffer[c]) > ZERO_R1) {
-            if (isAfter) {
-                ISqrtX(c);
-                ISBase(c);
-                SqrtX(c);
-            }
-        } else if (!isAfter) {
-            ISqrtX(c);
-            SBase(c);
-            SqrtX(c);
-        }
-    }
-
-    if (std::abs(8 * real(bBuffer[t])) > PI_R1) {
-        if (real(bBuffer[t]) > ZERO_R1) {
-            if (isAfter) {
-                H(t);
-                ISBase(t);
-                H(t);
-            }
-        } else if (!isAfter) {
-            H(t);
-            SBase(t);
-            H(t);
-        }
-    }
-
-    if (std::abs(8 * imag(bBuffer[t])) > PI_R1) {
-        if (imag(bBuffer[t]) > ZERO_R1) {
-            if (isAfter) {
-                IS(t);
-                H(t);
-                ISBase(t);
-                H(t);
-                S(t);
-            }
-        } else if (!isAfter) {
-            IS(t);
-            H(t);
-            SBase(t);
-            H(t);
-            S(t);
-        }
-    }
-}
-
-void QStabilizer::CorrectCZ(bitLenInt c, bitLenInt t, bool isAfter)
-{
-    if (std::abs(8 * real(pBuffer[c])) > PI_R1) {
-        if (real(pBuffer[c]) > ZERO_R1) {
-            if (isAfter) {
-                ISBase(c);
-            }
-        } else if (!isAfter) {
-            SBase(c);
-        }
-    }
-
-    if (std::abs(8 * imag(pBuffer[c])) > PI_R1) {
-        if (imag(pBuffer[c]) > ZERO_R1) {
-            if (isAfter) {
-                ISqrtX(c);
-                ISBase(c);
-                SqrtX(c);
-            }
-        } else if (!isAfter) {
-            ISqrtX(c);
-            SBase(c);
-            SqrtX(c);
-        }
-    }
-
-    if (std::abs(8 * real(pBuffer[t])) > PI_R1) {
-        if (real(pBuffer[t]) > ZERO_R1) {
-            if (isAfter) {
-                ISBase(t);
-            }
-        } else if (!isAfter) {
-            SBase(t);
-        }
-    }
-
-    if (std::abs(8 * imag(pBuffer[t])) > PI_R1) {
-        if (imag(pBuffer[t]) > ZERO_R1) {
-            if (isAfter) {
-                ISqrtX(t);
-                ISBase(t);
-                SqrtX(t);
-            }
-        } else if (!isAfter) {
-            ISqrtX(t);
-            SBase(t);
-            SqrtX(t);
-        }
-    }
-}
-
 /// Apply a CNOT gate with control and target
 void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
 {
@@ -1059,8 +949,6 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
     bBuffer[t] *= -ONE_R1;
     bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
-
-    CorrectCNOT(c, t, false);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1094,8 +982,6 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
-
-    CorrectCNOT(c, t, true);
 }
 
 /// Apply an (anti-)CNOT gate with control and target
@@ -1113,8 +999,6 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
     bBuffer[t] *= -ONE_R1;
     bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
     pBuffer[c] *= -ONE_R1;
-
-    CorrectCNOT(c, t, false);
 
 #if BOOST_AVAILABLE
     SetTransposeState(true);
@@ -1145,8 +1029,6 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
-
-    CorrectCNOT(c, t, true);
 }
 
 /// Apply a CY gate with control and target
@@ -1165,14 +1047,10 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
     pBuffer[t] *= -ONE_R1;
     bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
 
-    CorrectCZ(c, t, false);
-
     pBuffer[c] *= -ONE_R1;
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
     bBuffer[t] *= -ONE_R1;
     bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
-
-    CorrectCNOT(c, t, false);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1211,9 +1089,6 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
-
-    CorrectCZ(c, t, true);
-    CorrectCNOT(c, t, true);
 }
 
 /// Apply an (anti-)CY gate with control and target
@@ -1232,14 +1107,10 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
     bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
     pBuffer[c] *= -ONE_R1;
 
-    CorrectCZ(c, t, false);
-
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
     bBuffer[t] *= -ONE_R1;
     bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
     pBuffer[c] *= -ONE_R1;
-
-    CorrectCNOT(c, t, false);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1278,9 +1149,6 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
-
-    CorrectCZ(c, t, true);
-    CorrectCNOT(c, t, true);
 }
 
 /// Apply a CZ gate with control and target
@@ -1303,8 +1171,6 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
     pBuffer[t] *= -ONE_R1;
     bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
-
-    CorrectCZ(c, t, false);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1342,8 +1208,6 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
     if (!randGlobalPhase) {
         SetPhaseOffset(phaseOffset + std::arg(ampEntry.amplitude) - std::arg(GetAmplitude(ampEntry.permutation)));
     }
-
-    CorrectCZ(c, t, true);
 }
 
 /// Apply an (anti-)CZ gate with control and target
@@ -1365,8 +1229,6 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
     pBuffer[t] *= -ONE_R1;
     bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
     pBuffer[c] *= -ONE_R1;
-
-    CorrectCZ(c, t, false);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1404,8 +1266,6 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
     if (!randGlobalPhase) {
         SetPhaseOffset(phaseOffset + std::arg(ampEntry.amplitude) - std::arg(GetAmplitude(ampEntry.permutation)));
     }
-
-    CorrectCZ(c, t, true);
 }
 
 void QStabilizer::Swap(bitLenInt c, bitLenInt t)
@@ -1448,11 +1308,18 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
         return;
     }
 
-    if (!randGlobalPhase || (abs(pBuffer[c]) > FP_NORM_EPSILON) || (abs(pBuffer[t]) > FP_NORM_EPSILON)) {
+    if (!randGlobalPhase) {
         return QInterface::ISwap(c, t);
     }
 
     isGaussianCached = false;
+
+    std::swap(bBuffer[t], bBuffer[c]);
+    std::swap(pBuffer[t], pBuffer[c]);
+    pBuffer[c] *= -ONE_R1;
+    bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
+    pBuffer[t] *= -ONE_R1;
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1512,11 +1379,18 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
         return;
     }
 
-    if (!randGlobalPhase || (abs(pBuffer[c]) > FP_NORM_EPSILON) || (abs(pBuffer[t]) > FP_NORM_EPSILON)) {
+    if (!randGlobalPhase) {
         return QInterface::IISwap(c, t);
     }
 
     isGaussianCached = false;
+
+    pBuffer[c] *= -ONE_R1;
+    bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
+    pBuffer[t] *= -ONE_R1;
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
+    std::swap(bBuffer[t], bBuffer[c]);
+    std::swap(pBuffer[t], pBuffer[c]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
