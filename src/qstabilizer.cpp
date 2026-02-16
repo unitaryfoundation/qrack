@@ -945,10 +945,10 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
     pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
+    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
     bBuffer[t] *= -ONE_R1;
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -997,10 +997,10 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
 
     pBuffer[c] *= -ONE_R1;
 
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
     pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
+    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
     bBuffer[t] *= -ONE_R1;
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
 
     pBuffer[c] *= -ONE_R1;
 
@@ -1046,14 +1046,14 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
+    pBuffer[c] *= -ONE_R1;
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
-    pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
     pBuffer[t] *= -ONE_R1;
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
     pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
+    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
     bBuffer[t] *= -ONE_R1;
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1105,17 +1105,13 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    pBuffer[c] *= -ONE_R1;
-
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
-    pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
     pBuffer[t] *= -ONE_R1;
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
     pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
+    pBuffer[t] = FixAnglePeriod(pBuffer[t] - pBuffer[c]);
     bBuffer[t] *= -ONE_R1;
-
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - bBuffer[t]);
     pBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
@@ -1173,10 +1169,10 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
     pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
+    bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
     pBuffer[t] *= -ONE_R1;
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1231,13 +1227,9 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    pBuffer[c] *= -ONE_R1;
-
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
-    pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
     pBuffer[t] *= -ONE_R1;
-
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
     pBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
@@ -1326,10 +1318,10 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
 
     std::swap(bBuffer[t], bBuffer[c]);
     std::swap(pBuffer[t], pBuffer[c]);
-    bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
     pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
+    bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
     pBuffer[t] *= -ONE_R1;
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1395,10 +1387,10 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
     pBuffer[c] *= -ONE_R1;
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
+    bBuffer[t] = FixAnglePeriod(bBuffer[t] - pBuffer[c]);
     pBuffer[t] *= -ONE_R1;
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
     std::swap(bBuffer[t], bBuffer[c]);
     std::swap(pBuffer[t], pBuffer[c]);
 
