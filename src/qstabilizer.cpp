@@ -950,12 +950,20 @@ void QStabilizer::CorrectCNOT(bitLenInt c, bitLenInt t, bool isAfter)
         if (imag(pBuffer[c]) > ZERO_R1) {
             if (isAfter) {
                 H(c);
+                S(c);
+                H(c);
                 ISBase(c);
+                H(c);
+                IS(c);
                 H(c);
             }
         } else if (!isAfter) {
             H(c);
+            S(c);
+            H(c);
             SBase(c);
+            H(c);
+            IS(c);
             H(c);
         }
     }
@@ -977,10 +985,14 @@ void QStabilizer::CorrectCNOT(bitLenInt c, bitLenInt t, bool isAfter)
     if (std::abs(8 * imag(bBuffer[t])) > PI_R1) {
         if (imag(bBuffer[t]) > ZERO_R1) {
             if (isAfter) {
+                H(t);
                 ISBase(t);
+                H(t);
             }
         } else if (!isAfter) {
+            H(t);
             SBase(t);
+            H(t);
         }
     }
 }
@@ -1001,12 +1013,20 @@ void QStabilizer::CorrectCZ(bitLenInt c, bitLenInt t, bool isAfter)
         if (imag(pBuffer[c]) > ZERO_R1) {
             if (isAfter) {
                 H(c);
+                S(c);
+                H(c);
                 ISBase(c);
+                H(c);
+                IS(c);
                 H(c);
             }
         } else if (!isAfter) {
             H(c);
+            S(c);
+            H(c);
             SBase(c);
+            H(c);
+            IS(c);
             H(c);
         }
     }
@@ -1025,12 +1045,20 @@ void QStabilizer::CorrectCZ(bitLenInt c, bitLenInt t, bool isAfter)
         if (imag(pBuffer[t]) > ZERO_R1) {
             if (isAfter) {
                 H(t);
+                S(t);
+                H(t);
                 ISBase(t);
+                H(t);
+                IS(t);
                 H(t);
             }
         } else if (!isAfter) {
             H(t);
+            S(t);
+            H(t);
             SBase(t);
+            H(t);
+            IS(t);
             H(t);
         }
     }
