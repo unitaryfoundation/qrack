@@ -417,6 +417,9 @@ public:
 
     void SetRandGlobalPhase(bool isRand) { randGlobalPhase = isRand; }
 
+    void CorrectCNOT(bitLenInt c, bitLenInt t, bool isAfter);
+    void CorrectCZ(bitLenInt c, bitLenInt t, bool isAfter);
+
     /// Apply a CNOT gate with control and target
     void CNOT(bitLenInt control, bitLenInt target);
     /// Apply a CY gate with control and target
@@ -441,8 +444,10 @@ public:
     void Z(bitLenInt qubitIndex);
     /// Apply a phase gate (|0>->|0>, |1>->i|1>, or "S") to qubit b
     void S(bitLenInt qubitIndex);
+    void SBase(bitLenInt qubitIndex);
     /// Apply an inverse phase gate (|0>->|0>, |1>->-i|1>, or "S adjoint") to qubit b
     void IS(bitLenInt qubitIndex);
+    void ISBase(bitLenInt qubitIndex);
     /// Apply half a phase gate
     void T(bitLenInt t) { RZ(PI_R1 / 4, t); }
     /// Apply half an inverse phase gate
@@ -452,9 +457,9 @@ public:
     // Swap two bits
     void Swap(bitLenInt qubitIndex1, bitLenInt qubitIndex2);
     // Swap two bits and apply a phase factor of i if they are different
-    void ISwap(bitLenInt qubitIndex1, bitLenInt qubitIndex2);
+    void ISwap(bitLenInt c, bitLenInt t);
     // Swap two bits and apply a phase factor of -i if they are different
-    void IISwap(bitLenInt qubitIndex1, bitLenInt qubitIndex2);
+    void IISwap(bitLenInt c, bitLenInt t);
 
     /// Measure qubit t
     bool ForceM(bitLenInt t, bool result, bool doForce = true, bool doApply = true);
