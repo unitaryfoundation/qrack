@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.10)
-project (Qrack VERSION 10.1.4 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
+project (Qrack VERSION 10.1.5 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
 
 # Installation commands
 include (GNUInstallDirs)
