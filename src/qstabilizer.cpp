@@ -2453,14 +2453,14 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
 
     x.erase(x.begin() + secondStart, x.begin() + secondEnd);
     z.erase(z.begin() + secondStart, z.begin() + secondEnd);
-    pBuffer.erase(pBuffer.begin() + secondStart, pBuffer.begin() + secondEnd);
-    bBuffer.erase(bBuffer.begin() + secondStart, bBuffer.begin() + secondEnd);
     r[0U].erase(r[0U].begin() + secondStart, r[0U].begin() + secondEnd);
     r[1U].erase(r[1U].begin() + secondStart, r[1U].begin() + secondEnd);
     x.erase(x.begin() + start, x.begin() + end);
     z.erase(z.begin() + start, z.begin() + end);
     r[0U].erase(r[0U].begin() + start, r[0U].begin() + end);
     r[1U].erase(r[1U].begin() + start, r[1U].begin() + end);
+    pBuffer.erase(pBuffer.begin() + start, pBuffer.begin() + end);
+    bBuffer.erase(bBuffer.begin() + start, bBuffer.begin() + end);
 
     SetQubitCount(nQubitCount);
 
