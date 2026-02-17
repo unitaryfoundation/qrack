@@ -417,9 +417,6 @@ public:
 
     void SetRandGlobalPhase(bool isRand) { randGlobalPhase = isRand; }
 
-    void CorrectCNOT(bitLenInt c, bitLenInt t, bool isAfter);
-    void CorrectCZ(bitLenInt c, bitLenInt t, bool isAfter);
-
     /// Apply a CNOT gate with control and target
     void CNOT(bitLenInt control, bitLenInt target);
     /// Apply a CY gate with control and target
