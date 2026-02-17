@@ -945,10 +945,10 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    pBuffer[t] *= -ONE_R1;
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
-    bBuffer[c] *= -ONE_R1;
+    pBuffer[t] *= -ONE_R1;
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
+    bBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -996,10 +996,10 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
     isGaussianCached = false;
 
     pBuffer[c] *= -ONE_R1;
-    pBuffer[t] *= -ONE_R1;
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
-    bBuffer[c] *= -ONE_R1;
+    pBuffer[t] *= -ONE_R1;
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
+    bBuffer[c] *= -ONE_R1;
     pBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
@@ -1044,15 +1044,15 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    bBuffer[t] *= -ONE_R1;
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - bBuffer[t]);
-    bBuffer[c] *= -ONE_R1;
+    bBuffer[t] *= -ONE_R1;
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
-
-    pBuffer[t] *= -ONE_R1;
-    pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
     bBuffer[c] *= -ONE_R1;
+
+    pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
+    pBuffer[t] *= -ONE_R1;
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
+    bBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1106,15 +1106,15 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
 
     pBuffer[t] *= -ONE_R1;
 
-    bBuffer[t] *= -ONE_R1;
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - bBuffer[t]);
-    bBuffer[c] *= -ONE_R1;
+    bBuffer[t] *= -ONE_R1;
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
-
-    pBuffer[t] *= -ONE_R1;
-    pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
     bBuffer[c] *= -ONE_R1;
+
+    pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
+    pBuffer[t] *= -ONE_R1;
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
+    bBuffer[c] *= -ONE_R1;
 
     pBuffer[t] *= -ONE_R1;
 
@@ -1173,10 +1173,10 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    bBuffer[t] *= -ONE_R1;
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - bBuffer[t]);
-    bBuffer[c] *= -ONE_R1;
+    bBuffer[t] *= -ONE_R1;
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
+    bBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1232,10 +1232,10 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
     isGaussianCached = false;
 
     pBuffer[c] *= -ONE_R1;
-    bBuffer[t] *= -ONE_R1;
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - bBuffer[t]);
-    bBuffer[c] *= -ONE_R1;
+    bBuffer[t] *= -ONE_R1;
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
+    bBuffer[c] *= -ONE_R1;
     pBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
@@ -1324,10 +1324,10 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
 
     std::swap(bBuffer[t], bBuffer[c]);
     std::swap(pBuffer[t], pBuffer[c]);
-    bBuffer[t] *= -ONE_R1;
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - bBuffer[t]);
-    bBuffer[c] *= -ONE_R1;
+    bBuffer[t] *= -ONE_R1;
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
+    bBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1393,10 +1393,10 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    bBuffer[t] *= -ONE_R1;
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - bBuffer[t]);
-    bBuffer[c] *= -ONE_R1;
+    bBuffer[t] *= -ONE_R1;
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
+    bBuffer[c] *= -ONE_R1;
     std::swap(bBuffer[t], bBuffer[c]);
     std::swap(pBuffer[t], pBuffer[c]);
 
