@@ -398,6 +398,23 @@ protected:
     real1_f ApproxCompareHelper(
         QStabilizerPtr toCompare, real1_f error_tol = TRYDECOMPOSE_EPSILON, bool isDiscrete = false);
 
+    void SBase(bitLenInt qubitIndex);
+    void ISBase(bitLenInt qubitIndex);
+
+    void CNOTNearClifford(bitLenInt c, bitLenInt t) {
+        pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
+        pBuffer[t] *= -ONE_R1;
+        bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
+        bBuffer[c] *= -ONE_R1;
+    }
+
+    void CZNearClifford(bitLenInt c, bitLenInt t) {
+        bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
+        pBuffer[t] *= -ONE_R1;
+        pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
+        bBuffer[c] *= -ONE_R1;
+    }
+
 public:
     /**
      * Do Gaussian elimination to put the stabilizer generators in the following form:
@@ -441,10 +458,8 @@ public:
     void Z(bitLenInt qubitIndex);
     /// Apply a phase gate (|0>->|0>, |1>->i|1>, or "S") to qubit b
     void S(bitLenInt qubitIndex);
-    void SBase(bitLenInt qubitIndex);
     /// Apply an inverse phase gate (|0>->|0>, |1>->-i|1>, or "S adjoint") to qubit b
     void IS(bitLenInt qubitIndex);
-    void ISBase(bitLenInt qubitIndex);
     /// Apply half a phase gate
     void T(bitLenInt t) { RZ(PI_R1 / 4, t); }
     /// Apply half an inverse phase gate
