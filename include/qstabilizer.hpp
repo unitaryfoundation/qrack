@@ -74,6 +74,8 @@ protected:
     // Phase buffers for non-Clifford gates
     std::vector<complex> bBuffer;
     std::vector<complex> pBuffer;
+    std::vector<bool> bPhase;
+    std::vector<bool> pPhase;
 
     typedef std::function<void(const bitLenInt&)> StabilizerParallelFunc;
     typedef std::function<void(void)> DispatchFn;
@@ -265,6 +267,8 @@ public:
 #endif
         bBuffer.clear();
         pBuffer.clear();
+        bPhase.clear();
+        pPhase.clear();
         phaseOffset = ZERO_R1;
         qubitCount = 0U;
         maxQPower = ONE_BCI;
@@ -401,18 +405,32 @@ protected:
     void SBase(bitLenInt qubitIndex);
     void ISBase(bitLenInt qubitIndex);
 
-    void CNOTNearClifford(bitLenInt c, bitLenInt t) {
+    void CNOTNearClifford(bitLenInt c, bitLenInt t)
+    {
         pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
         pBuffer[t] *= -ONE_R1;
+        pPhase[t] = !pPhase[t];
         bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
         bBuffer[c] *= -ONE_R1;
+        bPhase[c] = !bPhase[c];
     }
 
-    void CZNearClifford(bitLenInt c, bitLenInt t) {
+    void CZNearClifford(bitLenInt c, bitLenInt t)
+    {
         bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
         pBuffer[t] *= -ONE_R1;
+        pPhase[t] = !pPhase[t];
         pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
         bBuffer[c] *= -ONE_R1;
+        bPhase[c] = !bPhase[c];
+    }
+
+    void SwapNearClifford(bitLenInt c, bitLenInt t)
+    {
+        std::swap(bBuffer[t], bBuffer[c]);
+        std::swap(pBuffer[t], pBuffer[c]);
+        std::vector<bool>::swap(bPhase[t], bPhase[c]);
+        std::vector<bool>::swap(pPhase[t], pPhase[c]);
     }
 
 public:
