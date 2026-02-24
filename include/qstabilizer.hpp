@@ -407,67 +407,7 @@ protected:
         return (norm(pBuffer[t]) > FP_NORM_EPSILON) || (norm(bBuffer[t]) > FP_NORM_EPSILON);
     }
 
-    void CZNearClifford(bitLenInt c, bitLenInt t)
-    {
-        bBuffer[c] = FixAnglePeriod(bBuffer[c] + pBuffer[t]);
-        pBuffer[t] = FixAnglePeriod(pBuffer[t] + bBuffer[c]);
-
-        real1 bc = real(bBuffer[c]);
-        HBase(c);
-        while (bc >= HALF_PI_R1) {
-            SBase(c);
-            bc -= HALF_PI_R1;
-        }
-        while (bc <= -HALF_PI_R1) {
-            ISBase(c);
-            bc += HALF_PI_R1;
-        }
-        HBase(c);
-        bBuffer[c].real(bc);
-
-        bc = imag(bBuffer[c]);
-        ISBase(c);
-        HBase(c);
-        while (bc >= HALF_PI_R1) {
-            SBase(c);
-            bc -= HALF_PI_R1;
-        }
-        while (bc <= -HALF_PI_R1) {
-            ISBase(c);
-            bc += HALF_PI_R1;
-        }
-        HBase(c);
-        SBase(c);
-        bBuffer[c].imag(bc);
-
-        real1 pt = real(pBuffer[t]);
-        while (pt >= HALF_PI_R1) {
-            SBase(t);
-            pt -= HALF_PI_R1;
-        }
-        while (pt <= -HALF_PI_R1) {
-            ISBase(t);
-            pt += HALF_PI_R1;
-        }
-        pBuffer[t].real(pt);
-
-        pt = imag(pBuffer[t]);
-        HBase(t);
-        ISBase(t);
-        HBase(t);
-        while (pt >= HALF_PI_R1) {
-            SBase(t);
-            pt -= HALF_PI_R1;
-        }
-        while (pt <= -HALF_PI_R1) {
-            ISBase(t);
-            pt += HALF_PI_R1;
-        }
-        HBase(t);
-        SBase(t);
-        HBase(t);
-        pBuffer[t].imag(pt);
-    }
+    void CZNearClifford(bitLenInt c, bitLenInt t);
 
     void SwapNearClifford(bitLenInt c, bitLenInt t)
     {
@@ -524,7 +464,7 @@ public:
     void T(bitLenInt t) { RZ(PI_R1 / 4, t); }
     /// Apply half an inverse phase gate
     void IT(bitLenInt t) { RZ(-PI_R1 / 4, t); }
-    /// Apply an arbitrary phase angle
+    /// Approximate an arbitrary phase angle
     void RZ(real1_f angle, bitLenInt qubitIndex);
     // Swap two bits
     void Swap(bitLenInt qubitIndex1, bitLenInt qubitIndex2);

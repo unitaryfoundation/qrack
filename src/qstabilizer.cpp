@@ -1684,7 +1684,70 @@ void QStabilizer::ISBase(bitLenInt t)
     SetPhaseOffset(phaseOffset + std::arg(ampEntry.amplitude) - std::arg(GetAmplitude(ampEntry.permutation)));
 }
 
-/// Apply half a phase gate
+void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
+{
+    const complex old_bc = bBuffer[c];
+    bBuffer[c] = FixAnglePeriod(bBuffer[c] + pBuffer[t]);
+    pBuffer[t] = FixAnglePeriod(pBuffer[t] + old_bc);
+
+    real1 bc = real(bBuffer[c]);
+    HBase(c);
+    while (bc >= HALF_PI_R1) {
+        SBase(c);
+        bc -= HALF_PI_R1;
+    }
+    while (bc <= -HALF_PI_R1) {
+        ISBase(c);
+        bc += HALF_PI_R1;
+    }
+    HBase(c);
+    bBuffer[c].real(bc);
+
+    bc = imag(bBuffer[c]);
+    ISBase(c);
+    HBase(c);
+    while (bc >= HALF_PI_R1) {
+        SBase(c);
+        bc -= HALF_PI_R1;
+    }
+    while (bc <= -HALF_PI_R1) {
+        ISBase(c);
+        bc += HALF_PI_R1;
+    }
+    HBase(c);
+    SBase(c);
+    bBuffer[c].imag(bc);
+
+    real1 pt = real(pBuffer[t]);
+    while (pt >= HALF_PI_R1) {
+        SBase(t);
+        pt -= HALF_PI_R1;
+    }
+    while (pt <= -HALF_PI_R1) {
+        ISBase(t);
+        pt += HALF_PI_R1;
+    }
+    pBuffer[t].real(pt);
+
+    pt = imag(pBuffer[t]);
+    HBase(t);
+    ISBase(t);
+    HBase(t);
+    while (pt >= HALF_PI_R1) {
+        SBase(t);
+        pt -= HALF_PI_R1;
+    }
+    while (pt <= -HALF_PI_R1) {
+        ISBase(t);
+        pt += HALF_PI_R1;
+    }
+    HBase(t);
+    SBase(t);
+    HBase(t);
+    pBuffer[t].imag(pt);
+}
+
+/// Approximate an arbitrary phase angle
 void QStabilizer::RZ(real1_f angle, bitLenInt t)
 {
     angle = FixAnglePeriod(angle);
