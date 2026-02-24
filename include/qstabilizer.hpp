@@ -408,9 +408,15 @@ protected:
     void CNOTNearClifford(bitLenInt c, bitLenInt t)
     {
         pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
+        if ((8 * abs(pBuffer[t])) > PI_R1) {
+            pPhase[c] = !pPhase[c];
+        }
         pBuffer[t] *= -ONE_R1;
         pPhase[t] = !pPhase[t];
         bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
+        if ((8 * abs(bBuffer[c])) > PI_R1) {
+            bPhase[t] = !bPhase[t];
+        }
         bBuffer[c] *= -ONE_R1;
         bPhase[c] = !bPhase[c];
     }
@@ -418,9 +424,15 @@ protected:
     void CZNearClifford(bitLenInt c, bitLenInt t)
     {
         bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
+        if ((8 * abs(pBuffer[t])) > PI_R1) {
+            bPhase[c] = !bPhase[c];
+        }
         pBuffer[t] *= -ONE_R1;
         pPhase[t] = !pPhase[t];
         pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
+        if ((8 * abs(bBuffer[c])) > PI_R1) {
+            pPhase[t] = !pPhase[t];
+        }
         bBuffer[c] *= -ONE_R1;
         bPhase[c] = !bPhase[c];
     }

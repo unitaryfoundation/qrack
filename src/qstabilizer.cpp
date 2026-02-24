@@ -1705,10 +1705,12 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
     while (angle >= HALF_PI_R1) {
         S(t);
         angle = FixAnglePeriod(angle - HALF_PI_R1);
+        pPhase[t] = false;
     }
     while (angle <= -HALF_PI_R1) {
         IS(t);
         angle = FixAnglePeriod(angle + HALF_PI_R1);
+        pPhase[t] = false;
     }
     if ((RandFloat() * HALF_PI_R1) < std::abs(angle)) {
         if (angle > 0) {
