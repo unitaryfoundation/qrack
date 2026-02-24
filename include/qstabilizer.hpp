@@ -413,7 +413,7 @@ protected:
     void CZNearClifford(bitLenInt c, bitLenInt t)
     {
         bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
-        real1 pc = real(pBuffer[c]);
+        real1 pc = pPhase[c] ? -real(pBuffer[c]) : real(pBuffer[c]);
         while (pc >= HALF_PI_R1) {
             SBase(c);
             pc -= HALF_PI_R1;
@@ -422,7 +422,7 @@ protected:
             ISBase(c);
             pc += HALF_PI_R1;
         }
-        pBuffer[c].real(pc);
+        pBuffer[c].real(pPhase[c] ? -pc : pc);
         const real1_f cSFracT8 = 8 * fmod(abs(pBuffer[t]), HALF_PI_R1);
         if ((cSFracT8 > PI_R1) && (cSFracT8 < (3 * PI_R1))) {
             bPhase[c] = !bPhase[c];
@@ -430,7 +430,7 @@ protected:
         pBuffer[t] *= -ONE_R1;
         pPhase[t] = !pPhase[t];
         pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
-        real1 pt = real(pBuffer[t]);
+        real1 pt = pPhase[t] ? -real(pBuffer[t]) : real(pBuffer[t]);
         while (pt >= HALF_PI_R1) {
             SBase(t);
             pt -= HALF_PI_R1;
@@ -439,7 +439,7 @@ protected:
             ISBase(t);
             pt += HALF_PI_R1;
         }
-        pBuffer[t].real(pt);
+        pBuffer[t].real(pPhase[t] ? -pt : pt);
         const real1_f tSFracT8 = 8 * fmod(abs(bBuffer[c]), HALF_PI_R1);
         if ((tSFracT8 > PI_R1) && (tSFracT8 < (3 * PI_R1))) {
             pPhase[t] = !pPhase[t];
