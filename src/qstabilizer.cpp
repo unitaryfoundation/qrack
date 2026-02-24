@@ -1751,11 +1751,11 @@ void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
 void QStabilizer::RZ(real1_f angle, bitLenInt t)
 {
     angle = FixAnglePeriod(angle);
-    while (angle >= HALF_PI_R1) {
+    while ((2 * angle) > HALF_PI_R1) {
         S(t);
         angle = FixAnglePeriod(angle - HALF_PI_R1);
     }
-    while (angle <= -HALF_PI_R1) {
+    while ((2 * angle) < -HALF_PI_R1) {
         IS(t);
         angle = FixAnglePeriod(angle + HALF_PI_R1);
     }
