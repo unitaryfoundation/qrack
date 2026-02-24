@@ -1692,11 +1692,11 @@ void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
 
     real1 bc = real(bBuffer[c]);
     HBase(c);
-    while (bc >= HALF_PI_R1) {
+    while ((2 * bc) > HALF_PI_R1) {
         SBase(c);
         bc -= HALF_PI_R1;
     }
-    while (bc <= -HALF_PI_R1) {
+    while ((2 * bc) < -HALF_PI_R1) {
         ISBase(c);
         bc += HALF_PI_R1;
     }
@@ -1706,11 +1706,11 @@ void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
     bc = imag(bBuffer[c]);
     ISBase(c);
     HBase(c);
-    while (bc >= HALF_PI_R1) {
+    while ((2 * bc) > HALF_PI_R1) {
         SBase(c);
         bc -= HALF_PI_R1;
     }
-    while (bc <= -HALF_PI_R1) {
+    while ((2 * bc) < -HALF_PI_R1) {
         ISBase(c);
         bc += HALF_PI_R1;
     }
@@ -1719,11 +1719,11 @@ void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
     bBuffer[c].imag(bc);
 
     real1 pt = real(pBuffer[t]);
-    while (pt >= HALF_PI_R1) {
+    while ((2 * pt) > HALF_PI_R1) {
         SBase(t);
         pt -= HALF_PI_R1;
     }
-    while (pt <= -HALF_PI_R1) {
+    while ((2 * pt) < -HALF_PI_R1) {
         ISBase(t);
         pt += HALF_PI_R1;
     }
@@ -1733,11 +1733,11 @@ void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
     HBase(t);
     ISBase(t);
     HBase(t);
-    while (pt >= HALF_PI_R1) {
+    while ((2 * pt) > HALF_PI_R1) {
         SBase(t);
         pt -= HALF_PI_R1;
     }
-    while (pt <= -HALF_PI_R1) {
+    while ((2 * pt) < -HALF_PI_R1) {
         ISBase(t);
         pt += HALF_PI_R1;
     }
@@ -1761,10 +1761,10 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
     }
 
     angle = FixAnglePeriod(std::real(pBuffer[t]) + angle);
-    if (angle >= HALF_PI_R1) {
+    if ((2 * angle) > HALF_PI_R1) {
         SBase(t);
         angle = FixAnglePeriod(angle - HALF_PI_R1);
-    } else if (angle <= -HALF_PI_R1) {
+    } else if ((2 * angle) < -HALF_PI_R1) {
         ISBase(t);
         angle = FixAnglePeriod(angle + HALF_PI_R1);
     }
