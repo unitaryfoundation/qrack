@@ -1715,6 +1715,10 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
     if (angle >= HALF_PI_R1) {
         S(t);
         angle = FixAnglePeriod(angle - HALF_PI_R1);
+        while (angle >= HALF_PI_R1) {
+            S(t);
+            angle = FixAnglePeriod(angle - HALF_PI_R1);
+        }
         if (pPhase[t]) {
             angle = -angle;
             pPhase[t] = false;
@@ -1723,6 +1727,10 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
     } else if (angle <= -HALF_PI_R1) {
         IS(t);
         angle = FixAnglePeriod(angle + HALF_PI_R1);
+        while (angle <= -HALF_PI_R1) {
+            IS(t);
+            angle = FixAnglePeriod(angle + HALF_PI_R1);
+        }
         if (pPhase[t]) {
             angle = -angle;
             pPhase[t] = false;
