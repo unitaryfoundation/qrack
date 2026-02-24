@@ -1686,37 +1686,36 @@ void QStabilizer::ISBase(bitLenInt t)
 
 void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
 {
-    const complex old_bc = bBuffer[c];
-    bBuffer[c] = FixAnglePeriod(bBuffer[c] + pBuffer[t]);
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] + old_bc);
+    pBuffer[c] = FixAnglePeriod(pBuffer[c] + bBuffer[t]);
+    pBuffer[t] = FixAnglePeriod(pBuffer[t] + bBuffer[c]);
 
-    real1 bc = real(bBuffer[c]);
-    HBase(c);
-    while ((2 * bc) > HALF_PI_R1) {
+    real1 pc = real(pBuffer[c]);
+    while ((2 * pc) > HALF_PI_R1) {
         SBase(c);
-        bc -= HALF_PI_R1;
+        pc -= HALF_PI_R1;
     }
-    while ((2 * bc) < -HALF_PI_R1) {
+    while ((2 * pc) < -HALF_PI_R1) {
         ISBase(c);
-        bc += HALF_PI_R1;
+        pc += HALF_PI_R1;
     }
-    HBase(c);
-    bBuffer[c].real(bc);
+    pBuffer[c].real(pc);
 
-    bc = imag(bBuffer[c]);
+    pc = imag(pBuffer[c]);
+    HBase(c);
     ISBase(c);
     HBase(c);
-    while ((2 * bc) > HALF_PI_R1) {
+    while ((2 * pc) > HALF_PI_R1) {
         SBase(c);
-        bc -= HALF_PI_R1;
+        pc -= HALF_PI_R1;
     }
-    while ((2 * bc) < -HALF_PI_R1) {
+    while ((2 * pc) < -HALF_PI_R1) {
         ISBase(c);
-        bc += HALF_PI_R1;
+        pc += HALF_PI_R1;
     }
     HBase(c);
     SBase(c);
-    bBuffer[c].imag(bc);
+    HBase(c);
+    pBuffer[c].imag(pc);
 
     real1 pt = real(pBuffer[t]);
     while ((2 * pt) > HALF_PI_R1) {
