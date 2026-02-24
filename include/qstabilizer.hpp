@@ -411,7 +411,7 @@ protected:
         bBuffer[c] = FixAnglePeriod(bBuffer[c] + pBuffer[t]);
         pBuffer[t] = FixAnglePeriod(pBuffer[t] + bBuffer[c]);
 
-        real1 bc = real(pBuffer[c]);
+        real1 bc = real(bBuffer[c]);
         H(c);
         while (bc >= HALF_PI_R1) {
             SBase(c);
@@ -424,7 +424,7 @@ protected:
         H(c);
         bBuffer[c].real(bc);
 
-        bc = imag(pBuffer[c]);
+        bc = imag(bBuffer[c]);
         IS(c);
         H(c);
         while (bc >= HALF_PI_R1) {
