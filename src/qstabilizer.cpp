@@ -1701,16 +1701,30 @@ void QStabilizer::ISBase(bitLenInt t)
 /// Apply half a phase gate
 void QStabilizer::RZ(real1_f angle, bitLenInt t)
 {
-    angle = FixAnglePeriod((pPhase[t] ? -std::real(pBuffer[t]) : std::real(pBuffer[t])) + angle);
     while (angle >= HALF_PI_R1) {
         S(t);
         angle = FixAnglePeriod(angle - HALF_PI_R1);
-        pPhase[t] = false;
     }
     while (angle <= -HALF_PI_R1) {
         IS(t);
         angle = FixAnglePeriod(angle + HALF_PI_R1);
-        pPhase[t] = false;
+    }
+    angle = FixAnglePeriod((pPhase[t] ? -std::real(pBuffer[t]) : std::real(pBuffer[t])) + angle);
+    while (angle >= HALF_PI_R1) {
+        S(t);
+        angle = FixAnglePeriod(angle - HALF_PI_R1);
+        if (pPhase[t]) {
+            angle = -angle;
+            pPhase[t] = false;
+        }
+    }
+    while (angle <= -HALF_PI_R1) {
+        IS(t);
+        angle = FixAnglePeriod(angle + HALF_PI_R1);
+        if (pPhase[t]) {
+            angle = -angle;
+            pPhase[t] = false;
+        }
     }
     if ((RandFloat() * HALF_PI_R1) < std::abs(angle)) {
         if (angle > 0) {
