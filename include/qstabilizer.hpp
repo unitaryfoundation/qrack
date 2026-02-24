@@ -398,6 +398,7 @@ protected:
     real1_f ApproxCompareHelper(
         QStabilizerPtr toCompare, real1_f error_tol = TRYDECOMPOSE_EPSILON, bool isDiscrete = false);
 
+    void HBase(bitLenInt qubitIndex);
     void SBase(bitLenInt qubitIndex);
     void ISBase(bitLenInt qubitIndex);
 
@@ -412,7 +413,7 @@ protected:
         pBuffer[t] = FixAnglePeriod(pBuffer[t] + bBuffer[c]);
 
         real1 bc = real(bBuffer[c]);
-        H(c);
+        HBase(c);
         while (bc >= HALF_PI_R1) {
             SBase(c);
             bc -= HALF_PI_R1;
@@ -421,12 +422,12 @@ protected:
             ISBase(c);
             bc += HALF_PI_R1;
         }
-        H(c);
+        HBase(c);
         bBuffer[c].real(bc);
 
         bc = imag(bBuffer[c]);
-        IS(c);
-        H(c);
+        ISBase(c);
+        HBase(c);
         while (bc >= HALF_PI_R1) {
             SBase(c);
             bc -= HALF_PI_R1;
@@ -435,8 +436,8 @@ protected:
             ISBase(c);
             bc += HALF_PI_R1;
         }
-        H(c);
-        S(c);
+        HBase(c);
+        SBase(c);
         bBuffer[c].imag(bc);
 
         real1 pt = real(pBuffer[t]);
@@ -451,9 +452,9 @@ protected:
         pBuffer[t].real(pt);
 
         pt = imag(pBuffer[t]);
-        H(t);
-        IS(t);
-        H(t);
+        HBase(t);
+        ISBase(t);
+        HBase(t);
         while (pt >= HALF_PI_R1) {
             SBase(t);
             pt -= HALF_PI_R1;
@@ -462,9 +463,9 @@ protected:
             ISBase(t);
             pt += HALF_PI_R1;
         }
-        H(t);
-        S(t);
-        H(t);
+        HBase(t);
+        SBase(t);
+        HBase(t);
         pBuffer[t].imag(pt);
     }
 

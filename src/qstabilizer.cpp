@@ -1403,11 +1403,16 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
 /// Apply a Hadamard gate to target
 void QStabilizer::H(bitLenInt t)
 {
+    std::swap(bBuffer[t], pBuffer[t]);
+    HBase(t);
+}
+
+/// Apply a Hadamard gate to target
+void QStabilizer::HBase(bitLenInt t)
+{
     const QStabilizerPtr clone = randGlobalPhase ? nullptr : std::dynamic_pointer_cast<QStabilizer>(Clone());
 
     isGaussianCached = false;
-
-    std::swap(bBuffer[t], pBuffer[t]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
