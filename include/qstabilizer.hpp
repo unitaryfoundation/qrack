@@ -407,6 +407,7 @@ protected:
         return (norm(pBuffer[t]) > FP_NORM_EPSILON) || (norm(bBuffer[t]) > FP_NORM_EPSILON);
     }
 
+    void FlushNearClifford(bitLenInt t);
     void CZNearClifford(bitLenInt c, bitLenInt t);
 
     void SwapNearClifford(bitLenInt c, bitLenInt t)

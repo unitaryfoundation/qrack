@@ -1684,66 +1684,44 @@ void QStabilizer::ISBase(bitLenInt t)
     SetPhaseOffset(phaseOffset + std::arg(ampEntry.amplitude) - std::arg(GetAmplitude(ampEntry.permutation)));
 }
 
+void QStabilizer::FlushNearClifford(bitLenInt t)
+{
+    real1 p = std::real(pBuffer[t]);
+    while ((2 * p) > HALF_PI_R1) {
+        SBase(t);
+        p -= HALF_PI_R1;
+    }
+    while ((2 * p) < -HALF_PI_R1) {
+        ISBase(t);
+        p += HALF_PI_R1;
+    }
+    pBuffer[t].real(p);
+
+    p = std::imag(pBuffer[t]);
+    HBase(t);
+    ISBase(t);
+    HBase(t);
+    while ((2 * p) > HALF_PI_R1) {
+        SBase(t);
+        p -= HALF_PI_R1;
+    }
+    while ((2 * p) < -HALF_PI_R1) {
+        ISBase(t);
+        p += HALF_PI_R1;
+    }
+    HBase(t);
+    SBase(t);
+    HBase(t);
+    pBuffer[t].imag(p);
+}
+
 void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
 {
     pBuffer[c] = FixAnglePeriod(pBuffer[c] + bBuffer[t]);
     pBuffer[t] = FixAnglePeriod(pBuffer[t] + bBuffer[c]);
 
-    real1 pc = real(pBuffer[c]);
-    while ((2 * pc) > HALF_PI_R1) {
-        SBase(c);
-        pc -= HALF_PI_R1;
-    }
-    while ((2 * pc) < -HALF_PI_R1) {
-        ISBase(c);
-        pc += HALF_PI_R1;
-    }
-    pBuffer[c].real(pc);
-
-    pc = imag(pBuffer[c]);
-    HBase(c);
-    ISBase(c);
-    HBase(c);
-    while ((2 * pc) > HALF_PI_R1) {
-        SBase(c);
-        pc -= HALF_PI_R1;
-    }
-    while ((2 * pc) < -HALF_PI_R1) {
-        ISBase(c);
-        pc += HALF_PI_R1;
-    }
-    HBase(c);
-    SBase(c);
-    HBase(c);
-    pBuffer[c].imag(pc);
-
-    real1 pt = real(pBuffer[t]);
-    while ((2 * pt) > HALF_PI_R1) {
-        SBase(t);
-        pt -= HALF_PI_R1;
-    }
-    while ((2 * pt) < -HALF_PI_R1) {
-        ISBase(t);
-        pt += HALF_PI_R1;
-    }
-    pBuffer[t].real(pt);
-
-    pt = imag(pBuffer[t]);
-    HBase(t);
-    ISBase(t);
-    HBase(t);
-    while ((2 * pt) > HALF_PI_R1) {
-        SBase(t);
-        pt -= HALF_PI_R1;
-    }
-    while ((2 * pt) < -HALF_PI_R1) {
-        ISBase(t);
-        pt += HALF_PI_R1;
-    }
-    HBase(t);
-    SBase(t);
-    HBase(t);
-    pBuffer[t].imag(pt);
+    FlushNearClifford(c);
+    FlushNearClifford(t);
 }
 
 /// Approximate an arbitrary phase angle
