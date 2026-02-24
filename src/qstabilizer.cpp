@@ -1137,8 +1137,6 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    CZNearClifford(c, t);
-
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
     ValidateQubitIndex(t);
@@ -1175,6 +1173,8 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
     if (!randGlobalPhase) {
         SetPhaseOffset(phaseOffset + std::arg(ampEntry.amplitude) - std::arg(GetAmplitude(ampEntry.permutation)));
     }
+
+    CZNearClifford(c, t);
 }
 
 /// Apply an (anti-)CZ gate with control and target
@@ -1191,10 +1191,6 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
     const AmplitudeEntry ampEntry = randGlobalPhase ? AmplitudeEntry(ZERO_BCI, ZERO_CMPLX) : GetQubitAmplitude(c, true);
 
     isGaussianCached = false;
-
-    pBuffer[c] *= -ONE_R1;
-    CZNearClifford(c, t);
-    pBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1232,6 +1228,10 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
     if (!randGlobalPhase) {
         SetPhaseOffset(phaseOffset + std::arg(ampEntry.amplitude) - std::arg(GetAmplitude(ampEntry.permutation)));
     }
+
+    pBuffer[c] *= -ONE_R1;
+    CZNearClifford(c, t);
+    pBuffer[c] *= -ONE_R1;
 }
 
 void QStabilizer::Swap(bitLenInt c, bitLenInt t)
@@ -1279,9 +1279,6 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    SwapNearClifford(c, t);
-    CZNearClifford(c, t);
-
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
     ValidateQubitIndex(t);
@@ -1332,6 +1329,9 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
+
+    SwapNearClifford(c, t);
+    CZNearClifford(c, t);
 }
 
 void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
@@ -1346,9 +1346,6 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
 
     isGaussianCached = false;
 
-    CZNearClifford(c, t);
-    SwapNearClifford(c, t);
-
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
     ValidateQubitIndex(t);
@@ -1398,6 +1395,9 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
+
+    CZNearClifford(c, t);
+    SwapNearClifford(c, t);
 }
 
 /// Apply a Hadamard gate to target
