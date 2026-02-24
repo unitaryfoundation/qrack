@@ -90,10 +90,10 @@ protected:
 
     real1_f FixAnglePeriod(real1_f angle)
     {
-        while (angle > PI_R1) {
+        angle = fmod(angle, 2 * PI_R1);
+        if (angle > PI_R1) {
             angle -= 2 * PI_R1;
-        }
-        while (angle <= -PI_R1) {
+        } else if (angle <= -PI_R1) {
             angle += 2 * PI_R1;
         }
 

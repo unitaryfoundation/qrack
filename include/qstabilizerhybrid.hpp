@@ -229,10 +229,8 @@ protected:
     {
         const real1_f sectorAngle = HALF_PI_R1;
         const real1_f Period = 2 * PI_R1;
-        while (angle >= Period) {
-            angle -= Period;
-        }
-        while (angle < 0U) {
+        angle = fmod(angle, Period);
+        if (angle < 0U) {
             angle += Period;
         }
 
