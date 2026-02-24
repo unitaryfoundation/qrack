@@ -405,27 +405,23 @@ protected:
     void SBase(bitLenInt qubitIndex);
     void ISBase(bitLenInt qubitIndex);
 
-    void CNOTNearClifford(bitLenInt c, bitLenInt t)
+    bool isNearClifford(bitLenInt t)
     {
-        pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
-        const real1_f cSFracT8 = 8 * fmod(abs(pBuffer[t]), HALF_PI_R1);
-        if ((cSFracT8 > PI_R1) && (cSFracT8 < (3 * PI_R1))) {
-            pPhase[c] = !pPhase[c];
-        }
-        pBuffer[t] *= -ONE_R1;
-        pPhase[t] = !pPhase[t];
-        bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
-        const real1_f tSFracT8 = 8 * fmod(abs(bBuffer[c]), HALF_PI_R1);
-        if ((tSFracT8 > PI_R1) && (tSFracT8 < (3 * PI_R1))) {
-            bPhase[t] = !bPhase[t];
-        }
-        bBuffer[c] *= -ONE_R1;
-        bPhase[c] = !bPhase[c];
+        return pPhase[t] || bPhase[t] || (norm(pBuffer[t]) > FP_NORM_EPSILON) || (norm(bBuffer[t]) > FP_NORM_EPSILON);
     }
 
     void CZNearClifford(bitLenInt c, bitLenInt t)
     {
         bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
+        real1 pc = real(pBuffer[c]);
+        while (pc >= HALF_PI_R1) {
+            S(c);
+            pc -= HALF_PI_R1;
+        }
+        while (pc <= -HALF_PI_R1) {
+            IS(c);
+            pc += HALF_PI_R1;
+        }
         const real1_f cSFracT8 = 8 * fmod(abs(pBuffer[t]), HALF_PI_R1);
         if ((cSFracT8 > PI_R1) && (cSFracT8 < (3 * PI_R1))) {
             bPhase[c] = !bPhase[c];
@@ -433,6 +429,15 @@ protected:
         pBuffer[t] *= -ONE_R1;
         pPhase[t] = !pPhase[t];
         pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
+        real1 pt = real(pBuffer[t]);
+        while (pt >= HALF_PI_R1) {
+            S(t);
+            pt -= HALF_PI_R1;
+        }
+        while (pt <= -HALF_PI_R1) {
+            IS(t);
+            pt += HALF_PI_R1;
+        }
         const real1_f tSFracT8 = 8 * fmod(abs(bBuffer[c]), HALF_PI_R1);
         if ((tSFracT8 > PI_R1) && (tSFracT8 < (3 * PI_R1))) {
             pPhase[t] = !pPhase[t];

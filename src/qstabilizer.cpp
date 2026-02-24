@@ -941,15 +941,13 @@ real1_f QStabilizer::ProbMask(const bitCapInt& mask, const bitCapInt& perm)
 /// Apply a CNOT gate with control and target
 void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
 {
-    if (!randGlobalPhase) {
+    if (!randGlobalPhase || isNearClifford(c) || isNearClifford(t)) {
         H(t);
         CZ(c, t);
         return H(t);
     }
 
     isGaussianCached = false;
-
-    CNOTNearClifford(c, t);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -988,17 +986,13 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
 /// Apply an (anti-)CNOT gate with control and target
 void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
 {
-    if (!randGlobalPhase) {
+    if (!randGlobalPhase || isNearClifford(c) || isNearClifford(t)) {
         H(t);
         AntiCZ(c, t);
         return H(t);
     }
 
     isGaussianCached = false;
-
-    pBuffer[c] *= -ONE_R1;
-    CNOTNearClifford(c, t);
-    pBuffer[c] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     SetTransposeState(true);
@@ -1034,16 +1028,13 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
 /// Apply a CY gate with control and target
 void QStabilizer::CY(bitLenInt c, bitLenInt t)
 {
-    if (!randGlobalPhase) {
+    if (!randGlobalPhase || isNearClifford(c) || isNearClifford(t)) {
         IS(t);
         CNOT(c, t);
         return S(t);
     }
 
     isGaussianCached = false;
-
-    CZNearClifford(c, t);
-    CNOTNearClifford(c, t);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
@@ -1087,18 +1078,13 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
 /// Apply an (anti-)CY gate with control and target
 void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
 {
-    if (!randGlobalPhase) {
+    if (!randGlobalPhase || isNearClifford(c) || isNearClifford(t)) {
         IS(t);
         AntiCNOT(c, t);
         return S(t);
     }
 
     isGaussianCached = false;
-
-    pBuffer[t] *= -ONE_R1;
-    CZNearClifford(c, t);
-    CNOTNearClifford(c, t);
-    pBuffer[t] *= -ONE_R1;
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(c);
