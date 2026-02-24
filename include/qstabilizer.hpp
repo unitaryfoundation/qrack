@@ -408,13 +408,15 @@ protected:
     void CNOTNearClifford(bitLenInt c, bitLenInt t)
     {
         pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
-        if ((4 * fmod(abs(pBuffer[t]), HALF_PI_R1)) > HALF_PI_R1) {
+        const real1_f cSFracT8 = 8 * fmod(abs(pBuffer[t]), HALF_PI_R1);
+        if ((cSFracT8 > PI_R1) && (cSFracT8 < (3 * PI_R1))) {
             pPhase[c] = !pPhase[c];
         }
         pBuffer[t] *= -ONE_R1;
         pPhase[t] = !pPhase[t];
         bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
-        if ((4 * fmod(abs(bBuffer[c]), HALF_PI_R1)) > HALF_PI_R1) {
+        const real1_f tSFracT8 = 8 * fmod(abs(bBuffer[c]), HALF_PI_R1);
+        if ((tSFracT8 > PI_R1) && (tSFracT8 < (3 * PI_R1))) {
             bPhase[t] = !bPhase[t];
         }
         bBuffer[c] *= -ONE_R1;
@@ -424,13 +426,15 @@ protected:
     void CZNearClifford(bitLenInt c, bitLenInt t)
     {
         bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
-        if ((4 * fmod(abs(pBuffer[t]), HALF_PI_R1)) > HALF_PI_R1) {
+        const real1_f cSFracT8 = 8 * fmod(abs(pBuffer[t]), HALF_PI_R1);
+        if ((cSFracT8 > PI_R1) && (cSFracT8 < (3 * PI_R1))) {
             bPhase[c] = !bPhase[c];
         }
         pBuffer[t] *= -ONE_R1;
         pPhase[t] = !pPhase[t];
         pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
-        if ((4 * fmod(abs(bBuffer[c]), HALF_PI_R1)) > HALF_PI_R1) {
+        const real1_f tSFracT8 = 8 * fmod(abs(bBuffer[c]), HALF_PI_R1);
+        if ((tSFracT8 > PI_R1) && (tSFracT8 < (3 * PI_R1))) {
             pPhase[t] = !pPhase[t];
         }
         bBuffer[c] *= -ONE_R1;
