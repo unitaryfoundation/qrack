@@ -74,8 +74,6 @@ protected:
     // Phase buffers for non-Clifford gates
     std::vector<complex> bBuffer;
     std::vector<complex> pBuffer;
-    std::vector<bool> bPhase;
-    std::vector<bool> pPhase;
 
     typedef std::function<void(const bitLenInt&)> StabilizerParallelFunc;
     typedef std::function<void(void)> DispatchFn;
@@ -267,8 +265,6 @@ public:
 #endif
         bBuffer.clear();
         pBuffer.clear();
-        bPhase.clear();
-        pPhase.clear();
         phaseOffset = ZERO_R1;
         qubitCount = 0U;
         maxQPower = ONE_BCI;
@@ -407,30 +403,43 @@ protected:
 
     bool isNearClifford(bitLenInt t)
     {
-        return pPhase[t] || bPhase[t] || (norm(pBuffer[t]) > FP_NORM_EPSILON) || (norm(bBuffer[t]) > FP_NORM_EPSILON);
+        return (norm(pBuffer[t]) > FP_NORM_EPSILON) || (norm(bBuffer[t]) > FP_NORM_EPSILON);
     }
 
     void CZNearClifford(bitLenInt c, bitLenInt t)
     {
-        bBuffer[c] = FixAnglePeriod(bBuffer[c] - pBuffer[t]);
-        real1 pc = pPhase[c] ? -real(pBuffer[c]) : real(pBuffer[c]);
-        while (pc >= HALF_PI_R1) {
+        bBuffer[c] = FixAnglePeriod(bBuffer[c] + pBuffer[t]);
+        pBuffer[t] = FixAnglePeriod(pBuffer[t] + bBuffer[c]);
+
+        real1 bc = real(pBuffer[c]);
+        H(c);
+        while (bc >= HALF_PI_R1) {
             SBase(c);
-            pc -= HALF_PI_R1;
+            bc -= HALF_PI_R1;
         }
-        while (pc <= -HALF_PI_R1) {
+        while (bc <= -HALF_PI_R1) {
             ISBase(c);
-            pc += HALF_PI_R1;
+            bc += HALF_PI_R1;
         }
-        pBuffer[c].real(pPhase[c] ? -pc : pc);
-        const real1_f cSFracT8 = 8 * fmod(abs(pBuffer[t]), HALF_PI_R1);
-        if ((cSFracT8 > PI_R1) && (cSFracT8 < (3 * PI_R1))) {
-            bPhase[c] = !bPhase[c];
+        H(c);
+        bBuffer[c].real(bc);
+
+        bc = imag(pBuffer[c]);
+        IS(c);
+        H(c);
+        while (bc >= HALF_PI_R1) {
+            SBase(c);
+            bc -= HALF_PI_R1;
         }
-        pBuffer[t] *= -ONE_R1;
-        pPhase[t] = !pPhase[t];
-        pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
-        real1 pt = pPhase[t] ? -real(pBuffer[t]) : real(pBuffer[t]);
+        while (bc <= -HALF_PI_R1) {
+            ISBase(c);
+            bc += HALF_PI_R1;
+        }
+        H(c);
+        S(c);
+        bBuffer[c].imag(bc);
+
+        real1 pt = real(pBuffer[t]);
         while (pt >= HALF_PI_R1) {
             SBase(t);
             pt -= HALF_PI_R1;
@@ -439,21 +448,30 @@ protected:
             ISBase(t);
             pt += HALF_PI_R1;
         }
-        pBuffer[t].real(pPhase[t] ? -pt : pt);
-        const real1_f tSFracT8 = 8 * fmod(abs(bBuffer[c]), HALF_PI_R1);
-        if ((tSFracT8 > PI_R1) && (tSFracT8 < (3 * PI_R1))) {
-            pPhase[t] = !pPhase[t];
+        pBuffer[t].real(pt);
+
+        pt = imag(pBuffer[t]);
+        H(t);
+        IS(t);
+        H(t);
+        while (pt >= HALF_PI_R1) {
+            SBase(t);
+            pt -= HALF_PI_R1;
         }
-        bBuffer[c] *= -ONE_R1;
-        bPhase[c] = !bPhase[c];
+        while (pt <= -HALF_PI_R1) {
+            ISBase(t);
+            pt += HALF_PI_R1;
+        }
+        H(t);
+        S(t);
+        H(t);
+        pBuffer[t].imag(pt);
     }
 
     void SwapNearClifford(bitLenInt c, bitLenInt t)
     {
         std::swap(bBuffer[t], bBuffer[c]);
         std::swap(pBuffer[t], pBuffer[c]);
-        std::vector<bool>::swap(bPhase[t], bPhase[c]);
-        std::vector<bool>::swap(pPhase[t], pPhase[c]);
     }
 
 public:

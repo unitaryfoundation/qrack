@@ -53,8 +53,6 @@ QStabilizer::QStabilizer(bitLenInt n, const bitCapInt& perm, qrack_rand_gen_ptr 
     , z((n << 1U) + 1U, BoolVector(n))
     , bBuffer(n, ZERO_R1_F)
     , pBuffer(n, ZERO_R1_F)
-    , bPhase(n, false)
-    , pPhase(n, false)
 {
     maxStateMapCacheQubitCount = getenv("QRACK_MAX_CPU_QB")
         ? (bitLenInt)std::stoi(std::string(getenv("QRACK_MAX_CPU_QB")))
@@ -134,8 +132,6 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
 
     std::fill(bBuffer.begin(), bBuffer.end(), ZERO_R1_F);
     std::fill(pBuffer.begin(), pBuffer.end(), ZERO_R1_F);
-    std::fill(bPhase.begin(), bPhase.end(), false);
-    std::fill(pPhase.begin(), pPhase.end(), false);
 
     for (bitLenInt i = 0; i < rowCount; ++i) {
         BoolVector& xi = x[i];
@@ -1412,7 +1408,6 @@ void QStabilizer::H(bitLenInt t)
     isGaussianCached = false;
 
     std::swap(bBuffer[t], pBuffer[t]);
-    std::vector<bool>::swap(bPhase[t], pPhase[t]);
 
 #if BOOST_AVAILABLE
     ValidateQubitIndex(t);
@@ -1697,24 +1692,16 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
         angle = FixAnglePeriod(angle + HALF_PI_R1);
     }
 
-    angle = FixAnglePeriod((pPhase[t] ? -std::real(pBuffer[t]) : std::real(pBuffer[t])) + angle);
+    angle = FixAnglePeriod(std::real(pBuffer[t]) + angle);
     if (angle >= HALF_PI_R1) {
         S(t);
         angle = FixAnglePeriod(angle - HALF_PI_R1);
-        if (pPhase[t]) {
-            angle = -angle;
-            pPhase[t] = false;
-            pBuffer[t].imag(-imag(pBuffer[t]));
-        }
     } else if (angle <= -HALF_PI_R1) {
         IS(t);
         angle = FixAnglePeriod(angle + HALF_PI_R1);
-        if (pPhase[t]) {
-            angle = -angle;
-            pPhase[t] = false;
-            pBuffer[t].imag(-imag(pBuffer[t]));
-        }
-    } else if ((RandFloat() * HALF_PI_R1) < std::abs(angle)) {
+    }
+
+    if ((RandFloat() * HALF_PI_R1) < std::abs(angle)) {
         if (angle > 0) {
             S(t);
             angle = FixAnglePeriod(angle - HALF_PI_R1);
@@ -1723,7 +1710,8 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
             angle = FixAnglePeriod(angle + HALF_PI_R1);
         }
     }
-    pBuffer[t].real(pPhase[t] ? -angle : angle);
+
+    pBuffer[t].real(angle);
 }
 
 /**
@@ -2090,8 +2078,6 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
         const bitLenInt ib = i + qubitCount;
         nQubits->pBuffer[i] = pBuffer[i];
         nQubits->bBuffer[i] = bBuffer[i];
-        nQubits->pPhase[i] = pPhase[i];
-        nQubits->bPhase[i] = bPhase[i];
         nQubits->r[0U][i] = r[0U][i];
         nQubits->r[1U][i] = r[1U][i];
         nQubits->r[0U][ia] = r[0U][ib];
@@ -2120,8 +2106,6 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
         const bitLenInt ic = i + length;
         nQubits->pBuffer[ia] = toCopy->pBuffer[i];
         nQubits->bBuffer[ia] = toCopy->bBuffer[i];
-        nQubits->pPhase[ia] = toCopy->pPhase[i];
-        nQubits->bPhase[ia] = toCopy->bPhase[i];
         nQubits->r[0U][ia] = toCopy->r[0U][i];
         nQubits->r[1U][ia] = toCopy->r[1U][i];
         nQubits->r[0U][ib] = toCopy->r[0U][ic];
@@ -2143,8 +2127,6 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
         const bitLenInt id = ib + qubitCount;
         nQubits->pBuffer[ia] = pBuffer[ib];
         nQubits->bBuffer[ia] = bBuffer[ib];
-        nQubits->pPhase[ia] = pPhase[ib];
-        nQubits->bPhase[ia] = bPhase[ib];
         nQubits->r[0U][ia] = r[0U][ib];
         nQubits->r[1U][ia] = r[1U][ib];
         nQubits->r[0U][ic] = r[0U][id];
@@ -2197,8 +2179,6 @@ bitLenInt QStabilizer::Compose(QStabilizerPtr toCopy, bitLenInt start)
 
     pBuffer.insert(pBuffer.begin() + start, toCopy->pBuffer.begin(), toCopy->pBuffer.begin() + length);
     bBuffer.insert(bBuffer.begin() + start, toCopy->bBuffer.begin(), toCopy->bBuffer.begin() + length);
-    pPhase.insert(pPhase.begin() + start, toCopy->pPhase.begin(), toCopy->pPhase.begin() + length);
-    bPhase.insert(bPhase.begin() + start, toCopy->bPhase.begin(), toCopy->bPhase.begin() + length);
     x.insert(x.begin() + start, toCopy->x.begin(), toCopy->x.begin() + length);
     z.insert(z.begin() + start, toCopy->z.begin(), toCopy->z.begin() + length);
     r[0U].insert(r[0U].begin() + start, toCopy->r[0U].begin(), toCopy->r[0U].begin() + length);
@@ -2354,8 +2334,6 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         const bitLenInt ib = i + qubitCount;
         nQubits->pBuffer[i] = pBuffer[i];
         nQubits->bBuffer[i] = bBuffer[i];
-        nQubits->pPhase[i] = pPhase[i];
-        nQubits->bPhase[i] = bPhase[i];
         nQubits->r[0U][i] = r[0U][i];
         nQubits->r[1U][i] = r[1U][i];
         nQubits->r[0U][ia] = r[0U][ib];
@@ -2385,8 +2363,6 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
             const bitLenInt ic = ia + qubitCount;
             dest->pBuffer[i] = pBuffer[ia];
             dest->bBuffer[i] = bBuffer[ia];
-            dest->pPhase[i] = pPhase[ia];
-            dest->bPhase[i] = bPhase[ia];
             dest->r[0U][i] = r[0U][ia];
             dest->r[1U][i] = r[1U][ia];
             dest->r[0U][ib] = r[0U][ic];
@@ -2409,8 +2385,6 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         const bitLenInt id = ib + qubitCount;
         nQubits->pBuffer[ia] = pBuffer[ib];
         nQubits->bBuffer[ia] = bBuffer[ib];
-        nQubits->pPhase[ia] = pPhase[ib];
-        nQubits->bPhase[ia] = bPhase[ib];
         nQubits->r[0U][ia] = r[0U][ib];
         nQubits->r[1U][ia] = r[1U][ib];
         nQubits->r[0U][ic] = r[0U][id];
@@ -2456,8 +2430,6 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
         bitLenInt j = start;
         std::copy(pBuffer.begin() + j, pBuffer.begin() + j + length, dest->pBuffer.begin());
         std::copy(bBuffer.begin() + j, bBuffer.begin() + j + length, dest->bBuffer.begin());
-        std::copy(pPhase.begin() + j, pPhase.begin() + j + length, dest->pPhase.begin());
-        std::copy(bPhase.begin() + j, bPhase.begin() + j + length, dest->bPhase.begin());
         std::copy(r[0U].begin() + j, r[0U].begin() + j + length, dest->r[0U].begin());
         std::copy(r[1U].begin() + j, r[1U].begin() + j + length, dest->r[1U].begin());
         j = qubitCount + start;
@@ -2475,8 +2447,6 @@ void QStabilizer::DecomposeDispose(const bitLenInt start, const bitLenInt length
     r[1U].erase(r[1U].begin() + start, r[1U].begin() + end);
     pBuffer.erase(pBuffer.begin() + start, pBuffer.begin() + end);
     bBuffer.erase(bBuffer.begin() + start, bBuffer.begin() + end);
-    pPhase.erase(pPhase.begin() + start, pPhase.begin() + end);
-    bPhase.erase(bPhase.begin() + start, bPhase.begin() + end);
 
     SetQubitCount(nQubitCount);
 
