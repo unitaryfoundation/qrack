@@ -228,14 +228,13 @@ protected:
 
     real1_f FractionalRzAngleWithFlush(bitLenInt i, real1_f angle, bool isGateSuppressed = false)
     {
-        const real1_f sectorAngle = HALF_PI_R1;
-        const real1_f Period = 2 * PI_R1;
+        QRACK_CONST real1_f Period = 2 * PI_R1;
         angle = fmod(angle, Period);
-        if (angle < 0U) {
+        if (angle < ZERO_R1) {
             angle += Period;
         }
 
-        const long sector = std::lround((real1_s)(angle / sectorAngle));
+        const long sector = std::lround((real1_s)(angle / HALF_PI_R1));
         if (!isGateSuppressed) {
             switch (sector) {
             case 1:
@@ -253,7 +252,7 @@ protected:
             }
         }
 
-        angle -= (sector * sectorAngle);
+        angle -= (sector * HALF_PI_R1);
         if (angle > PI_R1) {
             angle -= Period;
         } else if (angle <= -PI_R1) {
