@@ -398,23 +398,23 @@ protected:
     real1_f ApproxCompareHelper(
         QStabilizerPtr toCompare, real1_f error_tol = TRYDECOMPOSE_EPSILON, bool isDiscrete = false);
 
-    void HBase(bitLenInt qubitIndex);
-    void SBase(bitLenInt qubitIndex);
-    void ISBase(bitLenInt qubitIndex);
-
     bool isNearClifford(bitLenInt t)
     {
         return (norm(pBuffer[t]) > FP_NORM_EPSILON) || (norm(bBuffer[t]) > FP_NORM_EPSILON);
     }
-
-    void FlushNearClifford(bitLenInt t);
-    void CZNearClifford(bitLenInt c, bitLenInt t);
 
     void SwapNearClifford(bitLenInt c, bitLenInt t)
     {
         std::swap(bBuffer[t], bBuffer[c]);
         std::swap(pBuffer[t], pBuffer[c]);
     }
+
+    void HBase(bitLenInt qubitIndex);
+    void SBase(bitLenInt qubitIndex);
+    void ISBase(bitLenInt qubitIndex);
+    void FlushNearClifford(bitLenInt t);
+    void CZNearClifford(bitLenInt c, bitLenInt t);
+    void CNotNearClifford(bitLenInt c, bitLenInt t);
 
 public:
     /**

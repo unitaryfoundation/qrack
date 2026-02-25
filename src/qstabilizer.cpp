@@ -937,7 +937,7 @@ real1_f QStabilizer::ProbMask(const bitCapInt& mask, const bitCapInt& perm)
 /// Apply a CNOT gate with control and target
 void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
 {
-    if (!randGlobalPhase || isNearClifford(c) || isNearClifford(t)) {
+    if (!randGlobalPhase) {
         H(t);
         CZ(c, t);
         return H(t);
@@ -977,12 +977,14 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
+
+    CNotNearClifford(c, t);
 }
 
 /// Apply an (anti-)CNOT gate with control and target
 void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
 {
-    if (!randGlobalPhase || isNearClifford(c) || isNearClifford(t)) {
+    if (!randGlobalPhase) {
         H(t);
         AntiCZ(c, t);
         return H(t);
@@ -1019,12 +1021,16 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
+
+    X(c);
+    CNotNearClifford(c, t);
+    X(c);
 }
 
 /// Apply a CY gate with control and target
 void QStabilizer::CY(bitLenInt c, bitLenInt t)
 {
-    if (!randGlobalPhase || isNearClifford(c) || isNearClifford(t)) {
+    if (!randGlobalPhase) {
         IS(t);
         CNOT(c, t);
         return S(t);
@@ -1069,6 +1075,8 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
+    CZNearClifford(c, t);
+    CNotNearClifford(c, t);
 }
 
 /// Apply an (anti-)CY gate with control and target
@@ -1119,6 +1127,11 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
+
+    X(c);
+    CZNearClifford(c, t);
+    CNotNearClifford(c, t);
+    X(c);
 }
 
 /// Apply a CZ gate with control and target
@@ -1229,9 +1242,9 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
         SetPhaseOffset(phaseOffset + std::arg(ampEntry.amplitude) - std::arg(GetAmplitude(ampEntry.permutation)));
     }
 
-    pBuffer[c] *= -ONE_R1;
+    X(c);
     CZNearClifford(c, t);
-    pBuffer[c] *= -ONE_R1;
+    X(c);
 }
 
 void QStabilizer::Swap(bitLenInt c, bitLenInt t)
@@ -1713,12 +1726,49 @@ void QStabilizer::FlushNearClifford(bitLenInt t)
     SBase(t);
     HBase(t);
     pBuffer[t].imag(p);
+
+    p = std::real(bBuffer[t]);
+    HBase(t);
+    while ((2 * p) > HALF_PI_R1) {
+        SBase(t);
+        p -= HALF_PI_R1;
+    }
+    while ((2 * p) < -HALF_PI_R1) {
+        ISBase(t);
+        p += HALF_PI_R1;
+    }
+    HBase(t);
+    pBuffer[t].real(p);
+
+    p = std::imag(bBuffer[t]);
+    ISBase(t);
+    HBase(t);
+    while ((2 * p) > HALF_PI_R1) {
+        SBase(t);
+        p -= HALF_PI_R1;
+    }
+    while ((2 * p) < -HALF_PI_R1) {
+        ISBase(t);
+        p += HALF_PI_R1;
+    }
+    HBase(t);
+    SBase(t);
+    pBuffer[t].imag(p);
 }
 
 void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
 {
     pBuffer[c] = FixAnglePeriod(pBuffer[c] + bBuffer[t]);
     pBuffer[t] = FixAnglePeriod(pBuffer[t] + bBuffer[c]);
+
+    FlushNearClifford(c);
+    FlushNearClifford(t);
+}
+
+void QStabilizer::CNotNearClifford(bitLenInt c, bitLenInt t)
+{
+    pBuffer[c] = FixAnglePeriod(pBuffer[c] + pBuffer[t]);
+    bBuffer[t] = FixAnglePeriod(bBuffer[t] + bBuffer[c]);
 
     FlushNearClifford(c);
     FlushNearClifford(t);
@@ -1738,11 +1788,11 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
     }
 
     angle = FixAnglePeriod(std::real(pBuffer[t]) + angle);
-    if (angle >= HALF_PI_R1) {
-        SBase(t);
+    if ((2 * angle) > HALF_PI_R1) {
+        S(t);
         angle = FixAnglePeriod(angle - HALF_PI_R1);
-    } else if (angle <= -HALF_PI_R1) {
-        ISBase(t);
+    } else if ((2 * angle) < -HALF_PI_R1) {
+        IS(t);
         angle = FixAnglePeriod(angle + HALF_PI_R1);
     }
 
