@@ -1702,6 +1702,65 @@ void QStabilizer::ISBase(bitLenInt t)
     SetPhaseOffset(phaseOffset + std::arg(ampEntry.amplitude) - std::arg(GetAmplitude(ampEntry.permutation)));
 }
 
+void QStabilizer::FlushNearClifford(bitLenInt t)
+{
+    real1 p = pPhase[t] ? -std::real(pBuffer[t]) : std::real(pBuffer[t]);
+    while ((2 * p) > HALF_PI_R1) {
+        SBase(t);
+        p -= HALF_PI_R1;
+    }
+    while ((2 * p) < -HALF_PI_R1) {
+        ISBase(t);
+        p += HALF_PI_R1;
+    }
+    pBuffer[t].real(pPhase[t] ? -p : p);
+
+    p = pPhase[t] ? -std::imag(pBuffer[t]) : std::imag(pBuffer[t]);
+    HBase(t);
+    ISBase(t);
+    HBase(t);
+    while ((2 * p) > HALF_PI_R1) {
+        SBase(t);
+        p -= HALF_PI_R1;
+    }
+    while ((2 * p) < -HALF_PI_R1) {
+        ISBase(t);
+        p += HALF_PI_R1;
+    }
+    HBase(t);
+    SBase(t);
+    HBase(t);
+    pBuffer[t].imag(pPhase[t] ? -p : p);
+
+    p = bPhase[t] ? -std::real(bBuffer[t]) : std::real(bBuffer[t]);
+    HBase(t);
+    while ((2 * p) > HALF_PI_R1) {
+        SBase(t);
+        p -= HALF_PI_R1;
+    }
+    while ((2 * p) < -HALF_PI_R1) {
+        ISBase(t);
+        p += HALF_PI_R1;
+    }
+    HBase(t);
+    pBuffer[t].real(p);
+
+    p = bPhase[t] ? -std::imag(bBuffer[t]) : std::imag(bBuffer[t]);
+    ISBase(t);
+    HBase(t);
+    while ((2 * p) > HALF_PI_R1) {
+        SBase(t);
+        p -= HALF_PI_R1;
+    }
+    while ((2 * p) < -HALF_PI_R1) {
+        ISBase(t);
+        p += HALF_PI_R1;
+    }
+    HBase(t);
+    SBase(t);
+    pBuffer[t].imag(bPhase[t] ? -p : p);
+}
+
 void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
 {
     if (norm(bBuffer[t]) > norm(pBuffer[c])) {
@@ -1750,11 +1809,13 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
     angle = FixAnglePeriod((pPhase[t] ? -std::real(pBuffer[t]) : std::real(pBuffer[t])) + angle);
     if ((2 * angle) > HALF_PI_R1) {
         S(t);
-        angle = FixAnglePeriod(fmod(angle - HALF_PI_R1, HALF_PI_R1));
+        angle = angle - HALF_PI_R1;
     } else if ((2 * angle) < -HALF_PI_R1) {
         IS(t);
-        angle = FixAnglePeriod(fmod(angle + HALF_PI_R1, HALF_PI_R1));
-    } else if ((RandFloat() * HALF_PI_R1) < std::abs(angle)) {
+        angle = angle + HALF_PI_R1;
+    }
+
+    if ((RandFloat() * HALF_PI_R1) < std::abs(angle)) {
         if (angle > 0) {
             S(t);
             angle = FixAnglePeriod(angle - HALF_PI_R1);
