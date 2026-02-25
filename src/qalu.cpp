@@ -52,7 +52,7 @@ void QAlu::INCC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLe
     const bool hasCarry = M(carryIndex);
     if (hasCarry) {
         X(carryIndex);
-        INCDECC(toAdd + 1U, start, length, carryIndex);
+        INCDECC((toAdd + 1U) & QRACK_MAX_UINT, start, length, carryIndex);
     } else {
         INCDECC(toAdd, start, length, carryIndex);
     }
@@ -66,7 +66,7 @@ void QAlu::DECC(const bitCapInt& toSub, bitLenInt start, bitLenInt length, bitLe
     if (hasCarry) {
         X(carryIndex);
     } else {
-        --invToSub;
+        invToSub = (invToSub - 1U) & QRACK_MAX_UINT;
     }
 
     INCDECC(invToSub, start, length, carryIndex);
@@ -84,7 +84,7 @@ void QAlu::INCSC(
     const bool hasCarry = M(carryIndex);
     if (hasCarry) {
         X(carryIndex);
-        INCDECSC(toAdd + 1U, start, length, overflowIndex, carryIndex);
+        INCDECSC((toAdd + 1U) & QRACK_MAX_UINT, start, length, overflowIndex, carryIndex);
     } else {
         INCDECSC(toAdd, start, length, overflowIndex, carryIndex);
     }
@@ -103,7 +103,7 @@ void QAlu::DECSC(
     if (hasCarry) {
         X(carryIndex);
     } else {
-        --invToSub;
+        invToSub = (invToSub - 1U) & QRACK_MAX_UINT;
     }
 
     INCDECSC(invToSub, start, length, overflowIndex, carryIndex);
@@ -120,7 +120,7 @@ void QAlu::INCSC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitL
     const bool hasCarry = M(carryIndex);
     if (hasCarry) {
         X(carryIndex);
-        INCDECSC(toAdd + 1U, start, length, carryIndex);
+        INCDECSC((toAdd + 1U) & QRACK_MAX_UINT, start, length, carryIndex);
     } else {
         INCDECSC(toAdd, start, length, carryIndex);
     }
@@ -139,7 +139,7 @@ void QAlu::DECSC(const bitCapInt& toSub, bitLenInt start, bitLenInt length, bitL
     if (hasCarry) {
         X(carryIndex);
     } else {
-        --invToSub;
+        invToSub = (invToSub - 1U) & QRACK_MAX_UINT;
     }
 
     INCDECSC(invToSub, start, length, carryIndex);
@@ -157,27 +157,29 @@ void QAlu::DECBCD(const bitCapInt& toSub, bitLenInt inOutStart, bitLenInt length
 void QAlu::INCBCDC(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt length, bitLenInt carryIndex)
 {
     const bool hasCarry = M(carryIndex);
+    bitCapInt cToAdd = toAdd;
     if (hasCarry) {
         X(carryIndex);
-        bi_increment(&toAdd, 1U);
+        cToAdd = (cToAdd + 1U) & QRACK_MAX_UINT;
     }
 
-    INCDECBCDC(toAdd, inOutStart, length, carryIndex);
+    INCDECBCDC(cToAdd, inOutStart, length, carryIndex);
 }
 
 /// Subtract BCD integer (without sign, with carry)
 void QAlu::DECBCDC(const bitCapInt& toSub, bitLenInt inOutStart, bitLenInt length, bitLenInt carryIndex)
 {
     const bool hasCarry = M(carryIndex);
+    bitCapInt cToSub = toSub;
     if (hasCarry) {
         X(carryIndex);
     } else {
-        bi_increment(&toSub, 1U);
+        cToSub = (cToSub + 1U) & QRACK_MAX_UINT;
     }
 
     const bitCapInt maxVal = intPow(10U, length / 4U);
-    toSub %= maxVal;
-    bitCapInt invToSub = maxVal - toSub;
+    cToSub %= maxVal;
+    const bitCapInt invToSub = maxVal - cToSub;
     INCDECBCDC(invToSub, inOutStart, length, carryIndex);
 }
 #endif

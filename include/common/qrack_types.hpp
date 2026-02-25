@@ -64,9 +64,11 @@ using std::size_t;
 #if QBCAPPOW < 6
 #define bitCapInt uint32_t
 #define QRACK_MAX_QUBITS 32
+constexpr bitCapInt QRACK_MAX_UINT = ~0U;
 #elif QBCAPPOW < 7
 #define bitCapInt uint64_t
 #define QRACK_MAX_QUBITS 64
+constexpr bitCapInt QRACK_MAX_UINT = ~0U;
 #elif (QBCAPPOW < 8) && defined(__SIZEOF_INT128__)
 #define bitCapInt unsigned __int128
 #define QRACK_MAX_QUBITS 128
@@ -74,10 +76,12 @@ using std::size_t;
 #include <boost/multiprecision/cpp_int.hpp>
 typedef boost::multiprecision::cpp_int bitCapInt;
 constexpr size_t QRACK_MAX_QUBITS = (1 << QBCAPPOW);
+const bitCapInt QRACK_MAX_UINT = (1 << QRACK_MAX_QUBITS) - 1U;
 #else
 #include "big_integer.hpp"
 #define bitCapInt BigInteger
 constexpr size_t QRACK_MAX_QUBITS = (1 << QBCAPPOW);
+const bitCapInt QRACK_MAX_UINT(-1);
 #endif
 
 #if FPPOW < 5
