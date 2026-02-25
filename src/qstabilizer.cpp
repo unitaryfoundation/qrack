@@ -1743,7 +1743,7 @@ void QStabilizer::FlushNearClifford(bitLenInt t)
         p += HALF_PI_R1;
     }
     HBase(t);
-    pBuffer[t].real(p);
+    bBuffer[t].real(bPhase[t] ? -p : p);
 
     p = bPhase[t] ? -std::imag(bBuffer[t]) : std::imag(bBuffer[t]);
     ISBase(t);
@@ -1758,7 +1758,7 @@ void QStabilizer::FlushNearClifford(bitLenInt t)
     }
     HBase(t);
     SBase(t);
-    pBuffer[t].imag(bPhase[t] ? -p : p);
+    bBuffer[t].imag(bPhase[t] ? -p : p);
 }
 
 void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
