@@ -1775,6 +1775,9 @@ void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
     bBuffer[t] = -bBuffer[t];
     bPhase[c] = !bPhase[c];
     bPhase[t] = !bPhase[t];
+
+    FlushNearClifford(c);
+    FlushNearClifford(t);
 }
 
 void QStabilizer::CNotNearClifford(bitLenInt c, bitLenInt t)
@@ -1791,6 +1794,9 @@ void QStabilizer::CNotNearClifford(bitLenInt c, bitLenInt t)
     pBuffer[t] = -pBuffer[t];
     bPhase[c] = !bPhase[c];
     pPhase[t] = !pPhase[t];
+
+    FlushNearClifford(c);
+    FlushNearClifford(t);
 }
 
 /// Approximate an arbitrary phase angle
