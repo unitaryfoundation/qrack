@@ -1799,7 +1799,7 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
         S(t);
         angle = FixAnglePeriod(angle - HALF_PI_R1);
         if (pPhase[t]) {
-            angle = fmod(-angle, HALF_PI_R1);
+            angle = -angle;
             pPhase[t] = false;
             pBuffer[t].imag(-imag(pBuffer[t]));
         }
@@ -1807,7 +1807,7 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
         IS(t);
         angle = FixAnglePeriod(angle + HALF_PI_R1);
         if (pPhase[t]) {
-            angle = fmod(-angle, HALF_PI_R1);
+            angle = -angle;
             pPhase[t] = false;
             pBuffer[t].imag(-imag(pBuffer[t]));
         }
