@@ -1622,8 +1622,7 @@ bitCapInt QStabilizerHybrid::MAll()
 #endif
     if (isApprox) {
         ConcatAncillaeAngles(angles);
-        const std::vector<real1> signedProbs = AnglesToSignedProbs(angles);
-        OneShotApproxNC(signedProbs);
+        OneShotApproxNC(angles);
         const bitCapInt toRet = stabilizer->MAll() & (maxQPower - ONE_BCI);
         SetPermutation(toRet);
 
@@ -1755,10 +1754,9 @@ std::map<bitCapInt, int> QStabilizerHybrid::MultiShotMeasureMask(const std::vect
 #endif
     if (isApprox) {
         ConcatAncillaeAngles(angles);
-        const std::vector<real1> signedProbs = AnglesToSignedProbs(angles);
         std::mutex resultsMutex;
         par_for(0U, shots, [&](const bitCapIntOcl& shot, const unsigned& cpu) {
-            const bitCapInt sample = SampleCloneNC(qPowers, signedProbs);
+            const bitCapInt sample = SampleCloneNC(qPowers, angles);
             std::lock_guard<std::mutex> lock(resultsMutex);
             ++(results[sample]);
         });
@@ -1872,9 +1870,8 @@ void QStabilizerHybrid::MultiShotMeasureMask(
 #endif
     if (isApprox) {
         ConcatAncillaeAngles(angles);
-        const std::vector<real1> signedProbs = AnglesToSignedProbs(angles);
         return par_for(0U, shots, [&](const bitCapIntOcl& shot, const unsigned& cpu) {
-            shotsArray[shot] = (bitCapIntOcl)SampleCloneNC(qPowers, signedProbs);
+            shotsArray[shot] = (bitCapIntOcl)SampleCloneNC(qPowers, angles);
         });
     }
 

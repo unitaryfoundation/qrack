@@ -310,41 +310,17 @@ protected:
         }
     }
 
-    std::vector<real1> AnglesToSignedProbs(std::vector<real1> angles)
-    {
-        std::vector<real1> signedProbs(angles.size());
-        std::transform(angles.begin(), angles.end(), signedProbs.begin(), [](real1 a) { return a / HALF_PI_R1; });
-
-        return signedProbs;
-    }
-
-    void OneShotApproxNC(const std::vector<real1>& signedProbs)
+    void OneShotApproxNC(const std::vector<real1>& angles)
     {
         // Probabilistically collapse all buffers.
         for (size_t i = 0U; i < qubitCount; ++i) {
             shards[i] = nullptr;
-            const real1 prob = abs(signedProbs[i]);
-            if (prob <= Rand()) {
-                continue;
-            }
-            if (signedProbs[i] < 0) {
-                stabilizer->IS(i);
-            } else {
-                stabilizer->S(i);
-            }
+            stabilizer->RZ(angles[i], i);
         }
         const size_t maxLcv = qubitCount + ancillaCount;
         for (size_t i = qubitCount; i < maxLcv; ++i) {
             shards[i] = nullptr;
-            const real1 prob = abs(signedProbs[i]);
-            if (prob <= Rand()) {
-                continue;
-            }
-            if (signedProbs[i] < 0) {
-                stabilizer->IS(i);
-            } else {
-                stabilizer->S(i);
-            }
+            stabilizer->RZ(angles[i], i);
             stabilizer->H(i);
             stabilizer->ForceM(i, false);
         }
@@ -353,11 +329,11 @@ protected:
         shards.resize(qubitCount);
     }
 
-    bitCapInt SampleCloneNC(const std::vector<bitCapInt>& qPowers, const std::vector<real1>& signedProbs)
+    bitCapInt SampleCloneNC(const std::vector<bitCapInt>& qPowers, const std::vector<real1>& angles)
     {
         QStabilizerHybridPtr clone = std::dynamic_pointer_cast<QStabilizerHybrid>(Clone());
         // Probabilistically collapse all buffers.
-        clone->OneShotApproxNC(signedProbs);
+        clone->OneShotApproxNC(angles);
 
         const bitCapInt rawSample = clone->MAll();
         bitCapInt sample = ZERO_BCI;

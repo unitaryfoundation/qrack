@@ -1975,6 +1975,11 @@ bool QStabilizer::ForceM(bitLenInt t, bool result, bool doForce, bool doApply)
 
     Finish();
 
+    if (doApply) {
+        pBuffer[t] = ZERO_CMPLX;
+        bBuffer[t] = ZERO_CMPLX;
+    }
+
     const bitLenInt elemCount = qubitCount << 1U;
     // for brevity
     const bitLenInt& n = qubitCount;
@@ -2850,7 +2855,7 @@ void QStabilizer::Phase(const complex& topLeft, const complex& bottomRight, bitL
         return;
     }
 
-    throw std::domain_error("QStabilizer::Phase() not implemented for non-Clifford/Pauli cases!");
+    RZ(std::arg(bottomRight / topLeft), target);
 }
 
 void QStabilizer::Invert(const complex& topRight, const complex& bottomLeft, bitLenInt target)

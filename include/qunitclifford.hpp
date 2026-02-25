@@ -416,6 +416,18 @@ public:
         shard.unit->Y(shard.mapped);
         CombinePhaseOffsets(shard.unit);
     }
+    // Apply half a phase gate
+    void T(bitLenInt t) { RZ(PI_R1 / 4, t); }
+    /// Apply half an inverse phase gate
+    void IT(bitLenInt t) { RZ(-PI_R1 / 4, t); }
+    /// Approximate an arbitrary phase angle
+    void RZ(real1_f angle, bitLenInt t)
+    {
+        ThrowIfQubitInvalid(t, std::string("QUnitClifford::RZ"));
+        CliffordShard& shard = shards[t];
+        shard.unit->RZ(angle, shard.mapped);
+        CombinePhaseOffsets(shard.unit);
+    }
     // Swap two bits
     void Swap(bitLenInt qubit1, bitLenInt qubit2)
     {
