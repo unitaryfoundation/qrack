@@ -418,7 +418,6 @@ protected:
     void HBase(bitLenInt qubitIndex);
     void SBase(bitLenInt qubitIndex);
     void ISBase(bitLenInt qubitIndex);
-    void FlushNearClifford(bitLenInt t);
     void CZNearClifford(bitLenInt c, bitLenInt t);
     void CNotNearClifford(bitLenInt c, bitLenInt t);
 
