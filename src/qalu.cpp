@@ -65,7 +65,7 @@ void QAlu::DECC(const bitCapInt& toSub, bitLenInt start, bitLenInt length, bitLe
     bitCapInt invToSub = pow2(length) - toSub;
     if (hasCarry) {
         X(carryIndex);
-    } else if (!invToSub) {
+    } else if (invToSub == 0) {
         invToSub = QRACK_MAX_UINT;
     } else {
         --invToSub;
@@ -104,7 +104,7 @@ void QAlu::DECSC(
     bitCapInt invToSub = pow2(length) - toSub;
     if (hasCarry) {
         X(carryIndex);
-    } else if (!invToSub) {
+    } else if (invToSub == 0) {
         invToSub = QRACK_MAX_UINT;
     } else {
         --invToSub;
@@ -142,7 +142,7 @@ void QAlu::DECSC(const bitCapInt& toSub, bitLenInt start, bitLenInt length, bitL
     bitCapInt invToSub = pow2(length) - toSub;
     if (hasCarry) {
         X(carryIndex);
-    } else if (!invToSub) {
+    } else if (invToSub == 0) {
         invToSub = QRACK_MAX_UINT;
     } else {
         --invToSub;
