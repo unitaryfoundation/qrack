@@ -1763,6 +1763,12 @@ void QStabilizer::FlushNearClifford(bitLenInt t)
 
 void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
 {
+    if (norm(bBuffer[t]) > norm(pBuffer[c])) {
+        pPhase[c] = !pPhase[c];
+    }
+    if (norm(bBuffer[c]) > norm(pBuffer[t])) {
+        pPhase[t] = !pPhase[t];
+    }
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - bBuffer[t]);
     pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
     bBuffer[c] = -bBuffer[c];
@@ -1773,6 +1779,12 @@ void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
 
 void QStabilizer::CNotNearClifford(bitLenInt c, bitLenInt t)
 {
+    if (norm(pBuffer[t]) > norm(pBuffer[c])) {
+        pPhase[c] = !pPhase[c];
+    }
+    if (norm(bBuffer[c]) > norm(bBuffer[t])) {
+        bPhase[t] = !bPhase[t];
+    }
     pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
     bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
     bBuffer[c] = -bBuffer[c];
