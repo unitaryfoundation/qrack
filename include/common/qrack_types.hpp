@@ -74,8 +74,10 @@ constexpr bitCapInt QRACK_MAX_UINT = ~0U;
 #define QRACK_MAX_QUBITS 128
 #elif BOOST_AVAILABLE
 #include <boost/multiprecision/cpp_int.hpp>
-typedef boost::multiprecision::cpp_int bitCapInt;
 constexpr size_t QRACK_MAX_QUBITS = (1 << QBCAPPOW);
+typedef boost::multiprecision::number<boost::multiprecision::cpp_int_backend<QRACK_MAX_QUBITS, QRACK_MAX_QUBITS,
+    boost::multiprecision::unsigned_magnitude, boost::multiprecision::unchecked>>
+    bitCapInt;
 const bitCapInt QRACK_MAX_UINT = (bitCapInt(1) << QRACK_MAX_QUBITS) - 1U;
 #else
 #include "big_integer.hpp"
