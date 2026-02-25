@@ -256,8 +256,7 @@ protected:
         angle -= (sector * sectorAngle);
         if (angle > PI_R1) {
             angle -= Period;
-        }
-        if (angle <= -PI_R1) {
+        } else if (angle <= -PI_R1) {
             angle += Period;
         }
 
