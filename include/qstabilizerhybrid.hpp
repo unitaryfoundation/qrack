@@ -15,6 +15,7 @@
 #include "qengine.hpp"
 #include "qunitclifford.hpp"
 
+
 #define QINTERFACE_TO_QALU(qReg) std::dynamic_pointer_cast<QAlu>(qReg)
 #define QINTERFACE_TO_QPARITY(qReg) std::dynamic_pointer_cast<QParity>(qReg)
 

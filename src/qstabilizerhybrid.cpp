@@ -2042,58 +2042,6 @@ void QStabilizerHybrid::RdmCloneFlush(real1_f threshold)
     isRoundingFlushed = true;
 }
 
-void QStabilizerHybrid::PruneAncillae(bool gaussian)
-{
-    if (engine) {
-        return;
-    }
-
-    FlushCliffordFromBuffers();
-
-    const bitLenInt maxI = stabilizer->GetQubitCount();
-    std::set<bitLenInt> sepAncilla;
-    for (bitLenInt i = qubitCount; i < maxI; ++i) {
-        const std::vector<bitLenInt> eqb = stabilizer->EntangledQubits(i, gaussian);
-        bool isSep = true;
-        for (size_t j = 0U; j < eqb.size(); ++j) {
-            if (eqb[j] < qubitCount) {
-                isSep = false;
-                break;
-            }
-        }
-        if (!isSep) {
-            continue;
-        }
-        std::copy(eqb.begin(), eqb.end(), std::inserter(sepAncilla, sepAncilla.end()));
-    }
-
-    if (sepAncilla.empty()) {
-        return;
-    }
-
-    const bitLenInt liveCount = qubitCount + ancillaCount;
-    bitLenInt i = liveCount;
-    bitLenInt deadCount = 0U;
-    for (const bitLenInt& qb : sepAncilla) {
-        if (qb >= liveCount) {
-            // Dead ancilla
-            stabilizer->Swap(liveCount + deadCount, qb);
-            ++deadCount;
-        } else {
-            // Live ancilla
-            --i;
-            stabilizer->Swap(i, qb);
-            std::swap(shards[i], shards[qb]);
-        }
-    }
-
-    const bitLenInt aCount = (sepAncilla.size() - deadCount);
-    stabilizer->Dispose(i, sepAncilla.size());
-    shards.resize(shards.size() - aCount);
-    ancillaCount -= aCount;
-    deadAncillaCount -= deadCount;
-}
-
 real1_f QStabilizerHybrid::ApproxCompareHelper(QStabilizerHybridPtr toCompare, bool isDiscreteBool, real1_f error_tol)
 {
     if (!toCompare) {
@@ -2272,8 +2220,6 @@ std::ostream& operator<<(std::ostream& os, const QStabilizerHybridPtr s)
     if (s->engine) {
         throw std::logic_error("QStabilizerHybrid can only stream out when in Clifford format!");
     }
-
-    s->PruneAncillae(true);
 
     os << (size_t)s->qubitCount << std::endl;
 
