@@ -74,6 +74,8 @@ protected:
     // Phase buffers for non-Clifford gates
     std::vector<complex> bBuffer;
     std::vector<complex> pBuffer;
+    std::vector<bool> bPhase;
+    std::vector<bool> pPhase;
 
     typedef std::function<void(const bitLenInt&)> StabilizerParallelFunc;
     typedef std::function<void(void)> DispatchFn;
@@ -265,6 +267,8 @@ public:
 #endif
         bBuffer.clear();
         pBuffer.clear();
+        bPhase.clear();
+        pPhase.clear();
         phaseOffset = ZERO_R1;
         qubitCount = 0U;
         maxQPower = ONE_BCI;
@@ -400,13 +404,15 @@ protected:
 
     bool isNearClifford(bitLenInt t)
     {
-        return (norm(pBuffer[t]) > FP_NORM_EPSILON) || (norm(bBuffer[t]) > FP_NORM_EPSILON);
+        return pPhase[t] || bPhase[t] || (norm(pBuffer[t]) > FP_NORM_EPSILON) || (norm(bBuffer[t]) > FP_NORM_EPSILON);
     }
 
     void SwapNearClifford(bitLenInt c, bitLenInt t)
     {
         std::swap(bBuffer[t], bBuffer[c]);
         std::swap(pBuffer[t], pBuffer[c]);
+        std::vector<bool>::swap(bPhase[t], bPhase[c]);
+        std::vector<bool>::swap(pPhase[t], pPhase[c]);
     }
 
     void HBase(bitLenInt qubitIndex);
