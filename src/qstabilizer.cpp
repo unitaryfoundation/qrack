@@ -1817,8 +1817,16 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
         angle = angle + HALF_PI_R1;
     }
 
+    // We have 4 different "equivalent" representations:
+    // - Major quadrant, applied
+    // - Minor quadrant, applied,
+    // - (Minor) reversed major quadrant, applied
+    // - (Major) reversed minor quadrant, applied
+
+    // Stochastically, pick major or minor quadrant, applied
     if ((isStochastic && (RandFloat() * HALF_PI_R1) < std::abs(angle)) ||
         (!isStochastic && !isMajorQuadrant && (std::abs(angle) > (FP_NORM_EPSILON * HALF_PI_R1)))) {
+
         if (angle > 0) {
             S(t);
             angle = FixAnglePeriod(angle - HALF_PI_R1);
@@ -1828,6 +1836,11 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
         }
     }
     pBuffer[t].real(pPhase[t] ? -angle : angle);
+
+    // Stochastically, reverse the applied quadrant with 50% probability
+    if (isStochastic && ((2 * RandFloat()) < ONE_R1)) {
+        FlipQuadrant(t);
+    }
 }
 
 /**
