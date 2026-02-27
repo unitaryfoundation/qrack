@@ -238,10 +238,10 @@ public:
             return;
         }
         if (angle > 0) {
-            S(t);
+            SBase(t);
             angle = FixAnglePeriod(angle - HALF_PI_R1);
         } else {
-            IS(t);
+            ISBase(t);
             angle = FixAnglePeriod(angle + HALF_PI_R1);
         }
         pBuffer[t].real(pPhase[t] ? -angle : angle);
