@@ -1826,7 +1826,6 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
     // Stochastically, pick major or minor quadrant, applied
     if ((isStochastic && (RandFloat() * HALF_PI_R1) < std::abs(angle)) ||
         (!isStochastic && !isMajorQuadrant && (std::abs(angle) > (FP_NORM_EPSILON * HALF_PI_R1)))) {
-
         if (angle > 0) {
             S(t);
             angle = FixAnglePeriod(angle - HALF_PI_R1);
