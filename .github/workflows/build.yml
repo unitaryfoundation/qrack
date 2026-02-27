@@ -29,7 +29,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=11 -DCPP_STD=14 ..
+          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=10 -DCPP_STD=14 ..
           make all
           sudo cpack
 
@@ -61,7 +61,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=11 -DCPP_STD=14 ..
+          cmake -DENABLE_RDRAND=OFF -DENABLE_DEVRAND=ON -DQBCAPPOW=10 -DCPP_STD=14 ..
           make all
           sudo cpack
 
@@ -90,7 +90,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=11 -DCPP_STD=14 ..
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=10 -DCPP_STD=14 ..
           make qrack_pinvoke benchmarks
           sudo cpack
 
@@ -119,7 +119,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=11 -DCPP_STD=14 ..
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DENABLE_OPENCL=OFF -DENABLE_COMPLEX_X2=OFF -DENABLE_SSE3=OFF -DENABLE_RDRAND=OFF -DQBCAPPOW=10 -DCPP_STD=14 ..
           make qrack_pinvoke benchmarks
           sudo cpack
 
@@ -160,7 +160,7 @@ jobs:
           cd build
           powershell -c "Invoke-WebRequest -Uri 'https://github.com/ckormanyos/xxd/releases/download/v1.1/xxd-win64-msvc.zip' -OutFile 'xxd-win64-msvc.zip'"
           powershell -c "Expand-Archive -Path xxd-win64-msvc.zip -DestinationPath ."
-          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DBoost_NO_SYSTEM_PATHS=TRUE -DXXD_BIN="xxd.exe" -DQBCAPPOW=11 -DCPP_STD=14 -DBoost_INCLUDE_DIR="C:/vcpkg/installed/x64-windows/include"
+          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DBoost_NO_SYSTEM_PATHS=TRUE -DXXD_BIN="xxd.exe" -DQBCAPPOW=10 -DCPP_STD=14 -DBoost_INCLUDE_DIR="C:/vcpkg/installed/x64-windows/include"
           cmake --build . --config Release --target PACKAGE qrack_pinvoke
           cmake --build . --config Release --target PACKAGE benchmarks
 
