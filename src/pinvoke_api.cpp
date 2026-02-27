@@ -3710,6 +3710,27 @@ MICROSOFT_QUANTUM_DECL void SetSparseAceMaxMb(_In_ uintq sid, _In_ size_t mb)
     }
 }
 
+MICROSOFT_QUANTUM_DECL void SetStochastic(_In_ uintq sid, _In_ bool s)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        simulator->SetStochastic(s);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+MICROSOFT_QUANTUM_DECL void SetMajorQuadrant(_In_ uintq sid, _In_ bool q)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        simulator->SetMajorQuadrant(q);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
 MICROSOFT_QUANTUM_DECL void Normalize(_In_ uintq sid)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)

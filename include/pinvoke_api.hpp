@@ -294,6 +294,8 @@ MICROSOFT_QUANTUM_DECL void SetUseExactNearClifford(_In_ uintq sid, _In_ bool en
 MICROSOFT_QUANTUM_DECL void SetNoiseParameter(_In_ uintq sid, _In_ double np);
 MICROSOFT_QUANTUM_DECL void SetAceMaxQb(_In_ uintq sid, _In_ uintq qb);
 MICROSOFT_QUANTUM_DECL void SetSparseAceMaxMb(_In_ uintq sid, _In_ size_t mb);
+MICROSOFT_QUANTUM_DECL void SetStochastic(_In_ uintq sid, _In_ bool s);
+MICROSOFT_QUANTUM_DECL void SetMajorQuadrant(_In_ uintq sid, _In_ bool q);
 MICROSOFT_QUANTUM_DECL void Normalize(_In_ uintq sid);
 
 #if !(FPPOW < 6 && !defined(ENABLE_COMPLEX_X2))

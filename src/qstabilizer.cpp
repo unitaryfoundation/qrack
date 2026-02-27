@@ -43,8 +43,10 @@ QStabilizer::QStabilizer(bitLenInt n, const bitCapInt& perm, qrack_rand_gen_ptr 
     , rawRandBools(0U)
     , rawRandBoolsRemaining(0U)
     , phaseOffset(ZERO_R1)
-    , isGaussianCached(false)
     , gaussianCached(0U)
+    , isStochastic(true)
+    , isMajorQuadrant(true)
+    , isGaussianCached(false)
 #if BOOST_AVAILABLE
     , isTransposed(false)
 #endif
@@ -1815,7 +1817,8 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
         angle = angle + HALF_PI_R1;
     }
 
-    if ((RandFloat() * HALF_PI_R1) < std::abs(angle)) {
+    if ((isStochastic && (RandFloat() * HALF_PI_R1) < std::abs(angle)) ||
+        (!isStochastic && !isMajorQuadrant && (std::abs(angle) > (FP_NORM_EPSILON * HALF_PI_R1)))) {
         if (angle > 0) {
             S(t);
             angle = FixAnglePeriod(angle - HALF_PI_R1);

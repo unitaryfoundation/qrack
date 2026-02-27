@@ -2994,6 +2994,14 @@ public:
      * Set the (sparse-simulation) "automatic circuit elision" (ACE) maximum memory megabytes
      */
     virtual void SetSparseAceMaxMb(size_t mb) {}
+    /**
+     * Toggle probabilistic approximate near-Clifford vs. closest Clifford state
+     */
+    virtual void SetStochastic(bool s) {}
+    /**
+     * Toggle major vs. minor S-gate quadrant for closest Clifford state
+     */
+    virtual void SetMajorQuadrant(bool q) {}
 
     /**
      *  Clone this QInterface

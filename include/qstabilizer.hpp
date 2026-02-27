@@ -52,8 +52,10 @@ protected:
     unsigned rawRandBoolsRemaining;
     real1 phaseOffset;
     bitLenInt maxStateMapCacheQubitCount;
-    bool isGaussianCached;
     bitLenInt gaussianCached;
+    bool isStochastic;
+    bool isMajorQuadrant;
+    bool isGaussianCached;
 #if BOOST_AVAILABLE
     bool isTransposed;
 #endif
@@ -219,6 +221,9 @@ public:
 
     void ResetPhaseOffset() { phaseOffset = ZERO_R1; }
     complex GetPhaseOffset() { return std::polar(ONE_R1, phaseOffset); }
+
+    void SetStochastic(bool s) { isStochastic = s; }
+    void SetMajorQuadrant(bool q) { isMajorQuadrant = q; }
 
     void SetPermutation(const bitCapInt& perm, const complex& phaseFac = CMPLX_DEFAULT_ARG);
 
