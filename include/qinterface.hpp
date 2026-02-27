@@ -2999,9 +2999,13 @@ public:
      */
     virtual void SetStochastic(bool s) {}
     /**
-     * Toggle major vs. minor S-gate quadrant default for subsequent closest Clifford state
+     * Set major vs. minor S-gate quadrant default for subsequent closest Clifford state
      */
     virtual void SetMajorQuadrant(bool q) {}
+    /**
+     * Set major vs. minor S-gate quadrant for closest Clifford state on specific qubit
+     */
+    virtual void SetMajorQuadrant(bitLenInt t, bool q) {}
     /**
      * Toggle major vs. minor S-gate quadrant for closest Clifford state on specific qubit
      */

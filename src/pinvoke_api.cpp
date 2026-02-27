@@ -3730,6 +3730,16 @@ MICROSOFT_QUANTUM_DECL void SetMajorQuadrant(_In_ uintq sid, _In_ bool q)
         std::cout << ex.what() << std::endl;
     }
 }
+MICROSOFT_QUANTUM_DECL void SetQuadrant(_In_ uintq sid, _In_ uintq t, _In_ bool b)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        simulator->SetMajorQuadrant((bitLenInt)t, b);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
 MICROSOFT_QUANTUM_DECL void FlipQuadrant(_In_ uintq sid, _In_ uintq t)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)

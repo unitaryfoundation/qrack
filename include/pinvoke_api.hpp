@@ -296,6 +296,7 @@ MICROSOFT_QUANTUM_DECL void SetAceMaxQb(_In_ uintq sid, _In_ uintq qb);
 MICROSOFT_QUANTUM_DECL void SetSparseAceMaxMb(_In_ uintq sid, _In_ size_t mb);
 MICROSOFT_QUANTUM_DECL void SetStochastic(_In_ uintq sid, _In_ bool s);
 MICROSOFT_QUANTUM_DECL void SetMajorQuadrant(_In_ uintq sid, _In_ bool q);
+MICROSOFT_QUANTUM_DECL void SetQuadrant(_In_ uintq sid, _In_ uintq t, _In_ bool b);
 MICROSOFT_QUANTUM_DECL void FlipQuadrant(_In_ uintq sid, _In_ uintq t);
 MICROSOFT_QUANTUM_DECL void Normalize(_In_ uintq sid);
 

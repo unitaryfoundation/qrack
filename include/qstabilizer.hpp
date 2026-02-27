@@ -224,6 +224,13 @@ public:
 
     void SetStochastic(bool s) { isStochastic = s; }
     void SetMajorQuadrant(bool q) { isMajorQuadrant = q; }
+    void SetMajorQuadrant(bitLenInt t, bool b)
+    {
+        const real1_f angle = std::real(pPhase[t] ? -pBuffer[t] : pBuffer[t]);
+        if (b != ((2 * std::abs(angle)) < HALF_PI_R1)) {
+            FlipQuadrant(t);
+        }
+    }
     void FlipQuadrant(bitLenInt t)
     {
         real1_f angle = std::real(pPhase[t] ? -pBuffer[t] : pBuffer[t]);
