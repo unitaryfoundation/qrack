@@ -224,6 +224,21 @@ public:
 
     void SetStochastic(bool s) { isStochastic = s; }
     void SetMajorQuadrant(bool q) { isMajorQuadrant = q; }
+    void FlipQuadrant(bitLenInt t)
+    {
+        real1_f angle = std::real(pPhase[t] ? -pBuffer[t] : pBuffer[t]);
+        if (std::abs(angle) <= (FP_NORM_EPSILON * HALF_PI_R1)) {
+            return;
+        }
+        if (angle > 0) {
+            S(t);
+            angle = FixAnglePeriod(angle - HALF_PI_R1);
+        } else {
+            IS(t);
+            angle = FixAnglePeriod(angle + HALF_PI_R1);
+        }
+        pBuffer[t].real(pPhase[t] ? -angle : angle);
+    }
 
     void SetPermutation(const bitCapInt& perm, const complex& phaseFac = CMPLX_DEFAULT_ARG);
 
