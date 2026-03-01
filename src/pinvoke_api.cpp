@@ -3645,6 +3645,17 @@ MICROSOFT_QUANTUM_DECL void SetNcrp(_In_ uintq sid, _In_ double ncrp)
     }
 }
 
+MICROSOFT_QUANTUM_DECL void SetSprp(_In_ uintq sid, _In_ double sprp)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+    try {
+        simulator->SetSparseProbabilityFloor(sprp);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
 MICROSOFT_QUANTUM_DECL void SetReactiveSeparate(_In_ uintq sid, _In_ bool irs)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)

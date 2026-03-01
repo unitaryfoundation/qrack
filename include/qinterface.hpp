@@ -2995,6 +2995,10 @@ public:
      */
     virtual void SetSparseAceMaxMb(size_t mb) {}
     /**
+     * Set the sparse-simulation amplitude probability floor, before truncation
+     */
+    virtual void SetSparseProbabilityFloor(real1_f p) {}
+    /**
      * Toggle probabilistic approximate near-Clifford vs. closest Clifford state
      */
     virtual void SetStochastic(bool s) {}

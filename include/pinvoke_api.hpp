@@ -288,6 +288,7 @@ MICROSOFT_QUANTUM_DECL double GetUnitaryFidelity(_In_ uintq sid);
 MICROSOFT_QUANTUM_DECL void ResetUnitaryFidelity(_In_ uintq sid);
 MICROSOFT_QUANTUM_DECL void SetSdrp(_In_ uintq sid, _In_ double sdrp);
 MICROSOFT_QUANTUM_DECL void SetNcrp(_In_ uintq sid, _In_ double ncrp);
+MICROSOFT_QUANTUM_DECL void SetSprp(_In_ uintq sid, _In_ double sprp);
 MICROSOFT_QUANTUM_DECL void SetReactiveSeparate(_In_ uintq sid, _In_ bool irs);
 MICROSOFT_QUANTUM_DECL void SetTInjection(_In_ uintq sid, _In_ bool iti);
 MICROSOFT_QUANTUM_DECL void SetUseExactNearClifford(_In_ uintq sid, _In_ bool enc);

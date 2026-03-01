@@ -38,6 +38,7 @@ QEngineCPU::QEngineCPU(bitLenInt qBitCount, const bitCapInt& initState, qrack_ra
     : QEngine(qBitCount, rgp, doNorm, randomGlobalPhase, true, useHardwareRNG, norm_thresh)
     , logFidelity(0.0)
     , isSparse(useSparseStateVec)
+    , sparse_thresh(_qrack_sparse_thresh)
 {
     if (qBitCount > QRACK_MAX_CPU_QB_DEFAULT) {
         throw std::invalid_argument(
@@ -1033,7 +1034,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
         fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
             const complex amp = stateVec->read(lcv & startMask) * toCopy->stateVec->read((lcv & endMask) >> qubitCount);
             const real1 nrm = norm(amp);
-            if (nrm <= _qrack_sparse_thresh) {
+            if (nrm <= sparse_thresh) {
                 fidelityLoss[cpu] += nrm;
             } else {
                 nStateVec->write(lcv, amp);
@@ -1135,7 +1136,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
             const complex amp = stateVec->read((lcv & startMask) | ((lcv & endMask) >> oQubitCount)) *
                 toCopy->stateVec->read((lcv & midMask) >> start);
             const real1 nrm = norm(amp);
-            if (nrm <= _qrack_sparse_thresh) {
+            if (nrm <= sparse_thresh) {
                 fidelityLoss[cpu] += nrm;
             } else {
                 nStateVec->write(lcv, amp);
@@ -1218,7 +1219,7 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
                 QEngineCPUPtr src = std::dynamic_pointer_cast<Qrack::QEngineCPU>(toCopy[j]);
                 const complex amp = nStateVec->read(lcv) * src->stateVec->read((lcv & mask[j]) >> offset[j]);
                 const real1 nrm = norm(amp);
-                if (nrm <= _qrack_sparse_thresh) {
+                if (nrm <= sparse_thresh) {
                     fidelityLoss[cpu] += nrm;
                 } else {
                     nStateVec->write(lcv, amp);

@@ -89,6 +89,8 @@ QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCa
     , aceMb(QRACK_SPARSE_MAX_KEYS)
     , thresholdQubits(qubitThreshold)
     , separabilityThreshold(sep_thresh)
+    , roundingThreshold(FP_NORM_EPSILON_F)
+    , sparse_thresh(_qrack_sparse_thresh)
     , logFidelity(0.0)
     , devID(deviceID)
     , phaseFactor(phaseFac)
@@ -138,6 +140,8 @@ QInterfacePtr QUnit::MakeEngine(bitLenInt length, const bitCapInt& perm)
     toRet->SetTInjection(useTGadget);
     toRet->SetUseExactNearClifford(useExactNC);
     toRet->SetNcrp(roundingThreshold);
+    toRet->SetSparseProbabilityFloor(sparse_thresh);
+
     return toRet;
 }
 
@@ -528,6 +532,7 @@ bitLenInt QUnit::Allocate(bitLenInt start, bitLenInt length)
     nQubits->SetTInjection(useTGadget);
     nQubits->SetUseExactNearClifford(useExactNC);
     nQubits->SetNcrp(roundingThreshold);
+    nQubits->SetSparseProbabilityFloor(sparse_thresh);
 
     return Compose(nQubits, start);
 }
@@ -3893,6 +3898,7 @@ QInterfacePtr QUnit::CloneBody(QUnitPtr copyPtr, bool isCopy)
     copyPtr->SetTInjection(useTGadget);
     copyPtr->SetUseExactNearClifford(useExactNC);
     copyPtr->SetNcrp(roundingThreshold);
+    copyPtr->SetSparseProbabilityFloor(sparse_thresh);
     copyPtr->logFidelity = logFidelity;
 
     std::map<QInterfacePtr, QInterfacePtr> dupeEngines;

@@ -59,6 +59,7 @@ protected:
     bitLenInt maxStateMapCacheQubitCount;
     real1_f separabilityThreshold;
     real1_f roundingThreshold;
+    real1_f sparse_thresh;
     int64_t devID;
     complex phaseFactor;
     double logFidelity;
@@ -428,6 +429,7 @@ protected:
         maxStateMapCacheQubitCount = orig->maxStateMapCacheQubitCount;
         separabilityThreshold = orig->separabilityThreshold;
         roundingThreshold = orig->roundingThreshold;
+        sparse_thresh = orig->sparse_thresh;
         devID = orig->devID;
         phaseFactor = orig->phaseFactor;
         logFidelity = orig->logFidelity;
@@ -462,7 +464,8 @@ public:
         roundingThreshold = ncrp;
         // Environment variable always overrides:
         UpdateRoundingThreshold();
-    };
+    }
+    void SetSparseProbabilityFloor(real1_f p) { sparse_thresh = p; }
     void SetTInjection(bool useGadget) { useTGadget = useGadget; }
     bool GetTInjection() { return useTGadget; }
     void SetUseExactNearClifford(bool useExact)

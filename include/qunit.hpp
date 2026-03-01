@@ -44,6 +44,7 @@ protected:
     bitLenInt thresholdQubits;
     real1_f separabilityThreshold;
     real1_f roundingThreshold;
+    real1_f sparse_thresh;
     double logFidelity;
     int64_t devID;
     complex phaseFactor;
@@ -65,6 +66,7 @@ protected:
         thresholdQubits = orig->thresholdQubits;
         separabilityThreshold = orig->separabilityThreshold;
         roundingThreshold = orig->roundingThreshold;
+        sparse_thresh = orig->sparse_thresh;
         logFidelity = orig->logFidelity;
         devID = orig->devID;
         phaseFactor = orig->phaseFactor;
@@ -195,6 +197,18 @@ public:
                 return true;
             },
             ZERO_R1_F, ZERO_R1_F, ZERO_R1_F, useExact ? 1U : 0U);
+    }
+
+    virtual void SetSparseProbabilityFloor(real1_f p)
+    {
+        sparse_thresh = p;
+        ParallelUnitApply(
+            [](QInterfacePtr unit, real1_f p, real1_f unused1, real1_f unused2, int64_t unused3,
+                std::vector<int64_t> unused4) {
+                unit->SetSparseProbabilityFloor(p);
+                return true;
+            },
+            p, ZERO_R1_F, ZERO_R1_F, 0U);
     }
 
     virtual void SetReactiveSeparate(bool isAggSep) { isReactiveSeparate = isAggSep; }

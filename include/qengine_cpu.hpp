@@ -41,6 +41,7 @@ protected:
 #endif
     double logFidelity;
     bool isSparse;
+    real1_f sparse_thresh;
 
     using QEngine::Copy;
     void Copy(QInterfacePtr orig) { Copy(std::dynamic_pointer_cast<QEngineCPU>(orig)); }
@@ -50,6 +51,7 @@ protected:
         stateVec = orig->stateVec;
         logFidelity = orig->logFidelity;
         isSparse = orig->isSparse;
+        sparse_thresh = orig->sparse_thresh;
     }
 
     StateVectorSparsePtr CastStateVecSparse() { return std::dynamic_pointer_cast<StateVectorSparse>(stateVec); }
@@ -102,6 +104,8 @@ public:
         runningNorm = ZERO_R1;
         logFidelity = 0.0;
     }
+
+    void SetSparseProbabilityFloor(real1_f p) { sparse_thresh = p; }
 
     void TruncateBySize()
     {

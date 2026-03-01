@@ -58,6 +58,7 @@ QStabilizerHybrid::QStabilizerHybrid(std::vector<QInterfaceEngine> eng, bitLenIn
     , origMaxAncillaCount(28U)
     , separabilityThreshold(sep_thresh)
     , roundingThreshold(FP_NORM_EPSILON_F)
+    , sparse_thresh(_qrack_sparse_thresh)
     , devID(deviceId)
     , phaseFactor(phaseFac)
     , logFidelity(0.0)
@@ -123,6 +124,8 @@ QInterfacePtr QStabilizerHybrid::MakeEngine(const bitCapInt& perm)
         doNormalize, randGlobalPhase, useHostRam, devID, useRDRAND, false, (real1_f)amplitudeFloor, deviceIDs,
         thresholdQubits, separabilityThreshold);
     toRet->SetConcurrency(GetConcurrencyLevel());
+    toRet->SetSparseProbabilityFloor(sparse_thresh);
+
     return toRet;
 }
 QInterfacePtr QStabilizerHybrid::MakeEngine(const bitCapInt& perm, bitLenInt qbCount)
@@ -131,6 +134,8 @@ QInterfacePtr QStabilizerHybrid::MakeEngine(const bitCapInt& perm, bitLenInt qbC
         randGlobalPhase, useHostRam, devID, useRDRAND, false, (real1_f)amplitudeFloor, deviceIDs, thresholdQubits,
         separabilityThreshold);
     toRet->SetConcurrency(GetConcurrencyLevel());
+    toRet->SetSparseProbabilityFloor(sparse_thresh);
+
     return toRet;
 }
 
@@ -386,6 +391,7 @@ QInterfacePtr QStabilizerHybrid::CloneBody(bool isCopy)
     c->isNearCliffordExact = isNearCliffordExact;
     c->separabilityThreshold = separabilityThreshold;
     c->roundingThreshold = roundingThreshold;
+    c->sparse_thresh = sparse_thresh;
     c->maxAncillaCount = maxAncillaCount;
     for (size_t i = 0U; i < shards.size(); ++i) {
         if (shards[i]) {
@@ -599,7 +605,10 @@ QInterfacePtr QStabilizerHybrid::Decompose(bitLenInt start, bitLenInt length)
     QStabilizerHybridPtr dest = std::make_shared<QStabilizerHybrid>(engineTypes, length, ZERO_BCI, rand_generator,
         phaseFactor, doNormalize, randGlobalPhase, useHostRam, devID, useRDRAND, false, (real1_f)amplitudeFloor,
         std::vector<int64_t>{}, thresholdQubits, separabilityThreshold);
+    dest->SetConcurrency(GetConcurrencyLevel());
+    dest->SetSparseProbabilityFloor(sparse_thresh);
     Decompose(start, dest);
+
     return dest;
 }
 
@@ -668,6 +677,8 @@ bitLenInt QStabilizerHybrid::Allocate(bitLenInt start, bitLenInt length)
     QStabilizerHybridPtr nQubits = std::make_shared<QStabilizerHybrid>(cloneEngineTypes, length, ZERO_BCI,
         rand_generator, phaseFactor, doNormalize, randGlobalPhase, useHostRam, devID, useRDRAND, false,
         (real1_f)amplitudeFloor, std::vector<int64_t>{}, thresholdQubits, separabilityThreshold);
+    nQubits->SetConcurrency(GetConcurrencyLevel());
+    nQubits->SetSparseProbabilityFloor(sparse_thresh);
 
     return Compose(nQubits, start);
 }
@@ -810,6 +821,8 @@ complex QStabilizerHybrid::GetAmplitudeOrProb(const bitCapInt& perm, bool isProb
     QEnginePtr aEngine = std::dynamic_pointer_cast<QEngine>(
         CreateQuantumInterface(et, ancillaCount, ZERO_BCI, rand_generator, ONE_CMPLX, false, false, useHostRam, devID,
             useRDRAND, false, (real1_f)amplitudeFloor, deviceIDs, thresholdQubits, separabilityThreshold));
+    aEngine->SetConcurrency(GetConcurrencyLevel());
+    aEngine->SetSparseProbabilityFloor(sparse_thresh);
 
 #if ENABLE_COMPLEX_X2
     std::vector<complex2> top;
