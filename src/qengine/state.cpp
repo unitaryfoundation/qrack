@@ -305,7 +305,7 @@ void QEngineCPU::GetProbs(real1* outputProbs)
 
 #if ENABLE_COMPLEX_X2
 
-#define NORM_THRESH_KERNEL(o1, o2, fn, bci_type)                                                                       \
+#define NORM_THRESH_KERNEL(o1, o2, fn, bci_type, sv)                                                                   \
     [&](const bci_type& lcv, const unsigned& cpu) {                                                                    \
         complex2 qubit = stateVec->read2(lcv + o1, lcv + o2);                                                          \
         qubit = fn;                                                                                                    \
@@ -325,15 +325,15 @@ void QEngineCPU::GetProbs(real1* outputProbs)
         } else {                                                                                                       \
             rngNrm[cpu] += dotMulRes;                                                                                  \
         }                                                                                                              \
-        stateVec->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));                                      \
+        sv->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));                                            \
     }
 
-#define NORM_CALC_KERNEL(o1, o2, fn, bci_type)                                                                         \
+#define NORM_CALC_KERNEL(o1, o2, fn, bci_type, sv)                                                                     \
     [&](const bci_type& lcv, const unsigned& cpu) {                                                                    \
         complex2 qubit = stateVec->read2(lcv + o1, lcv + o2);                                                          \
         qubit = fn;                                                                                                    \
         rngNrm[cpu] += norm(qubit);                                                                                    \
-        stateVec->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));                                      \
+        sv->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));                                            \
     };
 
 void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* matrix, const bitLenInt bitCount,
@@ -416,41 +416,43 @@ void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* m
             } else if (norm_thresh > ZERO_R1) {
                 if (abs(ONE_R1 - nrm) > REAL1_EPSILON) {
                     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
-                        fn = NORM_THRESH_KERNEL(offset1, offset2, nrm * mtrxPhase * qubit, bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL(offset1, offset2, nrm * mtrxPhase * qubit, bitCapIntOcl, stateVec);
                     } else if (IS_NORM_0(mtrx[0U]) && IS_NORM_0(mtrx[3U])) {
-                        fn = NORM_THRESH_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapIntOcl, stateVec);
                     } else {
                         fn = NORM_THRESH_KERNEL(offset1, offset2,
-                            matrixMul(nrm, mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapIntOcl);
+                            matrixMul(nrm, mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapIntOcl,
+                            stateVec);
                     }
                 } else {
                     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
-                        fn = NORM_THRESH_KERNEL(offset1, offset2, mtrxPhase * qubit, bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL(offset1, offset2, mtrxPhase * qubit, bitCapIntOcl, stateVec);
                     } else if (IS_NORM_0(mtrx[0U]) && IS_NORM_0(mtrx[3U])) {
-                        fn = NORM_THRESH_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapIntOcl, stateVec);
                     } else {
                         fn = NORM_THRESH_KERNEL(offset1, offset2,
-                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapIntOcl);
+                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapIntOcl, stateVec);
                     }
                 }
             } else {
                 if (abs(ONE_R1 - nrm) > REAL1_EPSILON) {
                     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
-                        fn = NORM_CALC_KERNEL(offset1, offset2, nrm * mtrxPhase * qubit, bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL(offset1, offset2, nrm * mtrxPhase * qubit, bitCapIntOcl, stateVec);
                     } else if (IS_NORM_0(mtrx[0U]) && IS_NORM_0(mtrx[3U])) {
-                        fn = NORM_CALC_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapIntOcl, stateVec);
                     } else {
                         fn = NORM_CALC_KERNEL(offset1, offset2,
-                            matrixMul(nrm, mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapIntOcl);
+                            matrixMul(nrm, mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapIntOcl,
+                            stateVec);
                     }
                 } else {
                     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
-                        fn = NORM_CALC_KERNEL(offset1, offset2, mtrxPhase * qubit, bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL(offset1, offset2, mtrxPhase * qubit, bitCapIntOcl, stateVec);
                     } else if (IS_NORM_0(mtrx[0U]) && IS_NORM_0(mtrx[3U])) {
-                        fn = NORM_CALC_KERNEL(offset2, offset1, mtrxPhase * qubit, bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL(offset2, offset1, mtrxPhase * qubit, bitCapIntOcl, stateVec);
                     } else {
                         fn = NORM_CALC_KERNEL(offset1, offset2,
-                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapIntOcl);
+                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapIntOcl, stateVec);
                     }
                 }
             }
@@ -513,65 +515,68 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
                                                                                     : complex2(mtrx[1U], mtrx[2U]);
 
             std::unique_ptr<real1[]> rngNrm(new real1[numCores]());
+            StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
             ParallelFuncSparse fn;
             if (!doCalcNorm) {
                 if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
                     fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
                         complex2 qubit = stateVec->read2(lcv + offset1, lcv + offset2);
                         qubit = mtrxPhase * qubit;
-                        stateVec->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));
+                        _stateVec->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));
                     };
                 } else if (IS_NORM_0(mtrx[0U]) && IS_NORM_0(mtrx[3U])) {
                     fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
                         complex2 qubit = stateVec->read2(lcv + offset2, lcv + offset1);
                         qubit = mtrxPhase * qubit;
-                        stateVec->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));
+                        _stateVec->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));
                     };
                 } else {
                     fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
                         complex2 qubit = stateVec->read2(lcv + offset1, lcv + offset2);
                         qubit = matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit);
-                        stateVec->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));
+                        _stateVec->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));
                     };
                 }
             } else if (norm_thresh > ZERO_R1) {
                 if (abs(ONE_R1 - nrm) > REAL1_EPSILON) {
                     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
-                        fn = NORM_THRESH_KERNEL(offset1, offset2, nrm * mtrxPhase * qubit, bitCapInt);
+                        fn = NORM_THRESH_KERNEL(offset1, offset2, nrm * mtrxPhase * qubit, bitCapInt, _stateVec);
                     } else if (IS_NORM_0(mtrx[0U]) && IS_NORM_0(mtrx[3U])) {
-                        fn = NORM_THRESH_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapInt);
+                        fn = NORM_THRESH_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapInt, _stateVec);
                     } else {
                         fn = NORM_THRESH_KERNEL(offset1, offset2,
-                            matrixMul(nrm, mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt);
+                            matrixMul(nrm, mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt,
+                            _stateVec);
                     }
                 } else {
                     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
-                        fn = NORM_THRESH_KERNEL(offset1, offset2, mtrxPhase * qubit, bitCapInt);
+                        fn = NORM_THRESH_KERNEL(offset1, offset2, mtrxPhase * qubit, bitCapInt, _stateVec);
                     } else if (IS_NORM_0(mtrx[0U]) && IS_NORM_0(mtrx[3U])) {
-                        fn = NORM_THRESH_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapInt);
+                        fn = NORM_THRESH_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapInt, _stateVec);
                     } else {
                         fn = NORM_THRESH_KERNEL(offset1, offset2,
-                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt);
+                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt, _stateVec);
                     }
                 }
             } else {
                 if (abs(ONE_R1 - nrm) > REAL1_EPSILON) {
                     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
-                        fn = NORM_CALC_KERNEL(offset1, offset2, nrm * mtrxPhase * qubit, bitCapInt);
+                        fn = NORM_CALC_KERNEL(offset1, offset2, nrm * mtrxPhase * qubit, bitCapInt, _stateVec);
                     } else if (IS_NORM_0(mtrx[0U]) && IS_NORM_0(mtrx[3U])) {
-                        fn = NORM_CALC_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapInt);
+                        fn = NORM_CALC_KERNEL(offset2, offset1, nrm * mtrxPhase * qubit, bitCapInt, _stateVec);
                     } else {
                         fn = NORM_CALC_KERNEL(offset1, offset2,
-                            matrixMul(nrm, mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt);
+                            matrixMul(nrm, mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt,
+                            _stateVec);
                     }
                 } else {
                     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
-                        fn = NORM_CALC_KERNEL(offset1, offset2, mtrxPhase * qubit, bitCapInt);
+                        fn = NORM_CALC_KERNEL(offset1, offset2, mtrxPhase * qubit, bitCapInt, _stateVec);
                     } else if (IS_NORM_0(mtrx[0U]) && IS_NORM_0(mtrx[3U])) {
-                        fn = NORM_CALC_KERNEL(offset2, offset1, mtrxPhase * qubit, bitCapInt);
+                        fn = NORM_CALC_KERNEL(offset2, offset1, mtrxPhase * qubit, bitCapInt, _stateVec);
                     } else {
                         fn = NORM_CALC_KERNEL(offset1, offset2,
-                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt);
+                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt, )stateVec);
                     }
                 }
             }
@@ -608,7 +613,7 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
 }
 #else
 
-#define NORM_THRESH_KERNEL(fn1, fn2, bci_type)                                                                         \
+#define NORM_THRESH_KERNEL(fn1, fn2, bci_type, sv)                                                                     \
     [&](const bci_type& lcv, const unsigned& cpu) {                                                                    \
         complex qubit[2U];                                                                                             \
                                                                                                                        \
@@ -631,10 +636,10 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
         } else {                                                                                                       \
             rngNrm[cpu] += dotMulRes;                                                                                  \
         }                                                                                                              \
-        stateVec->write2(lcv + offset1, qubit[0U], lcv + offset2, qubit[1U]);                                          \
+        sv->write2(lcv + offset1, qubit[0U], lcv + offset2, qubit[1U]);                                                \
     }
 
-#define NORM_CALC_KERNEL(fn1, fn2, bci_type)                                                                           \
+#define NORM_CALC_KERNEL(fn1, fn2, bci_type, sv)                                                                       \
     [&](const bci_type& lcv, const unsigned& cpu) {                                                                    \
         complex qubit[2U];                                                                                             \
                                                                                                                        \
@@ -646,7 +651,7 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
                                                                                                                        \
         rngNrm[cpu] = norm(qubit[0U]) + norm(qubit[1U]);                                                               \
                                                                                                                        \
-        stateVec->write2(lcv + offset1, qubit[0U], lcv + offset2, qubit[1U]);                                          \
+        sv->write2(lcv + offset1, qubit[0U], lcv + offset2, qubit[1U]);                                                \
     };
 
 void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* matrix, const bitLenInt bitCount,
@@ -723,39 +728,41 @@ void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* m
             } else if (norm_thresh > ZERO_R1) {
                 if (abs(ONE_R1 - nrm) > REAL1_EPSILON) {
                     if (IS_NORM_0(mtrx1) && IS_NORM_0(mtrx2)) {
-                        fn = NORM_THRESH_KERNEL(nrm * (mtrx0 * Y0), nrm * (mtrx3 * qubit[1U]), bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL(nrm * (mtrx0 * Y0), nrm * (mtrx3 * qubit[1U]), bitCapIntOcl, stateVec);
                     } else if (IS_NORM_0(mtrx0) && IS_NORM_0(mtrx3)) {
-                        fn = NORM_THRESH_KERNEL(nrm * (mtrx1 * qubit[1U]), nrm * (mtrx2 * Y0), bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL(nrm * (mtrx1 * qubit[1U]), nrm * (mtrx2 * Y0), bitCapIntOcl, stateVec);
                     } else {
-                        fn = NORM_THRESH_KERNEL(
-                            nrm * ((mtrx0 * Y0) + (mtrx1 * qubit[1U])), nrm * ((mtrx2 * Y0) + (mtrx3 * qubit[1U])), bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL(nrm * ((mtrx0 * Y0) + (mtrx1 * qubit[1U])),
+                            nrm * ((mtrx2 * Y0) + (mtrx3 * qubit[1U])), bitCapIntOcl, stateVec);
                     }
                 } else {
                     if (IS_NORM_0(mtrx1) && IS_NORM_0(mtrx2)) {
-                        fn = NORM_THRESH_KERNEL(mtrx0 * Y0, mtrx3 * qubit[1U], bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL(mtrx0 * Y0, mtrx3 * qubit[1U], bitCapIntOcl, stateVec);
                     } else if (IS_NORM_0(mtrx0) && IS_NORM_0(mtrx3)) {
-                        fn = NORM_THRESH_KERNEL(mtrx1 * qubit[1U], mtrx2 * Y0, bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL(mtrx1 * qubit[1U], mtrx2 * Y0, bitCapIntOcl, stateVec);
                     } else {
-                        fn = NORM_THRESH_KERNEL((mtrx0 * Y0) + (mtrx1 * qubit[1U]), (mtrx2 * Y0) + (mtrx3 * qubit[1U]), bitCapIntOcl);
+                        fn = NORM_THRESH_KERNEL((mtrx0 * Y0) + (mtrx1 * qubit[1U]), (mtrx2 * Y0) + (mtrx3 * qubit[1U]),
+                            bitCapIntOcl, stateVec);
                     }
                 }
             } else {
                 if (abs(ONE_R1 - nrm) > REAL1_EPSILON) {
                     if (IS_NORM_0(mtrx1) && IS_NORM_0(mtrx2)) {
-                        fn = NORM_CALC_KERNEL(nrm * (mtrx0 * Y0), nrm * (mtrx3 * qubit[1U]), bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL(nrm * (mtrx0 * Y0), nrm * (mtrx3 * qubit[1U]), bitCapIntOcl, stateVec);
                     } else if (IS_NORM_0(mtrx0) && IS_NORM_0(mtrx3)) {
-                        fn = NORM_CALC_KERNEL(nrm * (mtrx1 * qubit[1U]), nrm * (mtrx2 * Y0), bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL(nrm * (mtrx1 * qubit[1U]), nrm * (mtrx2 * Y0), bitCapIntOcl, stateVec);
                     } else {
-                        fn = NORM_CALC_KERNEL(
-                            nrm * ((mtrx0 * Y0) + (mtrx1 * qubit[1U])), nrm * ((mtrx2 * Y0) + (mtrx3 * qubit[1U])), bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL(nrm * ((mtrx0 * Y0) + (mtrx1 * qubit[1U])),
+                            nrm * ((mtrx2 * Y0) + (mtrx3 * qubit[1U])), bitCapIntOcl, stateVec);
                     }
                 } else {
                     if (IS_NORM_0(mtrx1) && IS_NORM_0(mtrx2)) {
-                        fn = NORM_CALC_KERNEL(mtrx0 * Y0, mtrx3 * qubit[1U], bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL(mtrx0 * Y0, mtrx3 * qubit[1U], bitCapIntOcl, stateVec);
                     } else if (IS_NORM_0(mtrx0) && IS_NORM_0(mtrx3)) {
-                        fn = NORM_CALC_KERNEL(mtrx1 * qubit[1U], mtrx2 * Y0, bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL(mtrx1 * qubit[1U], mtrx2 * Y0, bitCapIntOcl, stateVec);
                     } else {
-                        fn = NORM_CALC_KERNEL((mtrx0 * Y0) + (mtrx1 * qubit[1U]), (mtrx2 * Y0) + (mtrx3 * qubit[1U]), bitCapIntOcl);
+                        fn = NORM_CALC_KERNEL((mtrx0 * Y0) + (mtrx1 * qubit[1U]), (mtrx2 * Y0) + (mtrx3 * qubit[1U]),
+                            bitCapIntOcl, stateVec);
                     }
                 }
             }
@@ -812,6 +819,7 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
             const real1 norm_thresh = (nrm_thresh < ZERO_R1) ? amplitudeFloor : (real1)nrm_thresh;
             const unsigned numCores = GetConcurrencyLevel();
 
+            StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
             std::unique_ptr<real1[]> rngNrm(new real1[numCores]());
             ParallelFuncSparse fn;
             if (!doCalcNorm) {
@@ -836,39 +844,41 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
             } else if (norm_thresh > ZERO_R1) {
                 if (abs(ONE_R1 - nrm) > REAL1_EPSILON) {
                     if (IS_NORM_0(mtrx1) && IS_NORM_0(mtrx2)) {
-                        fn = NORM_THRESH_KERNEL(nrm * (mtrx0 * Y0), nrm * (mtrx3 * qubit[1U]), bitCapInt);
+                        fn = NORM_THRESH_KERNEL(nrm * (mtrx0 * Y0), nrm * (mtrx3 * qubit[1U]), bitCapInt, _stateVec);
                     } else if (IS_NORM_0(mtrx0) && IS_NORM_0(mtrx3)) {
-                        fn = NORM_THRESH_KERNEL(nrm * (mtrx1 * qubit[1U]), nrm * (mtrx2 * Y0), bitCapInt);
+                        fn = NORM_THRESH_KERNEL(nrm * (mtrx1 * qubit[1U]), nrm * (mtrx2 * Y0), bitCapInt, _stateVec);
                     } else {
-                        fn = NORM_THRESH_KERNEL(
-                            nrm * ((mtrx0 * Y0) + (mtrx1 * qubit[1U])), nrm * ((mtrx2 * Y0) + (mtrx3 * qubit[1U])), bitCapInt);
+                        fn = NORM_THRESH_KERNEL(nrm * ((mtrx0 * Y0) + (mtrx1 * qubit[1U])),
+                            nrm * ((mtrx2 * Y0) + (mtrx3 * qubit[1U])), bitCapInt, _stateVec);
                     }
                 } else {
                     if (IS_NORM_0(mtrx1) && IS_NORM_0(mtrx2)) {
-                        fn = NORM_THRESH_KERNEL(mtrx0 * Y0, mtrx3 * qubit[1U], bitCapInt);
+                        fn = NORM_THRESH_KERNEL(mtrx0 * Y0, mtrx3 * qubit[1U], bitCapInt, _stateVec);
                     } else if (IS_NORM_0(mtrx0) && IS_NORM_0(mtrx3)) {
-                        fn = NORM_THRESH_KERNEL(mtrx1 * qubit[1U], mtrx2 * Y0, bitCapInt);
+                        fn = NORM_THRESH_KERNEL(mtrx1 * qubit[1U], mtrx2 * Y0, bitCapInt, _stateVec);
                     } else {
-                        fn = NORM_THRESH_KERNEL((mtrx0 * Y0) + (mtrx1 * qubit[1U]), (mtrx2 * Y0) + (mtrx3 * qubit[1U]), bitCapInt);
+                        fn = NORM_THRESH_KERNEL((mtrx0 * Y0) + (mtrx1 * qubit[1U]), (mtrx2 * Y0) + (mtrx3 * qubit[1U]),
+                            bitCapInt, _stateVec);
                     }
                 }
             } else {
                 if (abs(ONE_R1 - nrm) > REAL1_EPSILON) {
                     if (IS_NORM_0(mtrx1) && IS_NORM_0(mtrx2)) {
-                        fn = NORM_CALC_KERNEL(nrm * (mtrx0 * Y0), nrm * (mtrx3 * qubit[1U]), bitCapInt);
+                        fn = NORM_CALC_KERNEL(nrm * (mtrx0 * Y0), nrm * (mtrx3 * qubit[1U]), bitCapInt, _stateVec);
                     } else if (IS_NORM_0(mtrx0) && IS_NORM_0(mtrx3)) {
-                        fn = NORM_CALC_KERNEL(nrm * (mtrx1 * qubit[1U]), nrm * (mtrx2 * Y0), bitCapInt);
+                        fn = NORM_CALC_KERNEL(nrm * (mtrx1 * qubit[1U]), nrm * (mtrx2 * Y0), bitCapInt, _stateVec);
                     } else {
-                        fn = NORM_CALC_KERNEL(
-                            nrm * ((mtrx0 * Y0) + (mtrx1 * qubit[1U])), nrm * ((mtrx2 * Y0) + (mtrx3 * qubit[1U])), bitCapInt);
+                        fn = NORM_CALC_KERNEL(nrm * ((mtrx0 * Y0) + (mtrx1 * qubit[1U])),
+                            nrm * ((mtrx2 * Y0) + (mtrx3 * qubit[1U])), bitCapInt, _stateVec);
                     }
                 } else {
                     if (IS_NORM_0(mtrx1) && IS_NORM_0(mtrx2)) {
-                        fn = NORM_CALC_KERNEL(mtrx0 * Y0, mtrx3 * qubit[1U], bitCapInt);
+                        fn = NORM_CALC_KERNEL(mtrx0 * Y0, mtrx3 * qubit[1U], bitCapInt, _stateVec);
                     } else if (IS_NORM_0(mtrx0) && IS_NORM_0(mtrx3)) {
-                        fn = NORM_CALC_KERNEL(mtrx1 * qubit[1U], mtrx2 * Y0, bitCapInt);
+                        fn = NORM_CALC_KERNEL(mtrx1 * qubit[1U], mtrx2 * Y0, bitCapInt, _stateVec);
                     } else {
-                        fn = NORM_CALC_KERNEL((mtrx0 * Y0) + (mtrx1 * qubit[1U]), (mtrx2 * Y0) + (mtrx3 * qubit[1U]), bitCapInt);
+                        fn = NORM_CALC_KERNEL((mtrx0 * Y0) + (mtrx1 * qubit[1U]), (mtrx2 * Y0) + (mtrx3 * qubit[1U]),
+                            bitCapInt, _stateVec);
                     }
                 }
             }

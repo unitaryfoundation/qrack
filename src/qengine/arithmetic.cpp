@@ -990,14 +990,14 @@ bitCapInt QEngineCPU::IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bi
         } else if (valueBytes == 2) {
             uint16_t* inputIntPtr = (uint16_t*)values;
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
-                _nStateVec->write(
-                    lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
+                _nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
+                    _stateVec->read(lcv));
             };
         } else if (valueBytes == 4) {
             uint32_t* inputIntPtr = (uint32_t*)values;
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
-                _nStateVec->write(
-                    lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
+                _nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
+                    _stateVec->read(lcv));
             };
         } else {
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
