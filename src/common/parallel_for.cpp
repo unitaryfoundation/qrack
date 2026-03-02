@@ -91,7 +91,7 @@ void ParallelFor::par_for_sparse_compose(const std::vector<bitCapInt>& lowSet, c
             bitCapInt perm = *it;
             it = highSet.begin();
             std::advance(it, highPerm);
-            perm |= (*it) << highStart;
+            perm = perm | ((*it) << highStart);
             return perm;
         },
         fn);
