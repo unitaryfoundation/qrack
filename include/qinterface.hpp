@@ -2151,12 +2151,13 @@ public:
     virtual void INCC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
     {
         const bool hasCarry = M(carryIndex);
+        bitCapInt _toAdd = toAdd;
         if (hasCarry) {
             X(carryIndex);
-            INCDECC(toAdd + 1U, start, length, carryIndex);
-        } else {
-            INCDECC(toAdd, start, length, carryIndex);
+            ++_toAdd;
         }
+
+        INCDECC(toAdd, start, length, carryIndex);
     }
 
     /** Subtract classical integer (without sign, with carry) */
