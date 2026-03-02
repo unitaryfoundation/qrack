@@ -25,13 +25,8 @@
 #include <future>
 #endif
 
-#if QBCAPPOW > 6
 #include <unordered_map>
 #define SparseStateVecMap std::unordered_map<bitCapIntOcl, complex>
-#else
-#include <map>
-#define SparseStateVecMap std::unordered_map<bitCapInt, complex>
-#endif
 
 #if ENABLE_COMPLEX_X2
 #if FPPOW == 5
