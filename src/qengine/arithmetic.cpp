@@ -252,7 +252,7 @@ void QEngineCPU::INCS(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt le
         const bitCapInt lengthMask = lengthPower - 1U;
         const bitCapInt toAddOcl = toAdd & lengthMask;
 
-        if (!toAddOcl) {
+        if (toAddOcl != ZERO_BCI) {
             return;
         }
 
@@ -1004,7 +1004,7 @@ bitCapInt QEngineCPU::IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bi
                 bitCapInt inputInt = (lcv & inputMask) >> indexStart;
                 bitCapInt outputInt = 0;
                 for (bitLenInt j = 0; j < valueBytes; ++j) {
-                    outputInt |= values[(size_t)(inputInt * valueBytes + j)] << (8U * j);
+                    outputInt = outputInt | (values[(size_t)(inputInt * valueBytes + j)] << (8U * j));
                 }
                 bitCapInt outputRes = outputInt << valueStart;
                 _nStateVec->write(outputRes | lcv, _stateVec->read(lcv));
@@ -1143,16 +1143,16 @@ bitCapInt QEngineCPU::IndexedADC(bitLenInt indexStart, bitLenInt indexLength, bi
                 outputInt = ((uint32_t*)values)[(size_t)inputInt];
             } else {
                 for (bitLenInt j = 0; j < valueBytes; ++j) {
-                    outputInt |= values[(size_t)(inputInt * valueBytes + j)] << (8U * j);
+                    outputInt = outputInt | (values[(size_t)(inputInt * valueBytes + j)] << (8U * j));
                 }
             }
-            outputInt += (outputRes >> valueStart) + carryIn;
+            outputInt = outputInt + (outputRes >> valueStart) + carryIn;
 
             // If we exceed max char, we subtract 256 and entangle the carry as
             // set.
             bitCapInt carryRes = 0;
             if (outputInt >= lengthPower) {
-                outputInt -= lengthPower;
+                outputInt = outputInt - lengthPower;
                 carryRes = carryMask;
             }
             // We shift the output integer back to correspondence with its
@@ -1322,7 +1322,7 @@ bitCapInt QEngineCPU::IndexedSBC(bitLenInt indexStart, bitLenInt indexLength, bi
                 outputInt = ((uint32_t*)values)[(size_t)inputInt];
             } else {
                 for (bitLenInt j = 0; j < valueBytes; ++j) {
-                    outputInt |= values[(size_t)(inputInt * valueBytes + j)] << (8U * j);
+                    outputInt = outputInt | (values[(size_t)(inputInt * valueBytes + j)] << (8U * j));
                 }
             }
             outputInt = (outputRes >> valueStart) + (lengthPower - (outputInt + carryIn));
@@ -1334,7 +1334,7 @@ bitCapInt QEngineCPU::IndexedSBC(bitLenInt indexStart, bitLenInt indexLength, bi
             bitCapInt carryRes = 0;
 
             if (outputInt >= lengthPower) {
-                outputInt -= lengthPower;
+                outputInt = outputInt - lengthPower;
                 carryRes = carryMask;
             }
 
@@ -1452,7 +1452,7 @@ void QEngineCPU::Hash(bitLenInt start, bitLenInt length, const unsigned char* va
                 outputInt = ((uint32_t*)values)[(size_t)inputInt];
             } else {
                 for (bitLenInt j = 0; j < bytes; ++j) {
-                    outputInt |= values[(size_t)(inputInt * bytes + j)] << (8U * j);
+                    outputInt = outputInt | (values[(size_t)(inputInt * bytes + j)] << (8U * j));
                 }
             }
             bitCapInt outputRes = outputInt << start;

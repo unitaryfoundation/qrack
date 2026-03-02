@@ -578,7 +578,7 @@ public:
         if (true) {
             std::lock_guard<std::mutex> lock(mtx);
 
-            if (!filterMask && !filterValues) {
+            if ((filterMask != ZERO_BCI) && (filterValues != ZERO_BCI)) {
                 par_for(0U, amplitudes.size(), [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
                     auto it = amplitudes.begin();
                     std::advance(it, lcv);

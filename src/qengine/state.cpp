@@ -579,9 +579,9 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
             const bitCapInt setMask = offset1 ^ offset2;
             bitCapInt filterMask = 0U;
             for (bitLenInt i = 0U; i < bitCount; ++i) {
-                filterMask |= qPowersSorted[i];
+                filterMask = filterMask | qPowersSorted[i];
             }
-            filterMask &= ~setMask;
+            filterMask = filterMask & ~setMask;
             const bitCapInt filterValues = filterMask & offset1 & offset2;
             par_for_set(CastStateVecSparse()->iterable(setMask, filterMask, filterValues), fn);
             TruncateBySize();
