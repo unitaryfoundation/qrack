@@ -214,7 +214,7 @@ void inv2x2(const complex* matrix2x2, complex* outMatrix2x2)
 bool isOverflowAdd(bitCapInt inOutInt, bitCapInt inInt, const bitCapInt& signMask, const bitCapInt& lengthPower)
 {
     // Both negative:
-    if (inOutInt & inInt & signMask) {
+    if ((inOutInt & inInt & signMask) != ZERO_BCI) {
         inOutInt = ((~inOutInt) & (lengthPower - 1U)) + 1U;
         inInt = ((~inInt) & (lengthPower - 1U)) + 1U;
 
@@ -223,7 +223,7 @@ bool isOverflowAdd(bitCapInt inOutInt, bitCapInt inInt, const bitCapInt& signMas
         }
     }
     // Both positive:
-    else if ((~inOutInt) & (~inInt) & signMask) {
+    else if (((~inOutInt) & (~inInt) & signMask) != ZERO_BCI) {
         if ((inOutInt + inInt) >= signMask) {
             return true;
         }
@@ -236,7 +236,7 @@ bool isOverflowAdd(bitCapInt inOutInt, bitCapInt inInt, const bitCapInt& signMas
 bool isOverflowSub(bitCapInt inOutInt, bitCapInt inInt, const bitCapInt& signMask, const bitCapInt& lengthPower)
 {
     // First negative:
-    if (inOutInt & (~inInt) & (signMask)) {
+    if ((inOutInt & (~inInt) & (signMask)) != ZERO_BCI) {
         inOutInt = ((~inOutInt) & (lengthPower - 1U)) + 1U;
 
         if ((inOutInt + inInt) > signMask) {
@@ -244,7 +244,7 @@ bool isOverflowSub(bitCapInt inOutInt, bitCapInt inInt, const bitCapInt& signMas
         }
     }
     // First positive:
-    else if ((~inOutInt) & inInt & (signMask)) {
+    else if (((~inOutInt) & inInt & (signMask)) != ZERO_BCI) {
         inInt = ((~inInt) & (lengthPower - 1U)) + 1U;
 
         if ((inOutInt + inInt) >= signMask) {
