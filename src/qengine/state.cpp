@@ -576,7 +576,7 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
                         fn = NORM_CALC_KERNEL(offset2, offset1, mtrxPhase * qubit, bitCapInt, _stateVec);
                     } else {
                         fn = NORM_CALC_KERNEL(offset1, offset2,
-                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt, )stateVec);
+                            matrixMul(mtrxCol1, mtrxCol2, mtrxCol1Shuff, mtrxCol2Shuff, qubit), bitCapInt, _stateVec);
                     }
                 }
             }
