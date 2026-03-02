@@ -2334,13 +2334,43 @@ MICROSOFT_QUANTUM_DECL uintq Measure(_In_ uintq sid, _In_ uintq n, _In_reads_(n)
 MICROSOFT_QUANTUM_DECL void MeasureShots(
     _In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_ uintq s, _In_reads_(s) uintq* m)
 {
+    if (!n) {
+        return;
+    }
     SIMULATOR_LOCK_GUARD_VOID(sid)
     std::vector<bitCapInt> qPowers(n);
     for (uintq i = 0U; i < n; ++i) {
         qPowers[i] = Qrack::pow2(GetSimShardId(simulator, q[i]));
     }
+    const bitLenInt words = ((n - 1U) / 64U) + 1U;
     try {
-        simulator->MultiShotMeasureMask(qPowers, (unsigned)s, m);
+        // Multi-word shot shuffling and word-packing provided by Claude (the Anthropic LLM)
+        if (n > 64) {
+            std::map<bitCapInt, int> counts = simulator->MultiShotMeasureMask(qPowers, (unsigned)s);
+
+            // Expand the run-length-encoded map into a flat list of shots
+            std::vector<bitCapInt> shots;
+            shots.reserve(s);
+            for (const auto& kv : counts) {
+                for (int i = 0; i < kv.second; ++i) {
+                    shots.push_back(kv.first);
+                }
+            }
+
+            // Shuffle so shots are in random order, not grouped by outcome
+            std::shuffle(shots.begin(), shots.end(), *(randNumGen.get()));
+
+            // Pack each shot's words contiguously into m
+            // Layout: m[shot * words + word_index]
+            for (uintq i = 0U; i < (uintq)shots.size(); ++i) {
+                const bitCapInt& outcome = shots[i];
+                for (bitLenInt w = 0U; w < words; ++w) {
+                    m[i * words + w] = (uintq)((outcome >> (64U * w)) & (bitCapInt)0xFFFFFFFFFFFFFFFFULL);
+                }
+            }
+        } else {
+            simulator->MultiShotMeasureMask(qPowers, (unsigned)s, m);
+        }
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;

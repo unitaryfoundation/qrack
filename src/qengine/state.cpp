@@ -40,7 +40,7 @@ QEngineCPU::QEngineCPU(bitLenInt qBitCount, const bitCapInt& initState, qrack_ra
     , isSparse(useSparseStateVec)
     , sparse_thresh(_qrack_sparse_thresh)
 {
-    if (qBitCount > QRACK_MAX_CPU_QB_DEFAULT) {
+    if (!isSparse && (qBitCount > QRACK_MAX_CPU_QB_DEFAULT)) {
         throw std::invalid_argument(
             "Cannot instantiate a QEngineCPU with greater capacity than environment variable QRACK_MAX_CPU_QB.");
     }
@@ -1233,7 +1233,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
 
     const bitLenInt nQubitCount = qubitCount + toCopy->qubitCount;
 
-    if (nQubitCount > QRACK_MAX_CPU_QB_DEFAULT) {
+    if (!isSparse && (nQubitCount > QRACK_MAX_CPU_QB_DEFAULT)) {
         throw std::invalid_argument(
             "Cannot instantiate a QEngineCPU with greater capacity than environment variable QRACK_MAX_CPU_QB.");
     }
@@ -1337,7 +1337,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
 
     const bitLenInt nQubitCount = qubitCount + toCopy->qubitCount;
 
-    if (nQubitCount > QRACK_MAX_CPU_QB_DEFAULT) {
+    if (!isSparse && (nQubitCount > QRACK_MAX_CPU_QB_DEFAULT)) {
         throw std::invalid_argument(
             "Cannot instantiate a QEngineCPU with greater capacity than environment variable QRACK_MAX_CPU_QB.");
     }

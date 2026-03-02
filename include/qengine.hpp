@@ -86,10 +86,6 @@ public:
         , maxQPowerOcl(pow2Ocl(qBitCount))
         , fidelity(1.0)
     {
-        if (qBitCount > (sizeof(bitCapIntOcl) * bitsInByte)) {
-            throw std::invalid_argument(
-                "Cannot instantiate a register with greater capacity than native types on emulating system.");
-        }
     };
 
     /** Default constructor, primarily for protected internal use */

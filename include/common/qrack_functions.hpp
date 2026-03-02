@@ -144,8 +144,10 @@ inline bitLenInt popCountOcl(bitCapIntOcl n)
 #endif
 }
 
-#if (QBCAPPOW < 7) || ((QBCAPPOW < 8) && defined(__SIZEOF_INT128__)) || ((QBCAPPOW > 7) && defined(BOOST_AVAILABLE))
+#if (QBCAPPOW < 7) || ((QBCAPPOW < 8) && defined(__SIZEOF_INT128__))
 inline int bi_log2(const bitCapInt& n) { return log2Ocl((bitCapIntOcl)n); }
+#elif (QBCAPPOW > 7) && defined(BOOST_AVAILABLE)
+inline int bi_log2(const bitCapInt& n) { return boost::multiprecision::msb(n); }
 #endif
 inline bitLenInt log2(bitCapInt n) { return (bitLenInt)bi_log2(n); }
 
