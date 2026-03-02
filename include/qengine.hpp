@@ -284,8 +284,8 @@ public:
 
     virtual real1_f GetExpectation(bitLenInt valueStart, bitLenInt valueLength) = 0;
 
-    virtual void Apply2x2(bitCapIntOcl offset1, bitCapIntOcl offset2, const complex* mtrx, bitLenInt bitCount,
-        bitCapIntOcl const* qPowersSorted, bool doCalcNorm, real1_f norm_thresh = REAL1_DEFAULT_ARG) = 0;
+    virtual void Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* mtrx, bitLenInt bitCount,
+        bitCapInt const* qPowersSorted, bool doCalcNorm, real1_f norm_thresh = REAL1_DEFAULT_ARG) = 0;
     virtual void ApplyControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex* mtrx);
     virtual void ApplyAntiControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex* mtrx);
 
