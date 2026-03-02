@@ -1594,7 +1594,7 @@ real1_f QEngineCPU::Prob(bitLenInt qubit)
     }
 
     if (qubitCount == 1U) {
-        return norm(stateVec->read(1U));
+        return norm(stateVec->read(ONE_BCI));
     }
 
     const unsigned numCores = GetConcurrencyLevel();
