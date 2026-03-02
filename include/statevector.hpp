@@ -26,11 +26,11 @@
 #endif
 
 #if QBCAPPOW > 6
+#include <map>
+#define SparseStateVecMap std::map<bitCapInt, complex>
+#else
 #include <unordered_map>
 #define SparseStateVecMap std::unordered_map<bitCapIntOcl, complex>
-#else
-#include <map>
-#define SparseStateVecMap std::unordered_map<bitCapInt, complex>
 #endif
 
 #if ENABLE_COMPLEX_X2
@@ -65,13 +65,17 @@ public:
     }
 
     virtual complex read(const bitCapIntOcl& i) = 0;
+    virtual complex read(const bitCapInt& i) = 0;
 #if ENABLE_COMPLEX_X2
     virtual complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2) = 0;
+    virtual complex2 read2(const bitCapInt& i1, const bitCapInt& i2) = 0;
 #endif
     virtual void write(const bitCapIntOcl& i, const complex& c) = 0;
+    virtual void write(const bitCapInt& i, const complex& c) = 0;
     /// Optimized "write" that is only guaranteed to write if either amplitude is nonzero. (Useful for the result of 2x2
     /// tensor slicing.)
     virtual void write2(const bitCapIntOcl& i1, const complex& c1, const bitCapIntOcl& i2, const complex& c2) = 0;
+    virtual void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2) = 0;
     virtual void clear() = 0;
     virtual void copy_in(const complex* inArray) = 0;
     virtual void copy_in(const complex* copyIn, const bitCapIntOcl offset, const bitCapIntOcl length) = 0;
@@ -88,6 +92,16 @@ public:
 class StateVectorArray : public StateVector {
 public:
     std::unique_ptr<complex[], void (*)(complex*)> amplitudes;
+
+    complex read(const bitCapInt& i) { return read((bitCapIntOcl)i); }
+#if ENABLE_COMPLEX_X2
+    complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { return read2((bitCapIntOcl)i1, (bitCapIntOcl)i2); }
+#endif
+    void write(const bitCapInt& i, const complex& c) { return write((bitCapIntOcl)i, c); }
+    void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
+    {
+        return write2((bitCapIntOcl)i1, c1, (bitCapIntOcl)i2, c2);
+    }
 
 protected:
 #if defined(__APPLE__)
@@ -234,13 +248,13 @@ protected:
     SparseStateVecMap amplitudes;
     std::mutex mtx;
 
-    complex readUnlocked(const bitCapIntOcl& i)
+    complex readUnlocked(const bitCapInt& i)
     {
         auto it = amplitudes.find(i);
         return (it == amplitudes.end()) ? ZERO_CMPLX : it->second;
     }
 
-    complex readLocked(const bitCapIntOcl& i)
+    complex readLocked(const bitCapInt& i)
     {
         std::lock_guard<std::mutex> lock(mtx);
         return readUnlocked(i);
@@ -251,6 +265,16 @@ public:
         : StateVector(cap)
         , amplitudes()
     {
+    }
+
+    complex read(const bitCapIntOcl& i) { return read((bitCapInt)i); }
+#if ENABLE_COMPLEX_X2
+    complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
+#endif
+    void write(const bitCapIntOcl& i, const complex& c) { return write((bitCapInt)i, c); }
+    void write2(const bitCapIntOcl& i1, const complex& c1, const bitCapIntOcl& i2, const complex& c2)
+    {
+        return write2((bitCapInt)i1, c1, (bitCapInt)i2, c2);
     }
 
     size_t size() { return amplitudes.size(); }
@@ -296,7 +320,7 @@ public:
         nAmplitudes.clear();
 
         if (amplitudes.size() > maxAmps) {
-            std::vector<bitCapIntOcl> indices;
+            std::vector<bitCapInt> indices;
             for (auto it = amplitudes.begin(); it != amplitudes.end(); ++it) {
                 if (norm(it->second) == limit) {
                     indices.push_back(it->first);
@@ -306,7 +330,7 @@ public:
             std::mt19937 g(rd());
             std::shuffle(indices.begin(), indices.end(), g);
             indices.resize(amplitudes.size() - maxAmps);
-            for (const bitCapIntOcl& idx : indices) {
+            for (const bitCapInt& idx : indices) {
                 amplitudes.erase(idx);
             }
         }
@@ -317,10 +341,10 @@ public:
         return fidelity;
     }
 
-    complex read(const bitCapIntOcl& i) { return isReadLocked ? readLocked(i) : readUnlocked(i); }
+    complex read(const bitCapInt& i) { return isReadLocked ? readLocked(i) : readUnlocked(i); }
 
 #if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2)
+    complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
     {
         if (isReadLocked) {
             return complex2(readLocked(i1), readLocked(i2));
@@ -329,7 +353,7 @@ public:
     }
 #endif
 
-    void write(const bitCapIntOcl& i, const complex& c)
+    void write(const bitCapInt& i, const complex& c)
     {
         const bool isCSet = abs(c) > REAL1_EPSILON;
         if (isCSet) {
@@ -341,7 +365,7 @@ public:
         }
     }
 
-    void write2(const bitCapIntOcl& i1, const complex& c1, const bitCapIntOcl& i2, const complex& c2)
+    void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
     {
         const bool isC1Set = abs(c1) > REAL1_EPSILON;
         const bool isC2Set = abs(c2) > REAL1_EPSILON;
@@ -545,7 +569,7 @@ public:
             return {};
         }
 
-        const bitCapIntOcl unsetMask = ~setMask;
+        const bitCapInt unsetMask = ~setMask;
 
         std::vector<std::set<bitCapInt>> toRet(GetConcurrencyLevel());
         std::vector<std::set<bitCapInt>>::iterator toRetIt;
@@ -561,7 +585,7 @@ public:
                     toRet[cpu].insert(it->first & unsetMask);
                 });
             } else {
-                const bitCapIntOcl unfilterMask = ~filterMask;
+                const bitCapInt unfilterMask = ~filterMask;
                 par_for(0U, amplitudes.size(), [&](const bitCapIntOcl lcv, const unsigned& cpu) {
                     auto it = amplitudes.begin();
                     std::advance(it, lcv);

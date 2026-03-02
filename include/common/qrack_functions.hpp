@@ -120,6 +120,15 @@ inline bitLenInt log2Ocl(bitCapIntOcl n)
 #endif
 }
 
+inline bitLenInt popCount(bitCapInt n)
+{
+    bitLenInt popCount;
+    for (popCount = 0U; n; ++popCount) {
+        n &= n - 1U;
+    }
+    return popCount;
+}
+
 inline bitLenInt popCountOcl(bitCapIntOcl n)
 {
 #if CPP_STD >= 20
@@ -206,10 +215,8 @@ void mul2x2(const complex* left, const complex* right, complex* out);
 void exp2x2(const complex* matrix2x2, complex* outMatrix2x2);
 void log2x2(const complex* matrix2x2, complex* outMatrix2x2);
 void inv2x2(const complex* matrix2x2, complex* outMatrix2x2);
-bool isOverflowAdd(
-    bitCapIntOcl inOutInt, bitCapIntOcl inInt, const bitCapIntOcl& signMask, const bitCapIntOcl& lengthPower);
-bool isOverflowSub(
-    bitCapIntOcl inOutInt, bitCapIntOcl inInt, const bitCapIntOcl& signMask, const bitCapIntOcl& lengthPower);
+bool isOverflowAdd(bitCapInt inOutInt, bitCapInt inInt, const bitCapInt& signMask, const bitCapInt& lengthPower);
+bool isOverflowSub(bitCapInt inOutInt, bitCapInt inInt, const bitCapInt& signMask, const bitCapInt& lengthPower);
 bitCapInt pushApartBits(const bitCapInt& perm, const std::vector<bitCapInt>& skipPowers);
 bitCapInt intPow(const bitCapInt& base, const bitCapInt& power);
 bitCapIntOcl intPowOcl(bitCapIntOcl base, bitCapIntOcl power);

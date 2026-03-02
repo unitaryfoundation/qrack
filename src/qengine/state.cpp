@@ -1040,14 +1040,17 @@ void QEngineCPU::UniformParityRZ(const bitCapInt& mask, real1_f angle)
         const real1 sine = (real1)sin(angle);
         const complex phaseFac(cosine, sine);
         const complex phaseFacAdj(cosine, -sine);
-        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-            stateVec->write(
-                lcv, stateVec->read(lcv) * ((popCountOcl(lcv & (bitCapIntOcl)mask) & 1U) ? phaseFac : phaseFacAdj));
-        };
 
         if (stateVec->is_sparse()) {
+            ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+                stateVec->write(lcv, stateVec->read(lcv) * ((popCount(lcv & mask) & 1U) ? phaseFac : phaseFacAdj));
+            };
             par_for_set(CastStateVecSparse()->iterable(), fn);
         } else {
+            ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+                stateVec->write(
+                    lcv, stateVec->read(lcv) * ((popCountOcl(lcv & (bitCapIntOcl)mask) & 1U) ? phaseFac : phaseFacAdj));
+            };
             par_for(0U, maxQPowerOcl, fn);
         }
     });
@@ -1594,44 +1597,64 @@ real1_f QEngineCPU::Prob(bitLenInt qubit)
         return norm(stateVec->read(1U));
     }
 
-    const bitCapIntOcl qPower = pow2Ocl(qubit);
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> oneChanceBuff(new real1[numCores]());
 
-    ParallelFunc fn;
-#if ENABLE_COMPLEX_X2
-    if (stateVec->is_sparse()) {
-        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-            oneChanceBuff[cpu] += norm(stateVec->read(lcv | qPower));
-        };
-    } else if (qPower == 1U) {
-        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-            const bitCapIntOcl times4 = (lcv << 2U);
-            oneChanceBuff[cpu] += norm(stateVec->read2(times4 | 1U, times4 | 3U));
-        };
-    } else {
-        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-            const bitCapIntOcl times2Or = (lcv << 1U) | qPower;
-            oneChanceBuff[cpu] += norm(stateVec->read2(times2Or, times2Or | 1U));
-        };
-    }
-#else
-    fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        oneChanceBuff[cpu] += norm(stateVec->read(lcv | qPower));
-    };
-#endif
-
     stateVec->isReadLocked = false;
     if (stateVec->is_sparse()) {
+        const bitCapInt qPower = pow2(qubit);
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn;
+#if ENABLE_COMPLEX_X2
+        if (stateVec->is_sparse()) {
+            fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+                oneChanceBuff[cpu] += norm(_stateVec->read(lcv | qPower));
+            };
+        } else if (qPower == 1U) {
+            fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+                const bitCapInt times4 = (lcv << 2U);
+                oneChanceBuff[cpu] += norm(_stateVec->read2(times4 | 1U, times4 | 3U));
+            };
+        } else {
+            fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+                const bitCapInt times2Or = (lcv << 1U) | qPower;
+                oneChanceBuff[cpu] += norm(_stateVec->read2(times2Or, times2Or | 1U));
+            };
+        }
+#else
+        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            oneChanceBuff[cpu] += norm(_stateVec->read(lcv | qPower));
+        };
+#endif
         par_for_set(CastStateVecSparse()->iterable(qPower, qPower, qPower), fn);
     } else {
+        const bitCapIntOcl qPower = pow2Ocl(qubit);
+        ParallelFunc fn;
 #if ENABLE_COMPLEX_X2
+        if (stateVec->is_sparse()) {
+            fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+                oneChanceBuff[cpu] += norm(stateVec->read(lcv | qPower));
+            };
+        } else if (qPower == 1U) {
+            fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+                const bitCapIntOcl times4 = (lcv << 2U);
+                oneChanceBuff[cpu] += norm(stateVec->read2(times4 | 1U, times4 | 3U));
+            };
+        } else {
+            fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+                const bitCapIntOcl times2Or = (lcv << 1U) | qPower;
+                oneChanceBuff[cpu] += norm(stateVec->read2(times2Or, times2Or | 1U));
+            };
+        }
         if (qPower == 1U) {
             par_for(0U, maxQPowerOcl >> 2U, fn);
         } else {
             par_for_skip(0U, maxQPowerOcl >> 1U, qPower >> 1U, 1U, fn);
         }
 #else
+        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            oneChanceBuff[cpu] += norm(stateVec->read(lcv | qPower));
+        };
         par_for_skip(0U, maxQPowerOcl, qPower, 1U, fn);
 #endif
     }
@@ -1671,22 +1694,30 @@ real1_f QEngineCPU::CtrlOrAntiProb(bool controlState, bitLenInt control, bitLenI
             "QEngineCPU::CtrlOrAntiProb target index parameter must be within allocated qubit bounds!");
     }
 
-    const bitCapIntOcl qControlPower = pow2Ocl(control);
-    const bitCapIntOcl qControlMask = controlState ? qControlPower : 0U;
-    const bitCapIntOcl qPower = pow2Ocl(target);
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> oneChanceBuff(new real1[numCores]());
 
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        if ((lcv & qControlPower) == qControlMask) {
-            oneChanceBuff[cpu] += norm(stateVec->read(lcv | qPower));
-        }
-    };
-
     stateVec->isReadLocked = false;
     if (stateVec->is_sparse()) {
+        const bitCapInt qControlPower = pow2(control);
+        const bitCapInt qControlMask = controlState ? qControlPower : 0U;
+        const bitCapInt qPower = pow2(target);
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            if ((lcv & qControlPower) == qControlMask) {
+                oneChanceBuff[cpu] += norm(_stateVec->read(lcv | qPower));
+            }
+        };
         par_for_set(CastStateVecSparse()->iterable(qPower, qPower, qPower), fn);
     } else {
+        const bitCapIntOcl qControlPower = pow2Ocl(control);
+        const bitCapIntOcl qControlMask = controlState ? qControlPower : 0U;
+        const bitCapIntOcl qPower = pow2Ocl(target);
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            if ((lcv & qControlPower) == qControlMask) {
+                oneChanceBuff[cpu] += norm(stateVec->read(lcv | qPower));
+            }
+        };
         par_for_skip(0U, maxQPowerOcl, qPower, 1U, fn);
     }
     stateVec->isReadLocked = true;
@@ -1712,18 +1743,22 @@ real1_f QEngineCPU::ProbReg(bitLenInt start, bitLenInt length, const bitCapInt& 
         return ZERO_R1_F;
     }
 
-    const bitCapIntOcl perm = (bitCapIntOcl)permutation << ((bitCapIntOcl)start);
     const unsigned num_threads = GetConcurrencyLevel();
     std::unique_ptr<real1[]> probs(new real1[num_threads]());
 
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        probs[cpu] += norm(stateVec->read(lcv | perm));
-    };
-
     stateVec->isReadLocked = false;
     if (stateVec->is_sparse()) {
+        const bitCapInt perm = permutation << start;
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            probs[cpu] += norm(_stateVec->read(lcv | perm));
+        };
         par_for_set(CastStateVecSparse()->iterable(0, bitRegMaskOcl(start, length), perm), fn);
     } else {
+        const bitCapIntOcl perm = (bitCapIntOcl)(permutation << start);
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            probs[cpu] += norm(stateVec->read(lcv | perm));
+        };
         par_for_skip(0U, maxQPowerOcl, pow2Ocl(start), length, fn);
     }
     stateVec->isReadLocked = true;
@@ -1793,20 +1828,25 @@ real1_f QEngineCPU::ProbParity(const bitCapInt& mask)
 
     real1 oddChance = ZERO_R1;
 
-    const bitCapIntOcl maskOcl = (bitCapIntOcl)mask;
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> oddChanceBuff(new real1[numCores]());
 
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        if (popCountOcl(lcv & maskOcl) & 1U) {
-            oddChanceBuff[cpu] += norm(stateVec->read(lcv));
-        }
-    };
-
     stateVec->isReadLocked = false;
     if (stateVec->is_sparse()) {
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            if (popCount(lcv & mask) & 1U) {
+                oddChanceBuff[cpu] += norm(stateVec->read(lcv));
+            }
+        };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
+        const bitCapIntOcl maskOcl = (bitCapIntOcl)mask;
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            if (popCountOcl(lcv & maskOcl) & 1U) {
+                oddChanceBuff[cpu] += norm(stateVec->read(lcv));
+            }
+        };
         par_for(0U, maxQPowerOcl, fn);
     }
     stateVec->isReadLocked = true;
@@ -1892,21 +1932,28 @@ bool QEngineCPU::ForceMParity(const bitCapInt& mask, bool result, bool doForce)
     real1 oddChance = ZERO_R1;
 
     const unsigned numCores = GetConcurrencyLevel();
-    const bitCapIntOcl maskOcl = (bitCapIntOcl)mask;
     std::unique_ptr<real1[]> oddChanceBuff(new real1[numCores]());
-
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        if ((popCountOcl(lcv & maskOcl) & 1U) == result) {
-            oddChanceBuff[cpu] += norm(stateVec->read(lcv));
-        } else {
-            stateVec->write(lcv, ZERO_CMPLX);
-        }
-    };
 
     stateVec->isReadLocked = false;
     if (stateVec->is_sparse()) {
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            if ((popCount(lcv & mask) & 1U) == result) {
+                oddChanceBuff[cpu] += norm(_stateVec->read(lcv));
+            } else {
+                _stateVec->write(lcv, ZERO_CMPLX);
+            }
+        };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
+        const bitCapIntOcl maskOcl = (bitCapIntOcl)mask;
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            if ((popCountOcl(lcv & maskOcl) & 1U) == result) {
+                oddChanceBuff[cpu] += norm(stateVec->read(lcv));
+            } else {
+                stateVec->write(lcv, ZERO_CMPLX);
+            }
+        };
         par_for(0U, maxQPowerOcl, fn);
     }
     stateVec->isReadLocked = true;
@@ -1989,19 +2036,26 @@ void QEngineCPU::ApplyM(const bitCapInt& regMask, const bitCapInt& result, const
     CHECK_ZERO_SKIP();
 
     Dispatch(maxQPowerOcl, [this, regMask, result, nrm] {
-        const bitCapIntOcl regMaskOcl = (bitCapIntOcl)regMask;
-        const bitCapIntOcl resultOcl = (bitCapIntOcl)result;
-        ParallelFunc fn = [&](const bitCapIntOcl& i, const unsigned& cpu) {
-            if ((i & regMaskOcl) == resultOcl) {
-                stateVec->write(i, nrm * stateVec->read(i));
-            } else {
-                stateVec->write(i, ZERO_CMPLX);
-            }
-        };
-
         if (stateVec->is_sparse()) {
+            StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+            ParallelFuncSparse fn = [&](const bitCapInt& i, const unsigned& cpu) {
+                if ((i & regMask) == result) {
+                    _stateVec->write(i, nrm * stateVec->read(i));
+                } else {
+                    _stateVec->write(i, ZERO_CMPLX);
+                }
+            };
             par_for_set(CastStateVecSparse()->iterable(), fn);
         } else {
+            const bitCapIntOcl regMaskOcl = (bitCapIntOcl)regMask;
+            const bitCapIntOcl resultOcl = (bitCapIntOcl)result;
+            ParallelFunc fn = [&](const bitCapIntOcl& i, const unsigned& cpu) {
+                if ((i & regMaskOcl) == resultOcl) {
+                    stateVec->write(i, nrm * stateVec->read(i));
+                } else {
+                    stateVec->write(i, ZERO_CMPLX);
+                }
+            };
             par_for(0U, maxQPowerOcl, fn);
         }
 
