@@ -635,15 +635,10 @@ protected:
     void DecomposeDispose(bitLenInt start, bitLenInt length, QEngineOCLPtr dest);
 
     using QEngine::Apply2x2;
-    void Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* mtrx, bitLenInt bitCount,
-        const bitCapInt* qPowersSorted, bool doCalcNorm, real1_f norm_thresh = REAL1_DEFAULT_ARG)
+    void Apply2x2(bitCapIntOcl offset1, bitCapIntOcl offset2, const complex* mtrx, bitLenInt bitCount,
+        const bitCapIntOcl* qPowersSorted, bool doCalcNorm, real1_f norm_thresh = REAL1_DEFAULT_ARG)
     {
-        std::unique_ptr<bitCapIntOcl[]> qps(new bitCapIntOcl[bitCount]);
-        for (size_t i = 0U; i < bitCount; ++i) {
-            qps.get()[i] = (bitCapIntOcl)qPowersSorted[i];
-        }
-        Apply2x2((bitCapIntOcl)offset1, (bitCapIntOcl)offset2, mtrx, bitCount, qps.get(), doCalcNorm, SPECIAL_2X2::NONE,
-            norm_thresh);
+        Apply2x2(offset1, offset2, mtrx, bitCount, qPowersSorted, doCalcNorm, SPECIAL_2X2::NONE, norm_thresh);
     }
     void Apply2x2(bitCapIntOcl offset1, bitCapIntOcl offset2, const complex* mtrx, bitLenInt bitCount,
         const bitCapIntOcl* qPowersSorted, bool doCalcNorm, SPECIAL_2X2 special,
