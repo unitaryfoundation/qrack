@@ -985,26 +985,26 @@ bitCapInt QEngineCPU::IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bi
         if (valueBytes == 1) {
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
                 _nStateVec->write(
-                    lcv | (values[(size_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
+                    lcv | (values[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
             };
         } else if (valueBytes == 2) {
             uint16_t* inputIntPtr = (uint16_t*)values;
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
                 _nStateVec->write(
-                    lcv | (inputIntPtr[(size_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
+                    lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
             };
         } else if (valueBytes == 4) {
             uint32_t* inputIntPtr = (uint32_t*)values;
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
                 _nStateVec->write(
-                    lcv | (inputIntPtr[(size_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
+                    lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
             };
         } else {
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
                 bitCapInt inputInt = (lcv & inputMask) >> indexStart;
                 bitCapInt outputInt = 0;
                 for (bitLenInt j = 0; j < valueBytes; ++j) {
-                    outputInt = outputInt | (values[(size_t)(inputInt * valueBytes + j)] << (8U * j));
+                    outputInt = outputInt | (values[(uint64_t)(inputInt * valueBytes + j)] << (8U * j));
                 }
                 bitCapInt outputRes = outputInt << valueStart;
                 _nStateVec->write(outputRes | lcv, _stateVec->read(lcv));
@@ -1136,14 +1136,14 @@ bitCapInt QEngineCPU::IndexedADC(bitLenInt indexStart, bitLenInt indexLength, bi
             // iteration of the loop.
             bitCapInt outputInt = 0;
             if (valueBytes == 1) {
-                outputInt = values[(size_t)inputInt];
+                outputInt = values[(uint64_t)inputInt];
             } else if (valueBytes == 2) {
-                outputInt = ((uint16_t*)values)[(size_t)inputInt];
+                outputInt = ((uint16_t*)values)[(uint64_t)inputInt];
             } else if (valueBytes == 4) {
-                outputInt = ((uint32_t*)values)[(size_t)inputInt];
+                outputInt = ((uint32_t*)values)[(uint64_t)inputInt];
             } else {
                 for (bitLenInt j = 0; j < valueBytes; ++j) {
-                    outputInt = outputInt | (values[(size_t)(inputInt * valueBytes + j)] << (8U * j));
+                    outputInt = outputInt | (values[(uint64_t)(inputInt * valueBytes + j)] << (8U * j));
                 }
             }
             outputInt = outputInt + (outputRes >> valueStart) + carryIn;
@@ -1315,14 +1315,14 @@ bitCapInt QEngineCPU::IndexedSBC(bitLenInt indexStart, bitLenInt indexLength, bi
             // iteration of the loop.
             bitCapInt outputInt = 0;
             if (valueBytes == 1) {
-                outputInt = values[(size_t)inputInt];
+                outputInt = values[(uint64_t)inputInt];
             } else if (valueBytes == 2) {
-                outputInt = ((uint16_t*)values)[(size_t)inputInt];
+                outputInt = ((uint16_t*)values)[(uint64_t)inputInt];
             } else if (valueBytes == 4) {
-                outputInt = ((uint32_t*)values)[(size_t)inputInt];
+                outputInt = ((uint32_t*)values)[(uint64_t)inputInt];
             } else {
                 for (bitLenInt j = 0; j < valueBytes; ++j) {
-                    outputInt = outputInt | (values[(size_t)(inputInt * valueBytes + j)] << (8U * j));
+                    outputInt = outputInt | (values[(uint64_t)(inputInt * valueBytes + j)] << (8U * j));
                 }
             }
             outputInt = (outputRes >> valueStart) + (lengthPower - (outputInt + carryIn));
@@ -1445,14 +1445,14 @@ void QEngineCPU::Hash(bitLenInt start, bitLenInt length, const unsigned char* va
             const bitCapInt inputInt = inputRes >> start;
             bitCapInt outputInt = 0;
             if (bytes == 1) {
-                outputInt = values[(size_t)inputInt];
+                outputInt = values[(uint64_t)inputInt];
             } else if (bytes == 2) {
-                outputInt = ((uint16_t*)values)[(size_t)inputInt];
+                outputInt = ((uint16_t*)values)[(uint64_t)inputInt];
             } else if (bytes == 4) {
-                outputInt = ((uint32_t*)values)[(size_t)inputInt];
+                outputInt = ((uint32_t*)values)[(uint64_t)inputInt];
             } else {
                 for (bitLenInt j = 0; j < bytes; ++j) {
-                    outputInt = outputInt | (values[(size_t)(inputInt * bytes + j)] << (8U * j));
+                    outputInt = outputInt | (values[(uint64_t)(inputInt * bytes + j)] << (8U * j));
                 }
             }
             bitCapInt outputRes = outputInt << start;
