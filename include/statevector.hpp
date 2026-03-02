@@ -477,10 +477,10 @@ public:
 
     bool is_sparse() { return (amplitudes.size() < (size_t)(capacity >> 1U)); }
 
-    std::vector<bitCapIntOcl> iterable()
+    std::vector<bitCapInt> iterable()
     {
-        std::vector<std::vector<bitCapIntOcl>> toRet(GetConcurrencyLevel());
-        std::vector<std::vector<bitCapIntOcl>>::iterator toRetIt;
+        std::vector<std::vector<bitCapInt>> toRet(GetConcurrencyLevel());
+        std::vector<std::vector<bitCapInt>>::iterator toRetIt;
 
         // For lock_guard scope
         if (true) {
@@ -538,8 +538,8 @@ public:
     }
 
     /// Returns empty if iteration should be over full set, otherwise just the iterable elements:
-    std::set<bitCapIntOcl> iterable(
-        const bitCapIntOcl& setMask, const bitCapIntOcl& filterMask = 0, const bitCapIntOcl& filterValues = 0)
+    std::set<bitCapInt> iterable(
+        const bitCapInt& setMask, const bitCapInt& filterMask = 0, const bitCapInt& filterValues = 0)
     {
         if (!filterMask && filterValues) {
             return {};
@@ -547,8 +547,8 @@ public:
 
         const bitCapIntOcl unsetMask = ~setMask;
 
-        std::vector<std::set<bitCapIntOcl>> toRet(GetConcurrencyLevel());
-        std::vector<std::set<bitCapIntOcl>>::iterator toRetIt;
+        std::vector<std::set<bitCapInt>> toRet(GetConcurrencyLevel());
+        std::vector<std::set<bitCapInt>>::iterator toRetIt;
 
         // For lock_guard scope
         if (true) {
