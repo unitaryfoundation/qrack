@@ -123,8 +123,8 @@ inline bitLenInt log2Ocl(bitCapIntOcl n)
 inline bitLenInt popCount(bitCapInt n)
 {
     bitLenInt popCount;
-    for (popCount = 0U; n; ++popCount) {
-        n &= n - 1U;
+    for (popCount = 0U; n != 0; ++popCount) {
+        n = n & (n - 1U);
     }
     return popCount;
 }
