@@ -706,7 +706,7 @@ public:
     void INCDECC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
     {
         if (stabilizer) {
-            SwitchToEngine();
+            return QInterface::INCDECC(toAdd, start, length, carryIndex);
         }
 
         engine->INCDECC(toAdd, start, length, carryIndex);

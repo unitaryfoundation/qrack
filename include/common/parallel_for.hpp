@@ -20,9 +20,7 @@ namespace Qrack {
 
 // Called once per value between begin and end.
 typedef std::function<void(const bitCapIntOcl&, const unsigned& cpu)> ParallelFunc;
-typedef std::function<void(const bitCapInt&, const unsigned& cpu)> ParallelFuncSparse;
 typedef std::function<bitCapIntOcl(const bitCapIntOcl&)> IncrementFunc;
-typedef std::function<bitCapInt(const bitCapIntOcl&)> IncrementFuncSparse;
 
 class ParallelFor {
 private:
@@ -59,13 +57,6 @@ public:
      */
     void par_for_inc(const bitCapIntOcl begin, const bitCapIntOcl itemCount, IncrementFunc, ParallelFunc fn);
 
-    /**
-     * Iterate through the permutations a maximum of end-begin times, allowing
-     * the caller to control the incrementation offset through 'inc'.
-     */
-    void par_for_inc_sparse(
-        const bitCapIntOcl begin, const bitCapIntOcl itemCount, IncrementFuncSparse ifn, ParallelFuncSparse fn);
-
     /** Call fn once for every numerical value between begin and end. */
     void par_for(const bitCapIntOcl begin, const bitCapIntOcl end, ParallelFunc fn);
 
@@ -85,14 +76,14 @@ public:
         const bitCapIntOcl, const bitCapIntOcl, const std::vector<bitCapIntOcl>& maskArray, ParallelFunc fn);
 
     /** Iterate over a sparse state vector. */
-    void par_for_set(const std::set<bitCapInt>& sparseSet, ParallelFuncSparse fn);
+    void par_for_set(const std::set<bitCapIntOcl>& sparseSet, ParallelFunc fn);
 
     /** Iterate over a sparse state vector. */
-    void par_for_set(const std::vector<bitCapInt>& sparseSet, ParallelFuncSparse fn);
+    void par_for_set(const std::vector<bitCapIntOcl>& sparseSet, ParallelFunc fn);
 
     /** Iterate over the power set of 2 sparse state vectors. */
-    void par_for_sparse_compose(const std::vector<bitCapInt>& lowSet, const std::vector<bitCapInt>& highSet,
-        const bitLenInt& highStart, ParallelFuncSparse fn);
+    void par_for_sparse_compose(const std::vector<bitCapIntOcl>& lowSet, const std::vector<bitCapIntOcl>& highSet,
+        const bitLenInt& highStart, ParallelFunc fn);
 
     /** Calculate the normal for the array, (with flooring). */
     real1_f par_norm(const bitCapIntOcl maxQPower, const StateVectorPtr stateArray, real1_f norm_thresh = ZERO_R1_F);

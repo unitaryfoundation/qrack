@@ -2365,7 +2365,7 @@ MICROSOFT_QUANTUM_DECL void MeasureShots(
             for (uintq i = 0U; i < (uintq)shots.size(); ++i) {
                 const bitCapInt& outcome = shots[i];
                 for (bitLenInt w = 0U; w < words; ++w) {
-                    m[i * words + w] = (uintq)((outcome >> (64U * w)) & (bitCapInt)0xFFFFFFFFFFFFFFFFULL);
+                    m[i * words + w] = (uint64_t)((outcome >> (64U * w)) & (bitCapInt)0xFFFFFFFFFFFFFFFFULL);
                 }
             }
         } else {
