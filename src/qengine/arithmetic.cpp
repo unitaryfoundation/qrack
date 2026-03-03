@@ -47,16 +47,23 @@ void QEngineCPU::ROL(bitLenInt shift, bitLenInt start, bitLenInt length)
 
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
 
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        const bitCapIntOcl otherRes = lcv & otherMask;
-        const bitCapIntOcl regInt = (lcv & regMask) >> start;
-        const bitCapIntOcl outInt = (regInt >> (length - shift)) | ((regInt << shift) & lengthMask);
-        nStateVec->write((outInt << start) | otherRes, stateVec->read(lcv));
-    };
-
     if (stateVec->is_sparse()) {
+        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            const bitCapInt otherRes = lcv & otherMask;
+            const bitCapInt regInt = (lcv & regMask) >> start;
+            const bitCapInt outInt = (regInt >> (length - shift)) | ((regInt << shift) & lengthMask);
+            _nStateVec->write((outInt << start) | otherRes, _stateVec->read(lcv));
+        };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            const bitCapIntOcl otherRes = lcv & otherMask;
+            const bitCapIntOcl regInt = (lcv & regMask) >> start;
+            const bitCapIntOcl outInt = (regInt >> (length - shift)) | ((regInt << shift) & lengthMask);
+            nStateVec->write((outInt << start) | otherRes, stateVec->read(lcv));
+        };
         par_for(0, maxQPowerOcl, fn);
     }
 
@@ -91,16 +98,23 @@ void QEngineCPU::INC(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt len
 
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
 
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        const bitCapIntOcl otherRes = lcv & otherMask;
-        const bitCapIntOcl inOutInt = (lcv & inOutMask) >> inOutStart;
-        const bitCapIntOcl outInt = (inOutInt + toAddOcl) & lengthMask;
-        nStateVec->write((outInt << inOutStart) | otherRes, stateVec->read(lcv));
-    };
-
     if (stateVec->is_sparse()) {
+        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            const bitCapInt otherRes = lcv & otherMask;
+            const bitCapInt inOutInt = (lcv & inOutMask) >> inOutStart;
+            const bitCapInt outInt = (inOutInt + toAddOcl) & lengthMask;
+            _nStateVec->write((outInt << inOutStart) | otherRes, _stateVec->read(lcv));
+        };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            const bitCapIntOcl otherRes = lcv & otherMask;
+            const bitCapIntOcl inOutInt = (lcv & inOutMask) >> inOutStart;
+            const bitCapIntOcl outInt = (inOutInt + toAddOcl) & lengthMask;
+            nStateVec->write((outInt << inOutStart) | otherRes, stateVec->read(lcv));
+        };
         par_for(0, maxQPowerOcl, fn);
     }
 
@@ -230,41 +244,71 @@ void QEngineCPU::INCS(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt le
         return;
     }
 
-    const bitCapIntOcl lengthPower = pow2Ocl(length);
-    const bitCapIntOcl lengthMask = lengthPower - 1U;
-    const bitCapIntOcl toAddOcl = (bitCapIntOcl)toAdd & lengthMask;
-
-    if (!toAddOcl) {
-        return;
-    }
-
-    const bitCapIntOcl overflowMask = pow2Ocl(overflowIndex);
-    const bitCapIntOcl signMask = pow2Ocl(length - 1U);
-    const bitCapIntOcl inOutMask = lengthMask << inOutStart;
-    const bitCapIntOcl otherMask = (maxQPowerOcl - 1U) ^ inOutMask;
-
-    Finish();
-
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
     nStateVec->clear();
 
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        const bitCapIntOcl otherRes = lcv & otherMask;
-        const bitCapIntOcl inOutInt = (lcv & inOutMask) >> inOutStart;
-        const bitCapIntOcl outInt = inOutInt + toAddOcl;
-        const bitCapIntOcl outRes = (outInt < lengthPower) ? ((outInt << inOutStart) | otherRes)
-                                                           : (((outInt - lengthPower) << inOutStart) | otherRes);
-        const bool isOverflow = isOverflowAdd(inOutInt, toAddOcl, signMask, lengthPower);
-        if (isOverflow && ((outRes & overflowMask) == overflowMask)) {
-            nStateVec->write(outRes, -stateVec->read(lcv));
-        } else {
-            nStateVec->write(outRes, stateVec->read(lcv));
-        }
-    };
-
     if (stateVec->is_sparse()) {
+        const bitCapInt lengthPower = pow2(length);
+        const bitCapInt lengthMask = lengthPower - 1U;
+        const bitCapInt toAddOcl = toAdd & lengthMask;
+
+        if (toAddOcl != ZERO_BCI) {
+            return;
+        }
+
+        const bitCapInt overflowMask = pow2(overflowIndex);
+        const bitCapInt signMask = pow2(length - 1U);
+        const bitCapInt inOutMask = lengthMask << inOutStart;
+        const bitCapInt otherMask = (maxQPowerOcl - 1U) ^ inOutMask;
+
+        Finish();
+
+        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            const bitCapInt otherRes = lcv & otherMask;
+            const bitCapInt inOutInt = (lcv & inOutMask) >> inOutStart;
+            const bitCapInt outInt = inOutInt + toAddOcl;
+            const bitCapInt outRes = (outInt < lengthPower)
+                ? (bitCapInt)((outInt << inOutStart) | otherRes)
+                : (bitCapInt)(((outInt - lengthPower) << inOutStart) | otherRes);
+            const bool isOverflow = isOverflowAdd(inOutInt, toAddOcl, signMask, lengthPower);
+            if (isOverflow && ((outRes & overflowMask) == overflowMask)) {
+                _nStateVec->write(outRes, -_stateVec->read(lcv));
+            } else {
+                _nStateVec->write(outRes, _stateVec->read(lcv));
+            }
+        };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
+        const bitCapIntOcl lengthPower = pow2Ocl(length);
+        const bitCapIntOcl lengthMask = lengthPower - 1U;
+        const bitCapIntOcl toAddOcl = (bitCapIntOcl)toAdd & lengthMask;
+
+        if (!toAddOcl) {
+            return;
+        }
+
+        const bitCapIntOcl overflowMask = pow2Ocl(overflowIndex);
+        const bitCapIntOcl signMask = pow2Ocl(length - 1U);
+        const bitCapIntOcl inOutMask = lengthMask << inOutStart;
+        const bitCapIntOcl otherMask = (maxQPowerOcl - 1U) ^ inOutMask;
+
+        Finish();
+
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            const bitCapIntOcl otherRes = lcv & otherMask;
+            const bitCapIntOcl inOutInt = (lcv & inOutMask) >> inOutStart;
+            const bitCapIntOcl outInt = inOutInt + toAddOcl;
+            const bitCapIntOcl outRes = (outInt < lengthPower) ? ((outInt << inOutStart) | otherRes)
+                                                               : (((outInt - lengthPower) << inOutStart) | otherRes);
+            const bool isOverflow = isOverflowAdd(inOutInt, toAddOcl, signMask, lengthPower);
+            if (isOverflow && ((outRes & overflowMask) == overflowMask)) {
+                nStateVec->write(outRes, -stateVec->read(lcv));
+            } else {
+                nStateVec->write(outRes, stateVec->read(lcv));
+            }
+        };
         par_for(0, maxQPowerOcl, fn);
     }
 
@@ -927,47 +971,78 @@ bitCapInt QEngineCPU::IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bi
     }
 
     const bitLenInt valueBytes = (valueLength + 7U) >> 3U;
-    const bitCapIntOcl inputMask = bitRegMaskOcl(indexStart, indexLength);
-    const bitCapIntOcl skipPower = pow2Ocl(valueStart);
-
     Finish();
 
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
     nStateVec->clear();
 
-    ParallelFunc fn;
-    if (valueBytes == 1) {
-        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-            nStateVec->write(
-                lcv | ((bitCapIntOcl)values[(lcv & inputMask) >> indexStart] << valueStart), stateVec->read(lcv));
-        };
-    } else if (valueBytes == 2) {
-        uint16_t* inputIntPtr = (uint16_t*)values;
-        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-            nStateVec->write(
-                lcv | ((bitCapIntOcl)inputIntPtr[(lcv & inputMask) >> indexStart] << valueStart), stateVec->read(lcv));
-        };
-    } else if (valueBytes == 4) {
-        uint32_t* inputIntPtr = (uint32_t*)values;
-        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-            nStateVec->write(
-                lcv | ((bitCapIntOcl)inputIntPtr[(lcv & inputMask) >> indexStart] << valueStart), stateVec->read(lcv));
-        };
-    } else {
-        fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-            bitCapIntOcl inputInt = (lcv & inputMask) >> indexStart;
-            bitCapIntOcl outputInt = 0;
-            for (bitCapIntOcl j = 0; j < valueBytes; ++j) {
-                outputInt |= (bitCapIntOcl)values[inputInt * valueBytes + j] << (8U * j);
-            }
-            bitCapIntOcl outputRes = outputInt << valueStart;
-            nStateVec->write(outputRes | lcv, stateVec->read(lcv));
-        };
-    }
-
     if (stateVec->is_sparse()) {
+        const bitCapInt inputMask = bitRegMask(indexStart, indexLength);
+        const bitCapInt skipPower = pow2(valueStart);
+        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn;
+        if (valueBytes == 1) {
+            fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+                _nStateVec->write(
+                    lcv | (values[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
+            };
+        } else if (valueBytes == 2) {
+            uint16_t* inputIntPtr = (uint16_t*)values;
+            fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+                _nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
+                    _stateVec->read(lcv));
+            };
+        } else if (valueBytes == 4) {
+            uint32_t* inputIntPtr = (uint32_t*)values;
+            fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+                _nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
+                    _stateVec->read(lcv));
+            };
+        } else {
+            fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+                bitCapInt inputInt = (lcv & inputMask) >> indexStart;
+                bitCapInt outputInt = 0;
+                for (bitLenInt j = 0; j < valueBytes; ++j) {
+                    outputInt = outputInt | (values[(uint64_t)(inputInt * valueBytes + j)] << (8U * j));
+                }
+                bitCapInt outputRes = outputInt << valueStart;
+                _nStateVec->write(outputRes | lcv, _stateVec->read(lcv));
+            };
+        }
         par_for_set(CastStateVecSparse()->iterable(0, skipPower, 0), fn);
     } else {
+        const bitCapIntOcl inputMask = bitRegMaskOcl(indexStart, indexLength);
+        const bitCapIntOcl skipPower = pow2Ocl(valueStart);
+        ParallelFunc fn;
+        if (valueBytes == 1) {
+            fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+                nStateVec->write(
+                    lcv | ((bitCapIntOcl)values[(lcv & inputMask) >> indexStart] << valueStart), stateVec->read(lcv));
+            };
+        } else if (valueBytes == 2) {
+            uint16_t* inputIntPtr = (uint16_t*)values;
+            fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+                nStateVec->write(lcv | ((bitCapIntOcl)inputIntPtr[(lcv & inputMask) >> indexStart] << valueStart),
+                    stateVec->read(lcv));
+            };
+        } else if (valueBytes == 4) {
+            uint32_t* inputIntPtr = (uint32_t*)values;
+            fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+                nStateVec->write(lcv | ((bitCapIntOcl)inputIntPtr[(lcv & inputMask) >> indexStart] << valueStart),
+                    stateVec->read(lcv));
+            };
+        } else {
+            fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+                bitCapIntOcl inputInt = (lcv & inputMask) >> indexStart;
+                bitCapIntOcl outputInt = 0;
+                for (bitLenInt j = 0; j < valueBytes; ++j) {
+                    outputInt |= (bitCapIntOcl)values[inputInt * valueBytes + j] << (8U * j);
+                }
+                bitCapIntOcl outputRes = outputInt << valueStart;
+                nStateVec->write(outputRes | lcv, stateVec->read(lcv));
+            };
+        }
         par_for_skip(0, maxQPowerOcl, skipPower, valueLength, fn);
     }
 
@@ -1027,66 +1102,124 @@ bitCapInt QEngineCPU::IndexedADC(bitLenInt indexStart, bitLenInt indexLength, bi
     // already know the carry is zero).  This bit masks let us quickly
     // distinguish the different values of the input register, output register,
     // carry, and other bits that aren't involved in the operation.
-    const bitLenInt valueBytes = (valueLength + 7U) >> 3U;
-    const bitCapIntOcl lengthPower = pow2Ocl(valueLength);
-    const bitCapIntOcl carryMask = pow2Ocl(carryIndex);
-    const bitCapIntOcl inputMask = bitRegMaskOcl(indexStart, indexLength);
-    const bitCapIntOcl outputMask = bitRegMaskOcl(valueStart, valueLength);
-    const bitCapIntOcl otherMask = (maxQPowerOcl - 1U) & (~(inputMask | outputMask | carryMask));
-    const bitCapIntOcl skipPower = pow2Ocl(carryIndex);
-
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        // These are qubits that are not directly involved in the
-        // operation. We iterate over all of their possibilities, but their
-        // input value matches their output value:
-        const bitCapIntOcl otherRes = lcv & otherMask;
-
-        // These are bits that index the classical memory we're loading from:
-        const bitCapIntOcl inputRes = lcv & inputMask;
-
-        // If we read these as a char type, this is their value as a char:
-        const bitCapIntOcl inputInt = inputRes >> indexStart;
-
-        // This is the initial value that's entangled with the "inputStart"
-        // register in "outputStart."
-        bitCapIntOcl outputRes = lcv & outputMask;
-
-        // Maintaining the entanglement, we add the classical input value
-        // corresponding with the state of the "inputStart" register to
-        // "outputStart" register value its entangled with in this
-        // iteration of the loop.
-        bitCapIntOcl outputInt = 0;
-        if (valueBytes == 1) {
-            outputInt = values[inputInt];
-        } else if (valueBytes == 2) {
-            outputInt = ((uint16_t*)values)[inputInt];
-        } else if (valueBytes == 4) {
-            outputInt = ((uint32_t*)values)[inputInt];
-        } else {
-            for (bitCapIntOcl j = 0; j < valueBytes; ++j) {
-                outputInt |= (bitCapIntOcl)values[inputInt * valueBytes + j] << (8U * j);
-            }
-        }
-        outputInt += (outputRes >> valueStart) + carryIn;
-
-        // If we exceed max char, we subtract 256 and entangle the carry as
-        // set.
-        bitCapIntOcl carryRes = 0;
-        if (outputInt >= lengthPower) {
-            outputInt -= lengthPower;
-            carryRes = carryMask;
-        }
-        // We shift the output integer back to correspondence with its
-        // register bits, and entangle it with the input and carry, and
-        // shunt the uninvoled "other" bits from input to output.
-        outputRes = outputInt << valueStart;
-
-        nStateVec->write(outputRes | inputRes | otherRes | carryRes, stateVec->read(lcv));
-    };
 
     if (stateVec->is_sparse()) {
+        const bitLenInt valueBytes = (valueLength + 7U) >> 3U;
+        const bitCapInt lengthPower = pow2(valueLength);
+        const bitCapInt carryMask = pow2(carryIndex);
+        const bitCapInt inputMask = bitRegMask(indexStart, indexLength);
+        const bitCapInt outputMask = bitRegMask(valueStart, valueLength);
+        const bitCapInt otherMask = (maxQPower - 1U) & (~(inputMask | outputMask | carryMask));
+        const bitCapInt skipPower = pow2(carryIndex);
+
+        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            // These are qubits that are not directly involved in the
+            // operation. We iterate over all of their possibilities, but their
+            // input value matches their output value:
+            const bitCapInt otherRes = lcv & otherMask;
+
+            // These are bits that index the classical memory we're loading from:
+            const bitCapInt inputRes = lcv & inputMask;
+
+            // If we read these as a char type, this is their value as a char:
+            const bitCapInt inputInt = inputRes >> indexStart;
+
+            // This is the initial value that's entangled with the "inputStart"
+            // register in "outputStart."
+            bitCapInt outputRes = lcv & outputMask;
+
+            // Maintaining the entanglement, we add the classical input value
+            // corresponding with the state of the "inputStart" register to
+            // "outputStart" register value its entangled with in this
+            // iteration of the loop.
+            bitCapInt outputInt = 0;
+            if (valueBytes == 1) {
+                outputInt = values[(uint64_t)inputInt];
+            } else if (valueBytes == 2) {
+                outputInt = ((uint16_t*)values)[(uint64_t)inputInt];
+            } else if (valueBytes == 4) {
+                outputInt = ((uint32_t*)values)[(uint64_t)inputInt];
+            } else {
+                for (bitLenInt j = 0; j < valueBytes; ++j) {
+                    outputInt = outputInt | (values[(uint64_t)(inputInt * valueBytes + j)] << (8U * j));
+                }
+            }
+            outputInt = outputInt + (outputRes >> valueStart) + carryIn;
+
+            // If we exceed max char, we subtract 256 and entangle the carry as
+            // set.
+            bitCapInt carryRes = 0;
+            if (outputInt >= lengthPower) {
+                outputInt = outputInt - lengthPower;
+                carryRes = carryMask;
+            }
+            // We shift the output integer back to correspondence with its
+            // register bits, and entangle it with the input and carry, and
+            // shunt the uninvoled "other" bits from input to output.
+            outputRes = outputInt << valueStart;
+
+            _nStateVec->write(outputRes | inputRes | otherRes | carryRes, _stateVec->read(lcv));
+        };
         par_for_set(CastStateVecSparse()->iterable(0, skipPower, 0), fn);
     } else {
+        const bitLenInt valueBytes = (valueLength + 7U) >> 3U;
+        const bitCapIntOcl lengthPower = pow2Ocl(valueLength);
+        const bitCapIntOcl carryMask = pow2Ocl(carryIndex);
+        const bitCapIntOcl inputMask = bitRegMaskOcl(indexStart, indexLength);
+        const bitCapIntOcl outputMask = bitRegMaskOcl(valueStart, valueLength);
+        const bitCapIntOcl otherMask = (maxQPowerOcl - 1U) & (~(inputMask | outputMask | carryMask));
+        const bitCapIntOcl skipPower = pow2Ocl(carryIndex);
+
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            // These are qubits that are not directly involved in the
+            // operation. We iterate over all of their possibilities, but their
+            // input value matches their output value:
+            const bitCapIntOcl otherRes = lcv & otherMask;
+
+            // These are bits that index the classical memory we're loading from:
+            const bitCapIntOcl inputRes = lcv & inputMask;
+
+            // If we read these as a char type, this is their value as a char:
+            const bitCapIntOcl inputInt = inputRes >> indexStart;
+
+            // This is the initial value that's entangled with the "inputStart"
+            // register in "outputStart."
+            bitCapIntOcl outputRes = lcv & outputMask;
+
+            // Maintaining the entanglement, we add the classical input value
+            // corresponding with the state of the "inputStart" register to
+            // "outputStart" register value its entangled with in this
+            // iteration of the loop.
+            bitCapIntOcl outputInt = 0;
+            if (valueBytes == 1) {
+                outputInt = values[inputInt];
+            } else if (valueBytes == 2) {
+                outputInt = ((uint16_t*)values)[inputInt];
+            } else if (valueBytes == 4) {
+                outputInt = ((uint32_t*)values)[inputInt];
+            } else {
+                for (bitLenInt j = 0; j < valueBytes; ++j) {
+                    outputInt |= (bitCapIntOcl)values[inputInt * valueBytes + j] << (8U * j);
+                }
+            }
+            outputInt += (outputRes >> valueStart) + carryIn;
+
+            // If we exceed max char, we subtract 256 and entangle the carry as
+            // set.
+            bitCapIntOcl carryRes = 0;
+            if (outputInt >= lengthPower) {
+                outputInt -= lengthPower;
+                carryRes = carryMask;
+            }
+            // We shift the output integer back to correspondence with its
+            // register bits, and entangle it with the input and carry, and
+            // shunt the uninvoled "other" bits from input to output.
+            outputRes = outputInt << valueStart;
+
+            nStateVec->write(outputRes | inputRes | otherRes | carryRes, stateVec->read(lcv));
+        };
         par_for_skip(0, maxQPowerOcl, skipPower, 1, fn);
     }
 
@@ -1149,69 +1282,130 @@ bitCapInt QEngineCPU::IndexedSBC(bitLenInt indexStart, bitLenInt indexLength, bi
     // This bit masks let us quickly distinguish the different values of the input register, output register, carry, and
     // other bits that aren't involved in the operation.
     const bitLenInt valueBytes = (valueLength + 7U) >> 3U;
-    const bitCapIntOcl lengthPower = pow2Ocl(valueLength);
-    const bitCapIntOcl carryMask = pow2Ocl(carryIndex);
-    const bitCapIntOcl inputMask = bitRegMaskOcl(indexStart, indexLength);
-    const bitCapIntOcl outputMask = bitRegMaskOcl(valueStart, valueLength);
-    const bitCapIntOcl otherMask = (maxQPowerOcl - 1U) & (~(inputMask | outputMask | carryMask));
-    const bitCapIntOcl skipPower = pow2Ocl(carryIndex);
-
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        // These are qubits that are not directly involved in the
-        // operation. We iterate over all of their possibilities, but their
-        // input value matches their output value:
-        const bitCapIntOcl otherRes = lcv & otherMask;
-
-        // These are bits that index the classical memory we're loading from:
-        const bitCapIntOcl inputRes = lcv & inputMask;
-
-        // If we read these as a char type, this is their value as a char:
-        const bitCapIntOcl inputInt = inputRes >> indexStart;
-
-        // This is the initial value that's entangled with the "inputStart"
-        // register in "outputStart."
-        bitCapIntOcl outputRes = lcv & outputMask;
-
-        // Maintaining the entanglement, we subtract the classical input
-        // value corresponding with the state of the "inputStart" register
-        // from "outputStart" register value its entangled with in this
-        // iteration of the loop.
-        bitCapIntOcl outputInt = 0;
-        if (valueBytes == 1) {
-            outputInt = values[inputInt];
-        } else if (valueBytes == 2) {
-            outputInt = ((uint16_t*)values)[inputInt];
-        } else if (valueBytes == 4) {
-            outputInt = ((uint32_t*)values)[inputInt];
-        } else {
-            for (bitCapIntOcl j = 0; j < valueBytes; ++j) {
-                outputInt |= (bitCapIntOcl)values[inputInt * valueBytes + j] << (8U * j);
-            }
-        }
-        outputInt = (outputRes >> valueStart) + (lengthPower - (outputInt + carryIn));
-
-        // If our subtractions results in less than 0, we add 256 and
-        // entangle the carry as set.  (Since we're using unsigned types,
-        // we start by adding 256 with the carry, and then subtract 256 and
-        // clear the carry if we don't have a borrow-out.)
-        bitCapIntOcl carryRes = 0;
-
-        if (outputInt >= lengthPower) {
-            outputInt -= lengthPower;
-            carryRes = carryMask;
-        }
-
-        // We shift the output integer back to correspondence with its
-        // register bits, and entangle it with the input and carry, and
-        // shunt the uninvoled "other" bits from input to output.
-        outputRes = outputInt << valueStart;
-
-        nStateVec->write(outputRes | inputRes | otherRes | carryRes, stateVec->read(lcv));
-    };
 
     if (stateVec->is_sparse()) {
+        const bitCapInt lengthPower = pow2Ocl(valueLength);
+        const bitCapInt carryMask = pow2Ocl(carryIndex);
+        const bitCapInt inputMask = bitRegMaskOcl(indexStart, indexLength);
+        const bitCapInt outputMask = bitRegMaskOcl(valueStart, valueLength);
+        const bitCapInt otherMask = (maxQPowerOcl - 1U) & (~(inputMask | outputMask | carryMask));
+        const bitCapInt skipPower = pow2Ocl(carryIndex);
+
+        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            // These are qubits that are not directly involved in the
+            // operation. We iterate over all of their possibilities, but their
+            // input value matches their output value:
+            const bitCapInt otherRes = lcv & otherMask;
+
+            // These are bits that index the classical memory we're loading from:
+            const bitCapInt inputRes = lcv & inputMask;
+
+            // If we read these as a char type, this is their value as a char:
+            const bitCapInt inputInt = inputRes >> indexStart;
+
+            // This is the initial value that's entangled with the "inputStart"
+            // register in "outputStart."
+            bitCapInt outputRes = lcv & outputMask;
+
+            // Maintaining the entanglement, we subtract the classical input
+            // value corresponding with the state of the "inputStart" register
+            // from "outputStart" register value its entangled with in this
+            // iteration of the loop.
+            bitCapInt outputInt = 0;
+            if (valueBytes == 1) {
+                outputInt = values[(uint64_t)inputInt];
+            } else if (valueBytes == 2) {
+                outputInt = ((uint16_t*)values)[(uint64_t)inputInt];
+            } else if (valueBytes == 4) {
+                outputInt = ((uint32_t*)values)[(uint64_t)inputInt];
+            } else {
+                for (bitLenInt j = 0; j < valueBytes; ++j) {
+                    outputInt = outputInt | (values[(uint64_t)(inputInt * valueBytes + j)] << (8U * j));
+                }
+            }
+            outputInt = (outputRes >> valueStart) + (lengthPower - (outputInt + carryIn));
+
+            // If our subtractions results in less than 0, we add 256 and
+            // entangle the carry as set.  (Since we're using unsigned types,
+            // we start by adding 256 with the carry, and then subtract 256 and
+            // clear the carry if we don't have a borrow-out.)
+            bitCapInt carryRes = 0;
+
+            if (outputInt >= lengthPower) {
+                outputInt = outputInt - lengthPower;
+                carryRes = carryMask;
+            }
+
+            // We shift the output integer back to correspondence with its
+            // register bits, and entangle it with the input and carry, and
+            // shunt the uninvoled "other" bits from input to output.
+            outputRes = outputInt << valueStart;
+
+            _nStateVec->write(outputRes | inputRes | otherRes | carryRes, _stateVec->read(lcv));
+        };
         par_for_set(CastStateVecSparse()->iterable(0, skipPower, 0), fn);
     } else {
+        const bitCapIntOcl lengthPower = pow2Ocl(valueLength);
+        const bitCapIntOcl carryMask = pow2Ocl(carryIndex);
+        const bitCapIntOcl inputMask = bitRegMaskOcl(indexStart, indexLength);
+        const bitCapIntOcl outputMask = bitRegMaskOcl(valueStart, valueLength);
+        const bitCapIntOcl otherMask = (maxQPowerOcl - 1U) & (~(inputMask | outputMask | carryMask));
+        const bitCapIntOcl skipPower = pow2Ocl(carryIndex);
+
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            // These are qubits that are not directly involved in the
+            // operation. We iterate over all of their possibilities, but their
+            // input value matches their output value:
+            const bitCapIntOcl otherRes = lcv & otherMask;
+
+            // These are bits that index the classical memory we're loading from:
+            const bitCapIntOcl inputRes = lcv & inputMask;
+
+            // If we read these as a char type, this is their value as a char:
+            const bitCapIntOcl inputInt = inputRes >> indexStart;
+
+            // This is the initial value that's entangled with the "inputStart"
+            // register in "outputStart."
+            bitCapIntOcl outputRes = lcv & outputMask;
+
+            // Maintaining the entanglement, we subtract the classical input
+            // value corresponding with the state of the "inputStart" register
+            // from "outputStart" register value its entangled with in this
+            // iteration of the loop.
+            bitCapIntOcl outputInt = 0;
+            if (valueBytes == 1) {
+                outputInt = values[inputInt];
+            } else if (valueBytes == 2) {
+                outputInt = ((uint16_t*)values)[inputInt];
+            } else if (valueBytes == 4) {
+                outputInt = ((uint32_t*)values)[inputInt];
+            } else {
+                for (bitLenInt j = 0; j < valueBytes; ++j) {
+                    outputInt |= (bitCapIntOcl)values[inputInt * valueBytes + j] << (8U * j);
+                }
+            }
+            outputInt = (outputRes >> valueStart) + (lengthPower - (outputInt + carryIn));
+
+            // If our subtractions results in less than 0, we add 256 and
+            // entangle the carry as set.  (Since we're using unsigned types,
+            // we start by adding 256 with the carry, and then subtract 256 and
+            // clear the carry if we don't have a borrow-out.)
+            bitCapIntOcl carryRes = 0;
+
+            if (outputInt >= lengthPower) {
+                outputInt -= lengthPower;
+                carryRes = carryMask;
+            }
+
+            // We shift the output integer back to correspondence with its
+            // register bits, and entangle it with the input and carry, and
+            // shunt the uninvoled "other" bits from input to output.
+            outputRes = outputInt << valueStart;
+
+            nStateVec->write(outputRes | inputRes | otherRes | carryRes, stateVec->read(lcv));
+        };
         par_for_skip(0, maxQPowerOcl, skipPower, valueLength, fn);
     }
 
@@ -1236,35 +1430,55 @@ void QEngineCPU::Hash(bitLenInt start, bitLenInt length, const unsigned char* va
     CHECK_ZERO_SKIP();
 
     const bitLenInt bytes = (length + 7U) >> 3U;
-    const bitCapIntOcl inputMask = bitRegMaskOcl(start, length);
 
     Finish();
 
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
     nStateVec->clear();
 
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        const bitCapIntOcl inputRes = lcv & inputMask;
-        const bitCapIntOcl inputInt = inputRes >> start;
-        bitCapIntOcl outputInt = 0;
-        if (bytes == 1) {
-            outputInt = values[inputInt];
-        } else if (bytes == 2) {
-            outputInt = ((uint16_t*)values)[inputInt];
-        } else if (bytes == 4) {
-            outputInt = ((uint32_t*)values)[inputInt];
-        } else {
-            for (bitCapIntOcl j = 0; j < bytes; ++j) {
-                outputInt |= (bitCapIntOcl)values[inputInt * bytes + j] << (8U * j);
-            }
-        }
-        bitCapIntOcl outputRes = outputInt << start;
-        nStateVec->write(outputRes | (lcv & ~inputRes), stateVec->read(lcv));
-    };
-
     if (stateVec->is_sparse()) {
+        const bitCapInt inputMask = bitRegMaskOcl(start, length);
+        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
+        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            const bitCapInt inputRes = lcv & inputMask;
+            const bitCapInt inputInt = inputRes >> start;
+            bitCapInt outputInt = 0;
+            if (bytes == 1) {
+                outputInt = values[(uint64_t)inputInt];
+            } else if (bytes == 2) {
+                outputInt = ((uint16_t*)values)[(uint64_t)inputInt];
+            } else if (bytes == 4) {
+                outputInt = ((uint32_t*)values)[(uint64_t)inputInt];
+            } else {
+                for (bitLenInt j = 0; j < bytes; ++j) {
+                    outputInt = outputInt | (values[(uint64_t)(inputInt * bytes + j)] << (8U * j));
+                }
+            }
+            bitCapInt outputRes = outputInt << start;
+            _nStateVec->write(outputRes | (lcv & ~inputRes), _stateVec->read(lcv));
+        };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
+        const bitCapIntOcl inputMask = bitRegMaskOcl(start, length);
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            const bitCapIntOcl inputRes = lcv & inputMask;
+            const bitCapIntOcl inputInt = inputRes >> start;
+            bitCapIntOcl outputInt = 0;
+            if (bytes == 1) {
+                outputInt = values[inputInt];
+            } else if (bytes == 2) {
+                outputInt = ((uint16_t*)values)[inputInt];
+            } else if (bytes == 4) {
+                outputInt = ((uint32_t*)values)[inputInt];
+            } else {
+                for (bitLenInt j = 0; j < bytes; ++j) {
+                    outputInt |= (bitCapIntOcl)values[inputInt * bytes + j] << (8U * j);
+                }
+            }
+            bitCapIntOcl outputRes = outputInt << start;
+            nStateVec->write(outputRes | (lcv & ~inputRes), stateVec->read(lcv));
+        };
         par_for(0, maxQPowerOcl, fn);
     }
 
