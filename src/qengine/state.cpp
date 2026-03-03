@@ -376,7 +376,7 @@ void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* m
     }
 
     Dispatch(maxQPowerOcl >> bitCount,
-        [this, mtrxS, qPowersSorted, offset1, offset2, doCalcNorm, doApplyNorm, nrm, nrm_thresh, bitCount] {
+        [this, mtrxS, qPowersSorted, offset1, offset2, doCalcNorm, doApplyNorm, nrm, nrm_thresh] {
             complex* mtrx = mtrxS.get();
 
             const real1_f norm_thresh = (nrm_thresh < ZERO_R1) ? amplitudeFloor : nrm_thresh;
@@ -689,7 +689,7 @@ void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* m
     }
 
     Dispatch(maxQPowerOcl >> bitCount,
-        [this, mtrxS, qPowersSorted, offset1, offset2, doCalcNorm, doApplyNorm, nrm, nrm_thresh, bitCount] {
+        [this, mtrxS, qPowersSorted, offset1, offset2, doCalcNorm, doApplyNorm, nrm, nrm_thresh] {
             complex* mtrx = mtrxS.get();
             const complex mtrx0 = mtrx[0U];
             const complex mtrx1 = mtrx[1U];
