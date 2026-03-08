@@ -52,7 +52,15 @@ print(f"multiplicity = {multiplicity}")
 
 # Lithium (and lighter):
 
-# geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 1.595))]  # LiH Molecule
+# geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 1.596))]  # equilibrium
+# geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 2.5))]   # stretched
+geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 4.0))]   # near dissociation
+
+# Beryllium (and lighter):
+
+# geometry = [('H', (0.0, 0.0, -1.335)), ('Be', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 1.335))]  # equilibrium
+# geometry = [('H', (0.0, 0.0, -2.5)), ('Be', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 2.5))]  # stretched
+# geometry = [('H', (0.0, 0.0, -4.0)), ('Be', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 4.0))]  # near dissociation
 
 # Carbon (and lighter):
 
@@ -67,25 +75,37 @@ print(f"multiplicity = {multiplicity}")
 
 # Nitrogen (and lighter):
 
-# geometry = [('N', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 1.10))]  # N2 Molecule
+# geometry = [('N', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 1.095))]  # N2 Molecule
+# geometry = [('N', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 3.0))]  # stretched
 
 # Ammonia:
-geometry = [
-    ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
-    ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
-    ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
-    ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
-]
+# geometry = [
+#     ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
+#     ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
+#     ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
+#     ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
+# ]
 
 # Oxygen (and lighter):
 
 # geometry = [('O', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 0.97))]  # OH- Radical
-# geometry = [('O', (0.0000, 0.0000, 0.0000)), ('H', (0.7586, 0.0000, 0.5043)),  ('H', (-0.7586, 0.0000, 0.5043))]  # H2O Molecule
 # geometry = [('C', (0.0000, 0.0000, 0.0000)), ('O', (0.0000, 0.0000, 1.128))]  # CO Molecule
 # geometry = [('C', (0.0000, 0.0000, 0.0000)), ('O', (0.0000, 0.0000, 1.16)), ('O', (0.0000, 0.0000, -1.16))]  # CO2 Molecule
 # geometry = [('O', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 1.55))]  # NO Molecule
 # geometry = [('O', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 11.5))]  # NO+ Radical
 # geometry = [('O', (0.0, 0.0, 0.0)), ('O', (0.0, 0.0, 1.21))]  # O2 Molecule
+
+# geometry = [
+#     ('O', (0.0000, 0.0000, 0.1173)),
+#     ('H', (0.0000, 0.7572, -0.4692)),
+#     ('H', (0.0000, -0.7572, -0.4692))
+# ]  # H2O equilibrium, bond length ~0.957 Å, angle ~104.5°
+
+# geometry = [
+#     ('O', (0.0000, 0.0000, 0.0000)),
+#     ('H', (0.0000, 0.7572, -0.4692)),      # fixed
+#     ('H', (0.0000, -2.5000, -0.4692))      # stretched
+# ]
 
 # Nitrogen dioxide (toxic pollutant)
 # geometry = [
@@ -419,7 +439,7 @@ while is_charge_update:
 
     if n_electrons != r_electrons or multiplicity != r_multiplicity:
         print()
-        print("Regresssed electron count doesn't match the assumptions!")
+        print("Regresssed electron count or multiplicity doesn't match the assumptions!")
         print("Running again with the natural parameters replacing your assumptions:")
         print(f"charge = {r_charge}")
         print(f"multiplicity = {r_multiplicity}")
@@ -429,7 +449,7 @@ while is_charge_update:
         multiplicity = r_multiplicity
         is_charge_update = True
 
-# Step 6: Variational Hamiltonian
+# Step 5: Variational Hamiltonian
 coeffs = []
 observables = []
 for term, coeff in fermion_ham.terms.items():
@@ -455,31 +475,23 @@ for term, coeff in fermion_ham.terms.items():
 
 hamiltonian = qml.Hamiltonian(coeffs, observables)
 
-# Step 5: Variational fit
-def fit_entanglement(hamiltonian, best_theta, n_qubits, min_energy):
+# Step 7: Variational fit
+def fit_u3(hamiltonian, best_theta, n_qubits, min_energy):
     # Fast low-width simulation:
     dev = qml.device("lightning.qubit", wires=n_qubits)
-    # Ideal simulation with "automatic circuit elision" approximation for large circuits:
-    # dev = qml.device("qrack.simulator", wires=n_qubits, isTensorNetwork=False)
-    # Schmidt-decomposed, and does Clifford+RZ gate set:
-    # dev = qml.device("qrack.simulator", wires=n_qubits, isTensorNetwork=False, isSchmidtDecompose=False, isStabilizerHybrid=True)
+    # Keeps qubits fully separable if no entangling gates are needed:
+    # dev = qml.device("qrack.simulator", wires=n_qubits, isTensorNetwork=False, isStabilizerHybrid=False)
 
     @qml.qnode(dev)
     def circuit(theta, delta):
         for i in range(n_qubits):
             if theta[i] == 1:
                 qml.X(wires=i)
-            qml.RY(delta[i], wires=i)
-            # Near-Clifford:
-            # qml.H(wires=i)
-            # qml.RZ(delta[i], wires=i)
-            # qml.H(wires=i)
-        for i in range(n_qubits-1):
-            qml.CZ(wires=[i, i+1])
-        qml.CZ(wires=[n_qubits-1, 0])
+            i3 = i * 3
+            qml.U3(delta[i3], delta[i3 + 1], delta[i3 + 2], wires=i)
         return qml.expval(hamiltonian)
 
-    best_delta = nppl.zeros(n_qubits, dtype=float, requires_grad=True)
+    best_delta = nppl.zeros(3 * n_qubits, dtype=float, requires_grad=True)
     delta = best_delta.copy()
     opt = qml.AdamOptimizer(stepsize=(np.pi / 1800)) #one tenth a degree
     num_steps = 100
@@ -495,7 +507,7 @@ def fit_entanglement(hamiltonian, best_theta, n_qubits, min_energy):
     return best_theta, best_delta, min_energy
 
 # Run threaded bootstrap
-theta, delta, min_energy = fit_entanglement(hamiltonian, theta, n_qubits, min_energy)
+theta, delta, min_energy = fit_u3(hamiltonian, theta, n_qubits, min_energy)
 
 print(f"\nFinal Ground State Energy: {min_energy} Ha")
 print("Final Parameters:")

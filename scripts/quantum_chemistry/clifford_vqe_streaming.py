@@ -2,10 +2,6 @@
 # Developed with help from (OpenAI custom GPT) Elara
 # (Requires OpenFermion)
 
-import pennylane as qml
-from pennylane import numpy as nppl
-from catalyst import qjit
-
 from openfermion import MolecularData, FermionOperator, jordan_wigner, get_fermion_operator
 from openfermionpyscf import run_pyscf
 
@@ -15,14 +11,6 @@ import numpy as np
 import os
 import random
 
-
-# Step 0: Set environment variables (before running script)
-
-# On command line or by .env file, you can set the following variables
-# QRACK_DISABLE_QUNIT_FIDELITY_GUARD=1: For large circuits, automatically "elide," for approximation
-# QRACK_NONCLIFFORD_ROUNDING_THRESHOLD=[0 to 1]: Sacrifices near-Clifford accuracy to reduce overhead
-# QRACK_QUNIT_SEPARABILITY_THRESHOLD=[0 to 1]: Rounds to separable states more aggressively
-# QRACK_QBDT_SEPARABILITY_THRESHOLD=[0 to 0.5]: Rounding for QBDD, if actually used
 
 # Step 1: Define the molecule (Hydrogen, Helium, Lithium, Carbon, Nitrogen, Oxygen)
 
@@ -52,7 +40,15 @@ print(f"multiplicity = {multiplicity}")
 
 # Lithium (and lighter):
 
-# geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 1.595))]  # LiH Molecule
+# geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 1.596))]  # equilibrium
+# geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 2.5))]   # stretched
+geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 4.0))]   # near dissociation
+
+# Beryllium (and lighter):
+
+# geometry = [('H', (0.0, 0.0, -1.335)), ('Be', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 1.335))]  # equilibrium
+# geometry = [('H', (0.0, 0.0, -2.5)), ('Be', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 2.5))]  # stretched
+# geometry = [('H', (0.0, 0.0, -4.0)), ('Be', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 4.0))]  # near dissociation
 
 # Carbon (and lighter):
 
@@ -67,25 +63,37 @@ print(f"multiplicity = {multiplicity}")
 
 # Nitrogen (and lighter):
 
-# geometry = [('N', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 1.10))]  # N2 Molecule
+# geometry = [('N', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 1.095))]  # N2 Molecule
+# geometry = [('N', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 3.0))]  # stretched
 
 # Ammonia:
-geometry = [
-    ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
-    ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
-    ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
-    ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
-]
+# geometry = [
+#     ('N', (0.0000, 0.0000, 0.0000)),  # Nitrogen at center
+#     ('H', (0.9400, 0.0000, -0.3200)),  # Hydrogen 1
+#     ('H', (-0.4700, 0.8130, -0.3200)), # Hydrogen 2
+#     ('H', (-0.4700, -0.8130, -0.3200)) # Hydrogen 3
+# ]
 
 # Oxygen (and lighter):
 
 # geometry = [('O', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 0.97))]  # OH- Radical
-# geometry = [('O', (0.0000, 0.0000, 0.0000)), ('H', (0.7586, 0.0000, 0.5043)),  ('H', (-0.7586, 0.0000, 0.5043))]  # H2O Molecule
 # geometry = [('C', (0.0000, 0.0000, 0.0000)), ('O', (0.0000, 0.0000, 1.128))]  # CO Molecule
 # geometry = [('C', (0.0000, 0.0000, 0.0000)), ('O', (0.0000, 0.0000, 1.16)), ('O', (0.0000, 0.0000, -1.16))]  # CO2 Molecule
 # geometry = [('O', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 1.55))]  # NO Molecule
 # geometry = [('O', (0.0, 0.0, 0.0)), ('N', (0.0, 0.0, 11.5))]  # NO+ Radical
 # geometry = [('O', (0.0, 0.0, 0.0)), ('O', (0.0, 0.0, 1.21))]  # O2 Molecule
+
+# geometry = [
+#     ('O', (0.0000, 0.0000, 0.1173)),
+#     ('H', (0.0000, 0.7572, -0.4692)),
+#     ('H', (0.0000, -0.7572, -0.4692))
+# ]  # H2O equilibrium, bond length ~0.957 Å, angle ~104.5°
+
+# geometry = [
+#     ('O', (0.0000, 0.0000, 0.0000)),
+#     ('H', (0.0000, 0.7572, -0.4692)),      # fixed
+#     ('H', (0.0000, -2.5000, -0.4692))      # stretched
+# ]
 
 # Nitrogen dioxide (toxic pollutant)
 # geometry = [
@@ -242,69 +250,82 @@ def geometry_to_atom_str(geometry):
         for symbol, (x, y, z) in geometry
     )
 
-def initial_energy(theta_bits, z_hamiltonian):
+def initial_energy(theta_bits):
     energy = 0.0
-    for qubits, coeff in z_hamiltonian:
-        for qubit in qubits:
-            if theta_bits[qubit]:
-                coeff *= -1
-        energy += coeff
+    z_qubits = set()
+    for term, coeff in fermion_ham.terms.items():
+        jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
+
+        for pauli_string, jw_coeff in jw_term.terms.items():
+            # Skip terms with X or Y
+            if any(p in ('X', 'Y') for _, p in pauli_string):
+                continue
+
+            term_value = jw_coeff.real
+            q = []
+            for qubit, op in pauli_string:
+                # Z/I terms: keep only Z
+                if op != "Z":
+                    continue
+                q.append(qubit)
+                z_qubits.add(qubit)
+                if theta_bits[qubit]:
+                    term_value *= -1
+            energy += term_value
+
+    z_qubits = list(z_qubits)
+
+    return energy, z_qubits
+
+def compute_energy(theta_bits):
+    # Step 4: Iterate JW terms without materializing full op
+    energy = 0.0
+    for term, coeff in fermion_ham.terms.items():
+        jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
+
+        for pauli_string, jw_coeff in jw_term.terms.items():
+            # Skip terms with X or Y
+            if any(p in ('X', 'Y') for _, p in pauli_string):
+                continue
+
+            # Evaluate expectation value on computational basis state
+            term_value = jw_coeff.real
+            for qubit, op in pauli_string:
+                if op == 'Z':
+                    if theta_bits[qubit]:
+                        term_value *= -1
+
+            energy += term_value
 
     return energy
 
 
-def compute_energy(theta_bits, z_hamiltonian, indices, energy):
-    """
-    Computes the exact expectation value of a Hamiltonian on a computational basis state.
-
-    Args:
-        theta_bits: list of 0/1 integers representing the eigenstate in computational basis
-        hamiltonian: list of (coefficient, PauliString) terms
-
-    Returns:
-        energy (float)
-    """
-    indices = set(indices)
-    for qubits, coeff in z_hamiltonian:
-        overlap = set(qubits) & indices
-        if (len(overlap) & 1) == 0:
-            continue
-        # Z/I terms → product of ±1 from computational basis bits
-        value = 2 * coeff
-        for qubit in qubits:
-            if theta_bits[qubit]:
-                value *= -1
-        energy += value
-
-    return energy
-
-
-def bootstrap_worker(theta, z_hamiltonian, indices, energy):
+def bootstrap_worker(theta, indices):
     local_theta = theta.copy()
     for i in indices:
         local_theta[i] = not local_theta[i]
-    energy = compute_energy(local_theta, z_hamiltonian, indices, energy)
+    energy = compute_energy(local_theta)
 
     return energy
 
 
-def bootstrap(theta, z_hamiltonian, k, indices_array, energy):
+def bootstrap(theta, k, indices_array):
     n = len(indices_array) // k
     with multiprocessing.Pool(processes=os.cpu_count()) as pool:
         args = []
         for i in range(n):
             j = i * k
-            args.append((theta, z_hamiltonian, indices_array[j : j + k], energy))
+            args.append((theta, indices_array[j : j + k]))
         energies = pool.starmap(bootstrap_worker, args)
 
     return energies
 
 
-def multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, reheat_tries=0):
+def multiprocessing_bootstrap(n_qubits, reheat_tries=0):
     best_theta = np.random.randint(2, size=n_qubits)
+    min_energy, z_qubits = initial_energy(best_theta)
     n_qubits = len(z_qubits)
     print(f"Z qubits: {n_qubits}")
-    min_energy = initial_energy(best_theta, z_hamiltonian)
 
     combos_list = []
     reheat_theta = best_theta.copy()
@@ -327,7 +348,7 @@ def multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, reheat_tries=0)
                 else:
                     combos = combos_list[k - 1]
 
-                energies = bootstrap(reheat_theta, z_hamiltonian, k, combos, reheat_min_energy)
+                energies = bootstrap(reheat_theta, k, combos)
 
                 energy = min(energies)
                 index_match = energies.index(energy)
@@ -350,7 +371,6 @@ def multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, reheat_tries=0)
 
         if min_energy < reheat_min_energy:
             reheat_theta = best_theta.copy()
-            reheat_min_energy = min_energy
         else:
             best_theta = reheat_theta.copy()
             min_energy = reheat_min_energy
@@ -361,7 +381,7 @@ def multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, reheat_tries=0)
             bits_to_flip = random.sample(list(range(n_qubits)), num_to_flip)
             for bit in bits_to_flip:
                 reheat_theta[bit] = not reheat_theta[bit]
-            reheat_min_energy = compute_energy(reheat_theta, z_hamiltonian, bits_to_flip, reheat_min_energy)
+            reheat_min_energy = compute_energy(reheat_theta)
 
     return best_theta, min_energy
 
@@ -379,31 +399,8 @@ while is_charge_update:
     print(f"{n_electrons} electrons...")
     print(f"{n_qubits} qubits...")
 
-    # Step 3: Iterate JW terms without materializing full op
-    z_hamiltonian = []
-    z_qubits = set()
-    for term, coeff in fermion_ham.terms.items():
-        jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
-
-        for pauli_string, jw_coeff in jw_term.terms.items():
-            # Skip terms with X or Y
-            if any(p in ('X', 'Y') for _, p in pauli_string):
-                continue
-
-            q = []
-            for qubit, op in pauli_string:
-                # Z/I terms: keep only Z
-                if op != "Z":
-                    continue
-                q.append(qubit)
-                z_qubits.add(qubit)
-
-            z_hamiltonian.append((q, jw_coeff.real))
-
-    z_qubits = list(z_qubits)
-
-    # Step 4: Bootstrap!
-    theta, min_energy = multiprocessing_bootstrap(z_hamiltonian, z_qubits, n_qubits, 1)
+    # Step 3: Bootstrap!
+    theta, min_energy = multiprocessing_bootstrap(n_qubits, 1)
 
     print(f"\nFinal Bootstrap Ground State Energy: {min_energy} Ha")
     print("Final Bootstrap Parameters:")
@@ -419,7 +416,7 @@ while is_charge_update:
 
     if n_electrons != r_electrons or multiplicity != r_multiplicity:
         print()
-        print("Regresssed electron count doesn't match the assumptions!")
+        print("Regresssed electron count or multiplicity doesn't match the assumptions!")
         print("Running again with the natural parameters replacing your assumptions:")
         print(f"charge = {r_charge}")
         print(f"multiplicity = {r_multiplicity}")
@@ -428,68 +425,3 @@ while is_charge_update:
         charge = r_charge
         multiplicity = r_multiplicity
         is_charge_update = True
-
-# Step 5: Variational Hamiltonian
-coeffs = []
-observables = []
-for term, coeff in fermion_ham.terms.items():
-    jw_term = jordan_wigner(FermionOperator(term=term, coefficient=coeff))  # Transform single term
-
-    for pauli_string, jw_coeff in jw_term.terms.items():
-        pauli_operators = []
-        for qubit_idx, pauli in pauli_string:
-            if pauli == "X":
-                pauli_operators.append(qml.PauliX(qubit_idx))
-            elif pauli == "Y":
-                pauli_operators.append(qml.PauliY(qubit_idx))
-            elif pauli == "Z":
-                pauli_operators.append(qml.PauliZ(qubit_idx))
-        if pauli_operators:
-            observable = pauli_operators[0]
-            for op in pauli_operators[1:]:
-                observable = observable @ op
-            observables.append(observable)
-        else:
-            observables.append(qml.Identity(0))  # Default identity if no operators
-        coeffs.append(qml.numpy.array(jw_coeff.real, requires_grad=False))
-
-hamiltonian = qml.Hamiltonian(coeffs, observables)
-
-# Step 7: Variational fit
-def fit_u3(hamiltonian, best_theta, n_qubits, min_energy):
-    # Fast low-width simulation:
-    dev = qml.device("lightning.qubit", wires=n_qubits)
-    # Keeps qubits fully separable if no entangling gates are needed:
-    # dev = qml.device("qrack.simulator", wires=n_qubits, isTensorNetwork=False, isStabilizerHybrid=False)
-
-    @qml.qnode(dev)
-    def circuit(theta, delta):
-        for i in range(n_qubits):
-            if theta[i] == 1:
-                qml.X(wires=i)
-            i3 = i * 3
-            qml.U3(delta[i3], delta[i3 + 1], delta[i3 + 2], wires=i)
-        return qml.expval(hamiltonian)
-
-    best_delta = nppl.zeros(3 * n_qubits, dtype=float, requires_grad=True)
-    delta = best_delta.copy()
-    opt = qml.AdamOptimizer(stepsize=(np.pi / 1800)) #one tenth a degree
-    num_steps = 100
-    for step in range(num_steps):
-        delta = opt.step(lambda delta: circuit(best_theta, delta), delta)
-        energy = circuit(best_theta, delta)
-        print(f"Step {step+1}: Energy = {energy} Ha")
-        if energy < min_energy:
-            min_energy = energy
-            best_delta = delta.copy()
-        print(best_delta)
-
-    return best_theta, best_delta, min_energy
-
-# Run threaded bootstrap
-theta, delta, min_energy = fit_u3(hamiltonian, theta, n_qubits, min_energy)
-
-print(f"\nFinal Ground State Energy: {min_energy} Ha")
-print("Final Parameters:")
-print(theta)
-print(delta)
