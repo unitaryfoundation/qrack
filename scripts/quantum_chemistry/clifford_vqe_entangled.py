@@ -18,8 +18,8 @@ from pennylane import numpy as nppl
 
 # Step 1: Define the molecule (Hydrogen, Helium, Lithium, Carbon, Nitrogen, Oxygen)
 
-# basis = "sto-3g"  # Minimal Basis Set
-basis = '6-31g'  # Larger basis set
+basis = "sto-3g"  # Minimal Basis Set
+# basis = '6-31g'  # Larger basis set
 # basis = 'cc-pVDZ' # Even larger basis set!
 multiplicity = 1  # singlet, closed shell, all electrons are paired (neutral molecules with full valence)
 # multiplicity = 2  # doublet, one unpaired electron (ex.: OH- radical)
@@ -424,8 +424,8 @@ def fit_ig_entanglement(pl_hamiltonian, bootstrap_theta, n_qubits, ig_edges,
 
         return qml.expval(pl_hamiltonian)
 
-    delta = nppl.zeros(n_qubits, dtype=float, requires_grad=True)
-    gamma = nppl.zeros(n_edges,  dtype=float, requires_grad=True)
+    delta = nppl.array(np.random.uniform(-0.1, 0.1, n_qubits), requires_grad=True)
+    gamma = nppl.array(np.random.uniform(-0.1, 0.1, n_edges), requires_grad=True)
 
     opt        = qml.AdamOptimizer(stepsize=stepsize)
     min_energy = bootstrap_energy
