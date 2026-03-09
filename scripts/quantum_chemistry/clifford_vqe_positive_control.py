@@ -116,7 +116,7 @@ pl_hamiltonian = qml.Hamiltonian(coeffs, observables)
 
 # ── VQE runner ────────────────────────────────────────────────────────────────
 
-def run_vqe(label, bootstrap_theta, n_steps=200, stepsize=np.pi/1800):
+def run_vqe(label, bootstrap_theta, n_steps=200, stepsize=np.pi/180):
     print(f"\n── {label} ──")
     print(f"  Initial θ: {bootstrap_theta.astype(int)}")
     initial_energy = z_energy(bootstrap_theta)

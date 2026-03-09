@@ -377,7 +377,7 @@ def phase1_bootstrap(z_hamiltonian, z_qubits, n_qubits, reheat_tries=1):
 # around the bootstrap product state.  gamma=0 recovers the pure product state.
 
 def fit_ig_entanglement(pl_hamiltonian, bootstrap_theta, n_qubits, ig_edges,
-                        bootstrap_energy, n_steps=50, stepsize=np.pi/1800):
+                        bootstrap_energy, n_steps=100, stepsize=np.pi/180):
 
     n_edges = len(ig_edges)
     print(f"  [P2] Interaction graph: {n_edges} edges.")
@@ -526,7 +526,7 @@ while is_charge_update:
     print("\n── Phase 2: interaction-graph weak-entanglement VQE ──")
     best_delta, best_gamma, energy_p2 = fit_ig_entanglement(
         pl_hamiltonian, theta, n_qubits, ig_edges, energy_p1,
-        n_steps=50, stepsize=np.pi/1800
+        n_steps=100, stepsize=np.pi/180
     )
 
     print(f"\n{'─'*55}")
