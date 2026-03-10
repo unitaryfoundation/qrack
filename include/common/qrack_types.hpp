@@ -69,7 +69,7 @@ constexpr bitCapInt QRACK_MAX_UINT = ~0U;
 #define bitCapInt uint64_t
 #define QRACK_MAX_QUBITS 64
 constexpr bitCapInt QRACK_MAX_UINT = ~0U;
-#elif (QBCAPPOW < 8) && defined(__SIZEOF_INT128__)
+#elif ENABLE_CPP_INT && (QBCAPPOW < 8) && defined(__SIZEOF_INT128__)
 #define bitCapInt unsigned __int128
 #define QRACK_MAX_QUBITS 128
 constexpr bitCapInt QRACK_MAX_UINT = ~0U;
