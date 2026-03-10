@@ -1,4 +1,5 @@
 option (ENABLE_BOOST "Use Boost libraries (if available)" ON)
+option (ENABLE_CPP_INT "Use Boost library cpp_int (if available)" OFF)
 if (ENABLE_BOOST)
     if (POLICY CMP0167)
         cmake_policy(SET CMP0167 NEW)

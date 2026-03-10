@@ -1,5 +1,6 @@
 #cmakedefine ENABLE_ALU 1
 #cmakedefine ENABLE_BCD 1
+#cmakedefine ENABLE_CPP_INT 1
 #cmakedefine ENABLE_DEVRAND 1
 #cmakedefine ENABLE_ENV_VARS 1
 #cmakedefine ENABLE_FMA 1

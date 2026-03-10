@@ -36,7 +36,8 @@
                                                                                                                        \
     return 0;
 
-#if (QBCAPPOW < 7) || ((QBCAPPOW < 8) && defined(__SIZEOF_INT128__)) || ((QBCAPPOW > 7) && defined(BOOST_AVAILABLE))
+#if (QBCAPPOW < 7) || ((QBCAPPOW < 8) && defined(__SIZEOF_INT128__)) ||                                                \
+    ((QBCAPPOW > 7) && defined(BOOST_AVAILABLE) && defined(ENABLE_CPP_INT))
 inline void bi_not_ip(bitCapInt* left) { *left = ~(*left); }
 inline void bi_and_ip(bitCapInt* left, const bitCapInt& right) { *left &= right; }
 inline void bi_or_ip(bitCapInt* left, const bitCapInt& right) { *left |= right; }
@@ -146,7 +147,7 @@ inline bitLenInt popCountOcl(bitCapIntOcl n)
 
 #if (QBCAPPOW < 7) || ((QBCAPPOW < 8) && defined(__SIZEOF_INT128__))
 inline int bi_log2(const bitCapInt& n) { return log2Ocl((bitCapIntOcl)n); }
-#elif (QBCAPPOW > 7) && defined(BOOST_AVAILABLE)
+#elif (QBCAPPOW > 7) && defined(BOOST_AVAILABLE) && defined(ENABLE_CPP_INT)
 inline int bi_log2(const bitCapInt& n) { return boost::multiprecision::msb(n); }
 #endif
 inline bitLenInt log2(bitCapInt n) { return (bitLenInt)bi_log2(n); }

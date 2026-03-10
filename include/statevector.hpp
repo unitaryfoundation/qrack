@@ -25,7 +25,7 @@
 #include <future>
 #endif
 
-#if (QBCAPPOW > 6) && BOOST_AVAILABLE
+#if ENABLE_CPP_INT && (QBCAPPOW > 6) && BOOST_AVAILABLE
 #include <map>
 #define SparseStateVecMap std::map<bitCapInt, complex>
 #else
