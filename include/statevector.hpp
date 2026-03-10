@@ -25,12 +25,12 @@
 #include <future>
 #endif
 
-#if QBCAPPOW > 6
+#if (QBCAPPOW > 6) && BOOST_AVAILABLE
 #include <map>
 #define SparseStateVecMap std::map<bitCapInt, complex>
 #else
 #include <unordered_map>
-#define SparseStateVecMap std::unordered_map<bitCapIntOcl, complex>
+#define SparseStateVecMap std::unordered_map<bitCapInt, complex>
 #endif
 
 #if ENABLE_COMPLEX_X2
@@ -304,12 +304,8 @@ public:
         // Partial sort: O(n) average via nth_element
         // After this, nrmKeys[maxAmps-1] is the pivot,
         // elements [0, maxAmps) are the largest (unordered)
-        std::nth_element(
-            nrmKeys.begin(),
-            nrmKeys.begin() + (nrmKeys.size() - maxAmps),
-            nrmKeys.end(),
-            [](const auto& a, const auto& b) { return a.first < b.first; }
-        );
+        std::nth_element(nrmKeys.begin(), nrmKeys.begin() + (nrmKeys.size() - maxAmps), nrmKeys.end(),
+            [](const auto& a, const auto& b) { return a.first < b.first; });
 
         // Pivot norm — everything at or above this index survives
         const real1 limit = nrmKeys[nrmKeys.size() - maxAmps].first;

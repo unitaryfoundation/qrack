@@ -39,6 +39,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 
 using std::size_t;
 
@@ -542,3 +543,33 @@ void bi_div_mod_small(
  * Complexity - O(log)
  */
 void bi_div_mod(const BigInteger& left, const BigInteger& right, BigInteger* quotient, BigInteger* rmndr);
+
+// Hashing provided by (Anthropic) Claude
+struct BigIntegerHash {
+    size_t operator()(const BigInteger& bi) const noexcept
+    {
+        // Murmur-inspired word combination
+        // Fast, good distribution, no external dependencies
+        size_t seed = BIG_INTEGER_WORD_SIZE;
+        for (int i = 0; i < BIG_INTEGER_WORD_SIZE; ++i) {
+            // Mix the lower 64 bits of each word
+            size_t word = static_cast<size_t>(bi.bits[i]);
+            word = (~word) + (word << 21);
+            word ^= word >> 24;
+            word += (word << 3) + (word << 8);
+            word ^= word >> 14;
+            word += (word << 2) + (word << 4);
+            word ^= word >> 28;
+            word += word << 31;
+            seed ^= word + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        return seed;
+    }
+};
+
+// Hash injection provided by (Anthropic) Claude
+namespace std {
+template <> struct hash<BigInteger> {
+    size_t operator()(const BigInteger& bi) const noexcept { return BigIntegerHash{}(bi); }
+};
+} // namespace std
