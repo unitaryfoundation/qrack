@@ -55,7 +55,7 @@ using std::size_t;
 #define bitCapIntOcl uint16_t
 #elif UINTPOW < 6
 #define bitCapIntOcl uint32_t
-#elif (UINTPOW < 7) || !defined(__SIZEOF_INT128__)
+#elif (UINTPOW < 7) || !defined(__SIZEOF_INT128__) || !defined(ENABLE_CPP_INT)
 #define bitCapIntOcl uint64_t
 #else
 #define bitCapIntOcl unsigned __int128
