@@ -287,55 +287,63 @@ public:
         }
     }
 
+    // Rewrite of truncate_to_size() by (Anthropic) Claude, with thanks!
     real1_f truncate_to_size(size_t maxAmps)
     {
         if (amplitudes.size() <= maxAmps) {
             return ONE_R1_F;
         }
 
-        std::multiset<real1> nrms;
+        // Single pass: extract (norm, key) pairs into a flat vector
+        std::vector<std::pair<real1, bitCapInt>> nrmKeys;
+        nrmKeys.reserve(amplitudes.size());
         for (const auto& pair : amplitudes) {
-            real1 nrm = norm(pair.second);
-            if (nrms.size() < maxAmps) {
-                nrms.insert(nrm);
-            } else if (*(nrms.begin()) < nrm) {
-                nrms.erase(nrms.begin());
-                nrms.insert(nrm);
-            }
+            nrmKeys.emplace_back(norm(pair.second), pair.first);
         }
 
-        const real1 limit = *(nrms.begin());
-        const real1 fidelity = std::accumulate(nrms.begin(), nrms.end(), ZERO_R1);
-        const real1 nrm = ONE_R1 / (real1)std::sqrt((real1_s)fidelity);
-        nrms.clear();
+        // Partial sort: O(n) average via nth_element
+        // After this, nrmKeys[maxAmps-1] is the pivot,
+        // elements [0, maxAmps) are the largest (unordered)
+        std::nth_element(
+            nrmKeys.begin(),
+            nrmKeys.begin() + (nrmKeys.size() - maxAmps),
+            nrmKeys.end(),
+            [](const auto& a, const auto& b) { return a.first < b.first; }
+        );
 
-        SparseStateVecMap nAmplitudes;
-        for (auto it = amplitudes.begin(); it != amplitudes.end(); ++it) {
-            if (norm(it->second) >= limit) {
-                nAmplitudes[it->first] = it->second;
-            }
+        // Pivot norm — everything at or above this index survives
+        const real1 limit = nrmKeys[nrmKeys.size() - maxAmps].first;
+
+        // Accumulate fidelity from survivors and erase losers in one pass
+        real1 fidelity = ZERO_R1;
+        for (size_t i = nrmKeys.size() - maxAmps; i < nrmKeys.size(); ++i) {
+            fidelity += nrmKeys[i].first;
         }
-        amplitudes.clear();
-        amplitudes = nAmplitudes;
-        nAmplitudes.clear();
 
+        // Erase from map directly — no copy of nAmplitudes needed
+        for (size_t i = 0; i < nrmKeys.size() - maxAmps; ++i) {
+            amplitudes.erase(nrmKeys[i].second);
+        }
+
+        // Handle tie-breaking: if we kept too many at exactly `limit`
         if (amplitudes.size() > maxAmps) {
-            std::vector<bitCapInt> indices;
-            for (auto it = amplitudes.begin(); it != amplitudes.end(); ++it) {
-                if (norm(it->second) == limit) {
-                    indices.push_back(it->first);
+            std::vector<bitCapInt> ties;
+            for (const auto& pair : amplitudes) {
+                if (norm(pair.second) == limit) {
+                    ties.push_back(pair.first);
                 }
             }
             std::random_device rd;
             std::mt19937 g(rd());
-            std::shuffle(indices.begin(), indices.end(), g);
-            indices.resize(amplitudes.size() - maxAmps);
-            for (const bitCapInt& idx : indices) {
+            std::shuffle(ties.begin(), ties.end(), g);
+            ties.resize(amplitudes.size() - maxAmps);
+            for (const bitCapInt& idx : ties) {
                 amplitudes.erase(idx);
+                fidelity -= limit;
             }
         }
 
-        // Normalize
+        const real1 nrm = ONE_R1 / (real1)std::sqrt((real1_s)fidelity);
         mult(nrm);
 
         return fidelity;
