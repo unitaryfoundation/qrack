@@ -43,7 +43,7 @@ using std::size_t;
 #define bitLenInt uint16_t
 #elif QBCAPPOW < 32
 #define bitLenInt uint32_t
-#elif (QBCAPPOW < 64) || !defined(__SIZEOF_INT128__)
+#elif (QBCAPPOW < 64) || !defined(__SIZEOF_INT128__) || !defined(ENABLE_CPP_INT)
 #define bitLenInt uint64_t
 #else
 #define bitLenInt unsigned __int128
