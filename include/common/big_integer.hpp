@@ -43,7 +43,7 @@
 
 using std::size_t;
 
-#ifdef __SIZEOF_INT128__
+#if defined(__SIZEOF_INT128__) && defined(ENABLE_CPP_INT)
 #define BIG_INTEGER_WORD_BITS 128U
 #define BIG_INTEGER_WORD_POWER 7U
 #define BIG_INTEGER_WORD unsigned __int128

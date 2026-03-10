@@ -36,8 +36,9 @@
                                                                                                                        \
     return 0;
 
-#if (QBCAPPOW < 7) || (defined(ENABLE_CPP_INT) && (((QBCAPPOW < 8) && defined(__SIZEOF_INT128__)) ||                                                \
-    ((QBCAPPOW > 7) && defined(BOOST_AVAILABLE))))
+#if (QBCAPPOW < 7) ||                                                                                                  \
+    (defined(ENABLE_CPP_INT) &&                                                                                        \
+        (((QBCAPPOW < 8) && defined(__SIZEOF_INT128__)) || ((QBCAPPOW > 7) && defined(BOOST_AVAILABLE))))
 inline void bi_not_ip(bitCapInt* left) { *left = ~(*left); }
 inline void bi_and_ip(bitCapInt* left, const bitCapInt& right) { *left &= right; }
 inline void bi_or_ip(bitCapInt* left, const bitCapInt& right) { *left |= right; }

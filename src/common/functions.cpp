@@ -287,7 +287,7 @@ std::ostream& operator<<(std::ostream& os, const bitCapInt& b)
     bitCapInt _b = b;
     while (bi_compare_0(b) != 0) {
         bitCapInt quo;
-#ifdef __SIZEOF_INT128__
+#if defined(__SIZEOF_INT128__) && defined(ENABLE_CPP_INT)
         uint64_t rem;
 #else
         uint32_t rem;

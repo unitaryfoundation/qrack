@@ -48,13 +48,11 @@ void QEngineCPU::ROL(bitLenInt shift, bitLenInt start, bitLenInt length)
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
 
     if (stateVec->is_sparse()) {
-        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
-        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
         ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
             const bitCapInt otherRes = lcv & otherMask;
             const bitCapInt regInt = (lcv & regMask) >> start;
             const bitCapInt outInt = (regInt >> (length - shift)) | ((regInt << shift) & lengthMask);
-            _nStateVec->write((outInt << start) | otherRes, _stateVec->read(lcv));
+            nStateVec->write((outInt << start) | otherRes, stateVec->read(lcv));
         };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
@@ -99,13 +97,11 @@ void QEngineCPU::INC(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt len
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
 
     if (stateVec->is_sparse()) {
-        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
-        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
         ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
             const bitCapInt otherRes = lcv & otherMask;
             const bitCapInt inOutInt = (lcv & inOutMask) >> inOutStart;
             const bitCapInt outInt = (inOutInt + toAddOcl) & lengthMask;
-            _nStateVec->write((outInt << inOutStart) | otherRes, _stateVec->read(lcv));
+            nStateVec->write((outInt << inOutStart) | otherRes, stateVec->read(lcv));
         };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
@@ -263,8 +259,6 @@ void QEngineCPU::INCS(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt le
 
         Finish();
 
-        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
-        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
         ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
             const bitCapInt otherRes = lcv & otherMask;
             const bitCapInt inOutInt = (lcv & inOutMask) >> inOutStart;
@@ -274,9 +268,9 @@ void QEngineCPU::INCS(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt le
                 : (bitCapInt)(((outInt - lengthPower) << inOutStart) | otherRes);
             const bool isOverflow = isOverflowAdd(inOutInt, toAddOcl, signMask, lengthPower);
             if (isOverflow && ((outRes & overflowMask) == overflowMask)) {
-                _nStateVec->write(outRes, -_stateVec->read(lcv));
+                nStateVec->write(outRes, -stateVec->read(lcv));
             } else {
-                _nStateVec->write(outRes, _stateVec->read(lcv));
+                nStateVec->write(outRes, stateVec->read(lcv));
             }
         };
         par_for_set(CastStateVecSparse()->iterable(), fn);
@@ -979,25 +973,23 @@ bitCapInt QEngineCPU::IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bi
     if (stateVec->is_sparse()) {
         const bitCapInt inputMask = bitRegMask(indexStart, indexLength);
         const bitCapInt skipPower = pow2(valueStart);
-        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
-        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
         ParallelFuncSparse fn;
         if (valueBytes == 1) {
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
-                _nStateVec->write(
-                    lcv | (values[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart), _stateVec->read(lcv));
+                nStateVec->write(
+                    lcv | (values[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart), stateVec->read(lcv));
             };
         } else if (valueBytes == 2) {
             uint16_t* inputIntPtr = (uint16_t*)values;
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
-                _nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
-                    _stateVec->read(lcv));
+                nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
+                    stateVec->read(lcv));
             };
         } else if (valueBytes == 4) {
             uint32_t* inputIntPtr = (uint32_t*)values;
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
-                _nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
-                    _stateVec->read(lcv));
+                nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
+                    stateVec->read(lcv));
             };
         } else {
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
@@ -1007,7 +999,7 @@ bitCapInt QEngineCPU::IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bi
                     outputInt = outputInt | (values[(uint64_t)(inputInt * valueBytes + j)] << (8U * j));
                 }
                 bitCapInt outputRes = outputInt << valueStart;
-                _nStateVec->write(outputRes | lcv, _stateVec->read(lcv));
+                nStateVec->write(outputRes | lcv, stateVec->read(lcv));
             };
         }
         par_for_set(CastStateVecSparse()->iterable(0, skipPower, 0), fn);
@@ -1112,8 +1104,6 @@ bitCapInt QEngineCPU::IndexedADC(bitLenInt indexStart, bitLenInt indexLength, bi
         const bitCapInt otherMask = (maxQPower - 1U) & (~(inputMask | outputMask | carryMask));
         const bitCapInt skipPower = pow2(carryIndex);
 
-        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
-        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
         ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
             // These are qubits that are not directly involved in the
             // operation. We iterate over all of their possibilities, but their
@@ -1160,7 +1150,7 @@ bitCapInt QEngineCPU::IndexedADC(bitLenInt indexStart, bitLenInt indexLength, bi
             // shunt the uninvoled "other" bits from input to output.
             outputRes = outputInt << valueStart;
 
-            _nStateVec->write(outputRes | inputRes | otherRes | carryRes, _stateVec->read(lcv));
+            nStateVec->write(outputRes | inputRes | otherRes | carryRes, stateVec->read(lcv));
         };
         par_for_set(CastStateVecSparse()->iterable(0, skipPower, 0), fn);
     } else {
@@ -1291,8 +1281,6 @@ bitCapInt QEngineCPU::IndexedSBC(bitLenInt indexStart, bitLenInt indexLength, bi
         const bitCapInt otherMask = (maxQPowerOcl - 1U) & (~(inputMask | outputMask | carryMask));
         const bitCapInt skipPower = pow2Ocl(carryIndex);
 
-        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
-        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
         ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
             // These are qubits that are not directly involved in the
             // operation. We iterate over all of their possibilities, but their
@@ -1343,7 +1331,7 @@ bitCapInt QEngineCPU::IndexedSBC(bitLenInt indexStart, bitLenInt indexLength, bi
             // shunt the uninvoled "other" bits from input to output.
             outputRes = outputInt << valueStart;
 
-            _nStateVec->write(outputRes | inputRes | otherRes | carryRes, _stateVec->read(lcv));
+            nStateVec->write(outputRes | inputRes | otherRes | carryRes, stateVec->read(lcv));
         };
         par_for_set(CastStateVecSparse()->iterable(0, skipPower, 0), fn);
     } else {
@@ -1438,8 +1426,6 @@ void QEngineCPU::Hash(bitLenInt start, bitLenInt length, const unsigned char* va
 
     if (stateVec->is_sparse()) {
         const bitCapInt inputMask = bitRegMaskOcl(start, length);
-        StateVectorSparsePtr _nStateVec = std::dynamic_pointer_cast<StateVectorSparse>(nStateVec);
-        StateVectorSparsePtr _stateVec = std::dynamic_pointer_cast<StateVectorSparse>(stateVec);
         ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
             const bitCapInt inputRes = lcv & inputMask;
             const bitCapInt inputInt = inputRes >> start;
@@ -1456,7 +1442,7 @@ void QEngineCPU::Hash(bitLenInt start, bitLenInt length, const unsigned char* va
                 }
             }
             bitCapInt outputRes = outputInt << start;
-            _nStateVec->write(outputRes | (lcv & ~inputRes), _stateVec->read(lcv));
+            nStateVec->write(outputRes | (lcv & ~inputRes), stateVec->read(lcv));
         };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
