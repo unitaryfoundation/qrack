@@ -48,7 +48,7 @@ QTensorNetwork::QTensorNetwork(std::vector<QInterfaceEngine> eng, bitLenInt qBit
     , isQBdt(false)
 #endif
     , devID(deviceId)
-    , aceMb(0U)
+    , aceMb(QRACK_SPARSE_MAX_ALLOC_MB_DEFAULT)
     , aceQubits(0U)
     , qbThreshold(qubitThreshold)
     , separabilityThreshold(sep_thresh)

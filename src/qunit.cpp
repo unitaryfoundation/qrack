@@ -86,7 +86,7 @@ QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCa
     , isCpu(true)
 #endif
     , isSinglePage(false)
-    , aceMb(QRACK_SPARSE_MAX_KEYS)
+    , aceMb(QRACK_SPARSE_MAX_ALLOC_MB_DEFAULT)
     , thresholdQubits(qubitThreshold)
     , separabilityThreshold(sep_thresh)
     , roundingThreshold(FP_NORM_EPSILON_F)
@@ -450,7 +450,7 @@ QInterfacePtr QUnit::EntangleInCurrentBasis(
                 found[shards[**bit].unit] = true;
                 units.push_back(shards[**bit].unit);
                 mem = mem * units.back()->GetAmplitudeCount();
-                if (mem > aceMb) {
+                if ((SPARSE_KEY_BYTES * mem) > (aceMb * 1024 * 1024)) {
                     Copy(backupCopy);
                     throw bad_alloc("RAM limits exceeded in QUnit::EntangleInCurrentBasis()");
                 }
