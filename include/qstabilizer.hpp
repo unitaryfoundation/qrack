@@ -147,6 +147,10 @@ protected:
         r = orig->r;
         x = orig->x;
         z = orig->z;
+        bBuffer = orig->bBuffer;
+        pBuffer = orig->pBuffer;
+        bPhase = orig->bPhase;
+        pPhase = orig->pPhase;
     }
 
 #if BOOST_AVAILABLE
