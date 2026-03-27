@@ -4,6 +4,12 @@ add_executable (quantum_associative_memory
 set_target_properties(quantum_associative_memory PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples")
 target_link_libraries (quantum_associative_memory ${QRACK_LIBS})
 
+add_executable (quantum_volume
+    examples/quantum_volume.cpp
+    )
+set_target_properties(quantum_volume PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples")
+target_link_libraries (quantum_volume ${QRACK_LIBS})
+
 add_executable (teleport
     examples/teleport.cpp
     )

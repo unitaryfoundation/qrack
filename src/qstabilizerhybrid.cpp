@@ -108,9 +108,9 @@ QStabilizerHybrid::QStabilizerHybrid(std::vector<QInterfaceEngine> eng, bitLenIn
     }
 #endif
 
-    UpdateRoundingThreshold();
     maxStateMapCacheQubitCount = QRACK_MAX_CPU_QB_DEFAULT - ((QBCAPPOW < FPPOW) ? 1U : (1U + QBCAPPOW - FPPOW));
     stabilizer = MakeStabilizer(initState);
+    UpdateRoundingThreshold();
 }
 
 QUnitCliffordPtr QStabilizerHybrid::MakeStabilizer(const bitCapInt& perm)
