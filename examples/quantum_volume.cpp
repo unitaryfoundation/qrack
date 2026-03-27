@@ -108,31 +108,13 @@ int main()
         // nothing extra needed
     }
 
-    // Collapse each parameter determinant across all qubits
-    real1_f D_theta = 0.0, D_phi = 0.0, D_lambda = 0.0;
+    // Output triplet — depth independent
+    std::cout << "Determinant triplets, bit probability:" << std::endl;
     for (bitLenInt i = 0U; i < n; ++i) {
-        D_theta += det_theta[i];
-        D_phi += det_phi[i];
-        D_lambda += det_lambda[i];
+        std::cout << (int)i << ": (" << det_theta[i] << ", " << det_phi[i] << ", " << det_lambda[i] << "), ";
+        std::cout << qReg->Prob(i) << std::endl;
     }
-
-    // Output triplet — width and depth independent
-    std::cout << "Determinant triplet:" << std::endl;
-    std::cout << D_theta << " " << D_phi << " " << D_lambda << std::endl;
     std::cout << std::endl;
-
-    std::vector<bitCapInt> allPowers(n);
-    for (size_t i = 0U; i < n; ++i) {
-        allPowers[i] = bitCapInt(1) << allBits[i];
-    }
-
-    // Sample the circuit
-    std::map<bitCapInt, int> counter = qReg->MultiShotMeasureMask(allPowers, 100U);
-
-    std::cout << "Measurement shot counts:" << std::endl;
-    for (const auto& pair : counter) {
-        std::cout << (uint64_t)(pair.first) << ": " << pair.second << std::endl;
-    }
 
     return 0;
 }
