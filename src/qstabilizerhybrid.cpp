@@ -1969,6 +1969,10 @@ bool QStabilizerHybrid::ForceMParity(const bitCapInt& mask, bool result, bool do
 /// Flush non-Clifford phase gate gadgets with angle below a threshold.
 void QStabilizerHybrid::RdmCloneFlush(real1_f threshold)
 {
+    if (!qubitCount || !stabilizer) {
+        return;
+    }
+
     QRACK_CONST complex h[4U]{ SQRT1_2_R1, SQRT1_2_R1, SQRT1_2_R1, -SQRT1_2_R1 };
     for (size_t i = shards.size() - 1U; i >= qubitCount; --i) {
         // We're going to start by non-destructively "simulating" measurement collapse.

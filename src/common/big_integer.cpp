@@ -34,6 +34,8 @@
 
 #include "big_integer.hpp"
 
+#include <stdexcept>
+
 // "Schoolbook multiplication" (on half words)
 // Complexity - O(x^2)
 BigInteger operator*(const BigInteger& left, BIG_INTEGER_HALF_WORD right)
@@ -182,6 +184,10 @@ BigInteger operator*(const BigInteger& left, const BigInteger& right)
 void bi_div_mod_small(
     const BigInteger& left, BIG_INTEGER_HALF_WORD right, BigInteger* quotient, BIG_INTEGER_HALF_WORD* rmndr)
 {
+    if (!right) {
+        throw std::invalid_argument("Division by 0 in bi_div_mod_small()!");
+    }
+
     BIG_INTEGER_WORD carry = 0U;
     if (quotient) {
         bi_set_0(quotient);
@@ -220,6 +226,10 @@ void bi_div_mod_small(
 // Complexity - O(log)
 void bi_div_mod(const BigInteger& left, const BigInteger& right, BigInteger* quotient, BigInteger* rmndr)
 {
+    if (bi_compare_0(right) == 0) {
+        throw std::invalid_argument("Division by 0 in bi_div_mod()!");
+    }
+
     const int lrCompare = bi_compare(left, right);
 
     if (lrCompare < 0) {

@@ -248,7 +248,7 @@ void QEngineCPU::INCS(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt le
         const bitCapInt lengthMask = lengthPower - 1U;
         const bitCapInt toAddOcl = toAdd & lengthMask;
 
-        if (toAddOcl != ZERO_BCI) {
+        if (toAddOcl == ZERO_BCI) {
             return;
         }
 

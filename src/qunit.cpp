@@ -855,7 +855,7 @@ void QUnit::OrderContiguous(QInterfacePtr unit)
     // order in which we compose qubits into a single engine. This is a cheap way to reduce the need for costly qubit
     // swap gates, later.
 
-    if (!unit || (unit->GetQubitCount() == 1U)) {
+    if (!unit || (unit->GetQubitCount() < 2U)) {
         return;
     }
 

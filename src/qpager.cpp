@@ -1154,7 +1154,7 @@ bool QPager::ForceM(bitLenInt qubit, bool result, bool doForce, bool doApply)
         const bitLenInt metaQubit = qubit - qpp;
         const bitCapIntOcl qPower = pow2Ocl(metaQubit);
         for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
-            if (!(i & qPower) == !result) {
+            if (((i & qPower) != 0U) == (result != 0)) {
                 qPages[i]->Phase(nrm, nrm, 0U);
                 qPages[i]->UpdateRunningNorm();
             } else {
