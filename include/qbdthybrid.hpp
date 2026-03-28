@@ -569,6 +569,16 @@ public:
             engine->INCDECC(toAdd, start, length, carryIndex);
         }
     }
+#if ENABLE_BCD
+    void INCDECBCDC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
+    {
+        if (qbdt) {
+            qbdt->INCDECBCDC(toAdd, start, length, carryIndex);
+        } else {
+            engine->INCDECBCDC(toAdd, start, length, carryIndex);
+        }
+    }
+#endif
     void CINC(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt length, const std::vector<bitLenInt>& controls)
     {
         if (qbdt) {
