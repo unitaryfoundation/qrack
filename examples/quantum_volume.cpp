@@ -57,31 +57,27 @@ int main()
     std::iota(allBits.begin(), allBits.end(), 0U);
 
     // Three parallel running products, one per U3 parameter
-    std::vector<real1_f> det_theta(n, 0.0);
-    std::vector<real1_f> det_phi(n, 0.0);
-    std::vector<real1_f> det_lambda(n, 0.0);
+    std::vector<real1_f> det_th(n, 0.0);
+    std::vector<real1_f> det_ph(n, 0.0);
 
     // Per-layer sin values, kept separate
-    std::vector<real1_f> s_theta(n), s_phi(n), s_lambda(n);
-    std::vector<real1_f> theta_last(n, 0.0);
+    std::vector<real1_f> s_th(n), s_ph(n);
+    std::vector<real1_f> th_last(n, 0.0);
 
     for (int d = 0; d < depth; ++d) {
         // Single-qubit layer
         for (bitLenInt i = 0U; i < n; ++i) {
-            const real1_f theta = 2 * PI_R1 * qReg->Rand() - PI_R1;
-            const real1_f phi = 2 * PI_R1 * qReg->Rand() - PI_R1;
-            const real1_f lambda = 2 * PI_R1 * qReg->Rand() - PI_R1;
-            qReg->U(i, theta, phi, lambda);
+            const real1_f th = 2 * PI_R1 * qReg->Rand() - PI_R1;
+            const real1_f ph = 2 * PI_R1 * qReg->Rand() - PI_R1;
+            qReg->AI(i, th, ph);
 
-            theta_last[i] = theta;
-            s_theta[i] = theta;
-            s_phi[i] = phi;
-            s_lambda[i] = lambda;
+            th_last[i] = th;
+            s_th[i] = th;
+            s_ph[i] = ph;
 
             // Accumulate own contribution
-            det_theta[i] = fix_range(det_theta[i] + theta);
-            det_phi[i] = fix_range(det_phi[i] + phi);
-            det_lambda[i] = fix_range(det_lambda[i] + lambda);
+            det_th[i] = fix_range(det_th[i] + th);
+            det_ph[i] = fix_range(det_ph[i] + ph);
         }
 
         // Two-qubit layer
@@ -91,27 +87,21 @@ int main()
             const bitLenInt b2 = pickRandomBit(qReg->Rand(), &unusedBits);
             qReg->CNOT(b1, b2);
 
-            // Forward: propagate each parameter of control into target
-            det_theta[b2] = fix_range(det_theta[b2] + s_theta[b1]);
-            det_phi[b2] = fix_range(det_phi[b2] + s_phi[b1]);
-            det_lambda[b2] = fix_range(det_lambda[b2] + s_lambda[b1]);
+            // Forward: propagate bit-flip state onto target
+            det_ph[b2] = fix_range(det_ph[b2] + s_ph[b1]);
 
-            // Reverse kickback: cos(theta_b2/2) scales back into control
-            // Applied to all three parameters of the control qubit
-            const real1_f kickback = (PI_R1 + theta_last[b2]) / 2;
-            det_theta[b1] = fix_range(det_theta[b1] + kickback);
-            det_phi[b1] = fix_range(det_phi[b1] + kickback);
-            det_lambda[b1] = fix_range(det_lambda[b1] + kickback);
+            // Reverse kickback: propagate phase-flip state onto contro
+            det_th[b1] = fix_range(det_th[b1] + s_th[b2]);
         }
 
         // Unpaired qubit — already accumulated in single-qubit pass
         // nothing extra needed
     }
 
-    // Output triplet — depth independent
-    std::cout << "Determinant triplets, bit probability:" << std::endl;
+    // Output pair — depth independent
+    std::cout << "Determinant pairs, bit probability:" << std::endl;
     for (bitLenInt i = 0U; i < n; ++i) {
-        std::cout << (int)i << ": (" << det_theta[i] << ", " << det_phi[i] << ", " << det_lambda[i] << "), ";
+        std::cout << (int)i << ": (" << det_th[i] << ", " << det_ph[i] << "), ";
         std::cout << qReg->Prob(i) << std::endl;
     }
     std::cout << std::endl;
