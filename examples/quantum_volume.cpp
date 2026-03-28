@@ -67,8 +67,8 @@ int main()
     for (int d = 0; d < depth; ++d) {
         // Single-qubit layer
         for (bitLenInt i = 0U; i < n; ++i) {
-            const real1_f th = 2 * PI_R1 * qReg->Rand() - PI_R1;
-            const real1_f ph = 2 * PI_R1 * qReg->Rand() - PI_R1;
+            const real1_f th = (2 * qReg->Rand() - 1) * PI_R1;
+            const real1_f ph = (2 * qReg->Rand() - 1) * PI_R1;
             qReg->AI(i, th, ph);
 
             th_last[i] = th;
