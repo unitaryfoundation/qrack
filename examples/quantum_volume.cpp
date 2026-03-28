@@ -56,7 +56,7 @@ int main()
     std::vector<bitLenInt> allBits(n);
     std::iota(allBits.begin(), allBits.end(), 0U);
 
-    // Three parallel running products, one per U3 parameter
+    // Two parallel running products, one per X/Z pair
     std::vector<real1_f> det_th(n, 0.0);
     std::vector<real1_f> det_ph(n, 0.0);
 
