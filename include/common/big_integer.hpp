@@ -567,6 +567,11 @@ struct BigIntegerHash {
     }
 };
 
+BigInteger operator/(const BigInteger& left, BIG_INTEGER_HALF_WORD right);
+BIG_INTEGER_HALF_WORD operator%(const BigInteger& left, BIG_INTEGER_HALF_WORD right);
+BigInteger operator/(const BigInteger& left, const BigInteger& right);
+BigInteger operator%(const BigInteger& left, const BigInteger& right);
+
 // Hash injection provided by (Anthropic) Claude
 namespace std {
 template <> struct hash<BigInteger> {

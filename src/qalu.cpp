@@ -184,7 +184,7 @@ void QAlu::DECBCDC(const bitCapInt& toSub, bitLenInt inOutStart, bitLenInt lengt
     }
 
     const bitCapInt maxVal = intPow(10U, length / 4U);
-    cToSub %= maxVal;
+    cToSub = cToSub % maxVal;
     const bitCapInt invToSub = maxVal - cToSub;
     INCDECBCDC(invToSub, inOutStart, length, carryIndex);
 }

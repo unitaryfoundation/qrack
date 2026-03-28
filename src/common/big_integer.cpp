@@ -324,3 +324,37 @@ void bi_div_mod(const BigInteger& left, const BigInteger& right, BigInteger* quo
         *rmndr = rem;
     }
 }
+
+BigInteger operator/(const BigInteger& left, BIG_INTEGER_HALF_WORD right)
+{
+    BigInteger quotient;
+    BIG_INTEGER_HALF_WORD rmndr;
+    bi_div_mod_small(left, right, &quotient, &rmndr);
+
+    return quotient;
+}
+
+BIG_INTEGER_HALF_WORD operator%(const BigInteger& left, BIG_INTEGER_HALF_WORD right)
+{
+    BigInteger quotient;
+    BIG_INTEGER_HALF_WORD rmndr;
+    bi_div_mod_small(left, right, &quotient, &rmndr);
+
+    return rmndr;
+}
+
+BigInteger operator/(const BigInteger& left, const BigInteger& right)
+{
+    BigInteger quotient, rmndr;
+    bi_div_mod(left, right, &quotient, &rmndr);
+
+    return quotient;
+}
+
+BigInteger operator%(const BigInteger& left, const BigInteger& right)
+{
+    BigInteger quotient, rmndr;
+    bi_div_mod(left, right, &quotient, &rmndr);
+
+    return rmndr;
+}

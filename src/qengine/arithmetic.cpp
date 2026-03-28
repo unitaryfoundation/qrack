@@ -774,7 +774,7 @@ void QEngineCPU::CPOWModNOut(const bitCapInt& toMod, const bitCapInt& modN, bitL
 
 #if ENABLE_BCD
 /// Add BCD integer (without sign)
-void QEngineCPU::INCBCD(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt length)
+void QEngineCPU::INCBCD(const bitCapInt& toAdd_, bitLenInt inOutStart, bitLenInt length)
 {
     if (isBadBitRange(inOutStart, length, qubitCount)) {
         throw std::invalid_argument("QEngineCPU::INC range is out-of-bounds!");
@@ -792,57 +792,92 @@ void QEngineCPU::INCBCD(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt 
     }
 
     bitCapIntOcl maxPow = intPowOcl(10U, nibbleCount);
-    toAdd %= maxPow;
+    const BigInteger toAdd = ((bitCapIntOcl)toAdd_) % maxPow;
 
-    if (!toAdd) {
+    if (toAdd == 0) {
         return;
     }
 
     const bitCapIntOcl toAddOcl = (bitCapIntOcl)toAdd;
     const bitCapIntOcl inOutMask = bitRegMaskOcl(inOutStart, length);
-    const bitCapIntOcl otherMask = (maxQPowerOcl - ONE_BCI) ^ inOutMask;
+    const bitCapIntOcl otherMask = (maxQPowerOcl - 1U) ^ inOutMask;
 
     Finish();
 
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
     nStateVec->clear();
 
-    ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-        const bitCapIntOcl otherRes = lcv & otherMask;
-        bitCapIntOcl partToAdd = toAddOcl;
-        bitCapIntOcl inOutInt = (lcv & inOutMask) >> inOutStart;
-        std::unique_ptr<int8_t[]> nibbles(new int8_t[nibbleCount]);
-        bool isValid = true;
-        for (bitLenInt j = 0; j < nibbleCount; ++j) {
-            int8_t test1 = (int)(inOutInt & 15UL);
-            inOutInt >>= 4UL;
-            int8_t test2 = (int)(partToAdd % 10);
-            partToAdd /= 10;
-            nibbles[j] = test1 + test2;
-            if (test1 > 9) {
-                isValid = false;
-            }
-        }
-        if (isValid) {
-            bitCapIntOcl outInt = 0;
-            for (bitLenInt j = 0; j < nibbleCount; ++j) {
-                if (nibbles[j] > 9) {
-                    nibbles[j] -= 10;
-                    if ((j + 1) < nibbleCount) {
-                        ++(nibbles[j + 1]);
-                    }
-                }
-                outInt |= (bitCapIntOcl)nibbles[j] << (j * 4U * ONE_BCI);
-            }
-            nStateVec->write((outInt << inOutStart) | otherRes, stateVec->read(lcv));
-        } else {
-            nStateVec->write(lcv, stateVec->read(lcv));
-        }
-    };
+    const unsigned numThreads = GetConcurrencyLevel();
+    std::vector<std::unique_ptr<int8_t[]>> nibblesVec(numThreads);
+    for (size_t i = 0; i < numThreads; ++i) {
+        nibblesVec[i] = std::unique_ptr<int8_t[]>(new int8_t[nibbleCount]);
+    }
 
     if (stateVec->is_sparse()) {
+        ParallelFuncSparse fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
+            const bitCapInt otherRes = lcv & otherMask;
+            bitCapInt partToAdd = toAddOcl;
+            bitCapInt inOutInt = (lcv & inOutMask) >> inOutStart;
+            bool isValid = true;
+            for (bitLenInt j = 0; j < nibbleCount; ++j) {
+                int8_t test1 = (bitCapIntOcl)(inOutInt & 15UL);
+                inOutInt = inOutInt >> 4UL;
+                int8_t test2 = (bitCapIntOcl)(partToAdd % 10);
+                partToAdd = partToAdd / 10;
+                nibblesVec[cpu][j] = test1 + test2;
+                if (test1 > 9) {
+                    isValid = false;
+                }
+            }
+            if (isValid) {
+                bitCapIntOcl outInt = 0;
+                for (bitLenInt j = 0; j < nibbleCount; ++j) {
+                    if (nibblesVec[cpu][j] > 9) {
+                        nibblesVec[cpu][j] -= 10;
+                        if ((j + 1) < nibbleCount) {
+                            ++(nibblesVec[cpu][j + 1]);
+                        }
+                    }
+                    outInt |= (bitCapIntOcl)nibblesVec[cpu][j] << (j * 4U);
+                }
+                nStateVec->write((outInt << inOutStart) | otherRes, stateVec->read(lcv));
+            } else {
+                nStateVec->write(lcv, stateVec->read(lcv));
+            }
+        };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
+        ParallelFunc fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            const bitCapIntOcl otherRes = lcv & otherMask;
+            bitCapIntOcl partToAdd = toAddOcl;
+            bitCapIntOcl inOutInt = (lcv & inOutMask) >> inOutStart;
+            bool isValid = true;
+            for (bitLenInt j = 0; j < nibbleCount; ++j) {
+                int8_t test1 = (int)(inOutInt & 15UL);
+                inOutInt >>= 4UL;
+                int8_t test2 = (int)(partToAdd % 10);
+                partToAdd /= 10;
+                nibblesVec[cpu][j] = test1 + test2;
+                if (test1 > 9) {
+                    isValid = false;
+                }
+            }
+            if (isValid) {
+                bitCapIntOcl outInt = 0;
+                for (bitLenInt j = 0; j < nibbleCount; ++j) {
+                    if (nibblesVec[cpu][j] > 9) {
+                        nibblesVec[cpu][j] -= 10;
+                        if ((j + 1) < nibbleCount) {
+                            ++(nibblesVec[cpu][j + 1]);
+                        }
+                    }
+                    outInt |= (bitCapIntOcl)nibblesVec[cpu][j] << (j * 4U);
+                }
+                nStateVec->write((outInt << inOutStart) | otherRes, stateVec->read(lcv));
+            } else {
+                nStateVec->write(lcv, stateVec->read(lcv));
+            }
+        };
         par_for(0, maxQPowerOcl, fn);
     }
 
@@ -850,7 +885,7 @@ void QEngineCPU::INCBCD(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt 
 }
 
 /// Add BCD integer (without sign, with carry)
-void QEngineCPU::INCDECBCDC(const bitCapInt& toMod, bitLenInt inOutStart, bitLenInt length, bitLenInt carryIndex)
+void QEngineCPU::INCDECBCDC(const bitCapInt& toMod_, bitLenInt inOutStart, bitLenInt length, bitLenInt carryIndex)
 {
     if (isBadBitRange(inOutStart, length, qubitCount)) {
         throw std::invalid_argument("QEngineCPU::INCDECBCDC range is out-of-bounds!");
@@ -872,7 +907,7 @@ void QEngineCPU::INCDECBCDC(const bitCapInt& toMod, bitLenInt inOutStart, bitLen
     }
 
     const bitCapIntOcl maxPow = intPowOcl(10U, nibbleCount);
-    toMod %= maxPow;
+    const bitCapIntOcl toMod = ((bitCapIntOcl)toMod_) % maxPow;
 
     if (!toMod) {
         return;
@@ -881,14 +916,14 @@ void QEngineCPU::INCDECBCDC(const bitCapInt& toMod, bitLenInt inOutStart, bitLen
     const bitCapIntOcl toModOcl = (bitCapIntOcl)toMod;
     const bitCapIntOcl inOutMask = bitRegMaskOcl(inOutStart, length);
     const bitCapIntOcl carryMask = pow2Ocl(carryIndex);
-    const bitCapIntOcl otherMask = (maxQPowerOcl - ONE_BCI) ^ (inOutMask | carryMask);
+    const bitCapIntOcl otherMask = (maxQPowerOcl - 1U) ^ (inOutMask | carryMask);
 
     Finish();
 
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
     nStateVec->clear();
 
-    par_for_skip(0, maxQPowerOcl, pow2Ocl(carryIndex), ONE_BCI, [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+    par_for_skip(0, maxQPowerOcl, pow2Ocl(carryIndex), 1U, [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
         const bitCapIntOcl otherRes = lcv & otherMask;
         bitCapIntOcl partToAdd = toModOcl;
         bitCapIntOcl inOutInt = (lcv & inOutMask) >> inOutStart;
@@ -897,7 +932,7 @@ void QEngineCPU::INCDECBCDC(const bitCapInt& toMod, bitLenInt inOutStart, bitLen
         bool isValid = true;
 
         test1 = (int)(inOutInt & 15UL);
-        inOutInt >>= 4U * ONE_BCI;
+        inOutInt >>= 4U;
         test2 = (int)(partToAdd % 10);
         partToAdd /= 10;
         nibbles[0] = test1 + test2;
@@ -907,7 +942,7 @@ void QEngineCPU::INCDECBCDC(const bitCapInt& toMod, bitLenInt inOutStart, bitLen
 
         for (bitLenInt j = 1; j < nibbleCount; ++j) {
             test1 = (int)(inOutInt & 15UL);
-            inOutInt >>= 4U * ONE_BCI;
+            inOutInt >>= 4U;
             test2 = (int)(partToAdd % 10);
             partToAdd /= 10;
             nibbles[j] = test1 + test2;
@@ -928,7 +963,7 @@ void QEngineCPU::INCDECBCDC(const bitCapInt& toMod, bitLenInt inOutStart, bitLen
                         carryRes = carryMask;
                     }
                 }
-                outInt |= (bitCapIntOcl)nibbles[j] << (j * 4U * ONE_BCI);
+                outInt |= (bitCapIntOcl)nibbles[j] << (j * 4U);
             }
             outRes = (outInt << inOutStart) | otherRes | carryRes;
             nStateVec->write(outRes, stateVec->read(lcv));
