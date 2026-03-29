@@ -55,26 +55,14 @@ void ParallelFor::par_for(const bitCapIntOcl begin, const bitCapIntOcl end, Para
 
 void ParallelFor::par_for_set(const std::set<bitCapInt>& sparseSet, ParallelFuncSparse fn)
 {
-    par_for_inc_sparse(
-        0U, sparseSet.size(),
-        [&sparseSet](const bitCapIntOcl& i) {
-            auto it = sparseSet.begin();
-            std::advance(it, i);
-            return *it;
-        },
-        fn);
+    std::vector<bitCapInt> keys(sparseSet.begin(), sparseSet.end());
+    par_for_set(keys, fn);
 }
 
 void ParallelFor::par_for_set(const std::vector<bitCapInt>& sparseSet, ParallelFuncSparse fn)
 {
     par_for_inc_sparse(
-        0U, sparseSet.size(),
-        [&sparseSet](const bitCapIntOcl& i) {
-            auto it = sparseSet.begin();
-            std::advance(it, i);
-            return *it;
-        },
-        fn);
+        0U, sparseSet.size(), [&sparseSet](const bitCapIntOcl& i) { return sparseSet[i]; }, fn);
 }
 
 void ParallelFor::par_for_sparse_compose(const std::vector<bitCapInt>& lowSet, const std::vector<bitCapInt>& highSet,
