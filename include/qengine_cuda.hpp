@@ -209,6 +209,14 @@ protected:
             return;
         }
 
+        // Soft finish (just for this QEngineCUDA)
+        clFinish();
+
+        if (oclCall() == cudaSuccess) {
+            // Success after clearing QEngineCUDA queue
+            return;
+        }
+
         // Hard finish (for the unique OpenCL device)
         clFinish(true);
 

@@ -222,6 +222,14 @@ protected:
             return;
         }
 
+        // Soft finish (just for this QEngineOCL)
+        clFinish();
+
+        if (oclCall() == CL_SUCCESS) {
+            // Success after clearing QEngineOCL queue
+            return;
+        }
+
         // Hard finish (for the unique OpenCL device)
         clFinish(true);
 
