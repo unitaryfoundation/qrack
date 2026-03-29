@@ -339,7 +339,10 @@ void QEngineOCL::clFinish(bool doHard)
     }
 
     if (doHard) {
-        tryOcl("Failed to finish queue", [&] { return queue.finish(); });
+        cl_int error = queue.finish();
+        if (error != CL_SUCCESS) {
+            throw std::runtime_error("Failed to finish queue, error code: " + std::to_string(error));
+        }
     } else {
         device_context->WaitOnAllEvents();
         checkCallbackError();
