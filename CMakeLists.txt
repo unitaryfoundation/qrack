@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.10)
-project (Qrack VERSION 10.5.3 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
+project (Qrack VERSION 10.6.0 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
 
 # Installation commands
 include (GNUInstallDirs)
@@ -387,6 +387,7 @@ install (FILES
 install (FILES
     include/hamiltonian.hpp
     include/statevector.hpp
+    include/statevector_turboquant.hpp
     include/pinvoke_api.hpp
     include/wasm_api.hpp
     include/qcircuit.hpp
