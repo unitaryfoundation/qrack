@@ -387,6 +387,7 @@ install (FILES
 install (FILES
     include/hamiltonian.hpp
     include/statevector.hpp
+    include/statevector_turboquant.hpp
     include/pinvoke_api.hpp
     include/wasm_api.hpp
     include/qcircuit.hpp
