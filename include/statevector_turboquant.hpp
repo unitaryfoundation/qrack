@@ -7,20 +7,20 @@
 // Apache 2.0 open-source implementation by TheTom (github.com/TheTom/turboquant_plus).
 // Adapted for complex quantum state vectors by Dan Strano and (Anthropic) Claude.
 //
-// Each block of QRACK_TURBO_BLOCK_SIZE complex amplitudes is independently
-// rotated by a random orthogonal matrix (applied separately to real and
-// imaginary parts) and quantized per-coordinate at QRACK_TURBO_BITS bits.
+// Each block of (1 << p) complex amplitudes is independently rotated by a
+// random orthogonal matrix (applied separately to real and imaginary parts)
+// and quantized per-coordinate at b bits.
 //
 // Key properties:
-//   - get_probs(): in-place, no decompression (norm preserved under rotation)
+//   - get_probs(): decompresses block-by-block in parallel
 //   - read()/write(): decompress one block, operate, recompress — O(block_size)
 //   - write2() same block: decompress once — O(block_size)
 //   - write2() cross block: decompress two blocks — O(2*block_size)
-//   - shuffle(): permute block assignments without moving data — O(capacity/block)
-//   - clear(): zero all packed storage — O(capacity/block)
+//   - shuffle(): block-swap when half-capacity is block-aligned
+//   - Serialization: rotation matrices + scales + packed data per block
 //
-// Build configuration (set via CMake):
-//   QRACK_TURBO_BITS        — bits per quantized coordinate (default 4)
+// Build configuration (set via CMake, overridable at runtime via constructor):
+//   QRACK_TURBO_BITS — default bits per quantized coordinate (default 4)
 //
 // Licensed under the GNU Lesser General Public License V3.
 // See LICENSE.md in the project root or https://www.gnu.org/licenses/lgpl-3.0.en.html
@@ -31,9 +31,9 @@
 #include "common/parallel_for.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstring>
+#include <iostream>
 #include <mutex>
 #include <random>
 #include <vector>
@@ -45,30 +45,25 @@
 namespace Qrack {
 
 // ---------------------------------------------------------------------------
-// TurboQuant helpers for complex amplitudes
+// TurboQuant helpers
 // ---------------------------------------------------------------------------
 
-// Build a random orthogonal d×d matrix via Gram-Schmidt on random Gaussians.
-// Column-major storage: column j starts at R[j*d].
 static inline std::vector<real1> _tq_make_rotation(const size_t d)
 {
     std::mt19937 rng(std::random_device{}());
     std::normal_distribution<real1> normal(ZERO_R1, ONE_R1);
-
     std::vector<real1> R(d * d);
     for (auto& v : R) {
         v = normal(rng);
     }
-
     for (size_t j = 0U; j < d; ++j) {
         real1 nrm = ZERO_R1;
         for (size_t i = 0U; i < d; ++i) {
             nrm += R[j * d + i] * R[j * d + i];
         }
         nrm = std::sqrt(nrm);
-        if (nrm < (real1)1e-8) {
+        if (nrm < (real1)1e-8)
             nrm = (real1)1e-8;
-        }
         for (size_t i = 0U; i < d; ++i) {
             R[j * d + i] /= nrm;
         }
@@ -82,7 +77,6 @@ static inline std::vector<real1> _tq_make_rotation(const size_t d)
             }
         }
     }
-
     return R;
 }
 
@@ -90,11 +84,9 @@ static inline std::vector<real1> _tq_make_rotation(const size_t d)
 static inline std::vector<real1> _tq_transpose(const std::vector<real1>& R, const size_t d)
 {
     std::vector<real1> T(d * d);
-    for (size_t i = 0U; i < d; ++i) {
-        for (size_t j = 0U; j < d; ++j) {
+    for (size_t i = 0U; i < d; ++i)
+        for (size_t j = 0U; j < d; ++j)
             T[i * d + j] = R[j * d + i];
-        }
-    }
     return T;
 }
 
@@ -118,9 +110,8 @@ static inline int _tq_quant_bucket(const real1 val, const real1 scale, const int
     const real1 lo = (real1)-3.0 * scale;
     const real1 hi = (real1)3.0 * scale;
     const real1 step = (hi - lo) / (real1)levels;
-    if (step < (real1)1e-8) {
+    if (step < (real1)1e-8)
         return 0;
-    }
     const real1 clamped = std::max(lo, std::min(hi - step, val));
     int bucket = (int)((clamped - lo) / step);
     if (bucket < 0)
@@ -141,48 +132,67 @@ static inline real1 _tq_dequant(const int bucket, const real1 scale, const int b
 }
 
 // ---------------------------------------------------------------------------
-// Per-block compressed storage
-// Each block holds QRACK_TURBO_BLOCK_SIZE complex amplitudes.
-// Real and imaginary parts are rotated and quantized independently.
-// Packed storage: (64/bits) bucket indices per word (using uint64_t).
+// Binary I/O helpers
+// ---------------------------------------------------------------------------
+static inline void _tq_write_size(std::ostream& os, const size_t x)
+{
+    os.write(reinterpret_cast<const char*>(&x), sizeof(size_t));
+}
+static inline void _tq_write_int(std::ostream& os, const int x)
+{
+    os.write(reinterpret_cast<const char*>(&x), sizeof(int));
+}
+static inline void _tq_write_bool(std::ostream& os, const bool x)
+{
+    os.write(reinterpret_cast<const char*>(&x), sizeof(bool));
+}
+static inline size_t _tq_read_size(std::istream& is)
+{
+    size_t x;
+    is.read(reinterpret_cast<char*>(&x), sizeof(size_t));
+    return x;
+}
+static inline int _tq_read_int(std::istream& is)
+{
+    int x;
+    is.read(reinterpret_cast<char*>(&x), sizeof(int));
+    return x;
+}
+static inline bool _tq_read_bool(std::istream& is)
+{
+    bool x;
+    is.read(reinterpret_cast<char*>(&x), sizeof(bool));
+    return x;
+}
+
+// ---------------------------------------------------------------------------
+// TurboBlock
 // ---------------------------------------------------------------------------
 struct TurboBlock {
     size_t D;
     int BITS;
     int LEVELS;
-    int VPW; // values per 64-bit word
 
-    // Random rotation matrices for real and imaginary parts (D×D, column-major)
-    std::vector<real1> R_re; // rotation for real parts
-    std::vector<real1> R_im; // rotation for imaginary parts
-    std::vector<real1> RT_re; // transpose (inverse) of R_re
-    std::vector<real1> RT_im; // transpose (inverse) of R_im
+    std::vector<real1> R_re, R_im; // rotation matrices (D×D, col-major)
+    std::vector<real1> RT_re, RT_im; // transposes (= inverses)
+    std::vector<real1> scales_re, scales_im;
 
-    // Per-coordinate scales (std dev) for quantization
-    std::vector<real1> scales_re;
-    std::vector<real1> scales_im;
-
-    // Packed bucket indices
-    // D real values + D imag values, each at BITS bits per value
-    // Total bits = 2*D*BITS, words = ceil(2*D*BITS / 64)
     size_t NWORDS;
-    std::unique_ptr<uint64_t> packed;
-
+    std::unique_ptr<uint64_t[]> packed;
     bool initialized;
 
     TurboBlock(int p, int b)
         : D(1ULL << p)
         , BITS(b)
-        , LEVELS(1 << BITS)
-        , VPW(64 / BITS)
-        , R_re(_tq_make_rotation(D))
-        , R_im(_tq_make_rotation(D))
-        , RT_re(_tq_transpose(R_re, D))
-        , RT_im(_tq_transpose(R_im, D))
-        , scales_re(D, ONE_R1)
-        , scales_im(D, ONE_R1)
-        , NWORDS((2U * D * BITS + 63U) / 64U)
-        , packed(new uint64_t[NWORDS])
+        , LEVELS(1 << b)
+        , R_re(_tq_make_rotation(1ULL << p))
+        , R_im(_tq_make_rotation(1ULL << p))
+        , RT_re(_tq_transpose(R_re, 1ULL << p))
+        , RT_im(_tq_transpose(R_im, 1ULL << p))
+        , scales_re(1ULL << p, ONE_R1)
+        , scales_im(1ULL << p, ONE_R1)
+        , NWORDS((2U * (1ULL << p) * b + 63U) / 64U)
+        , packed(new uint64_t[(2U * (1ULL << p) * b + 63U) / 64U])
         , initialized(false)
     {
         std::fill(packed.get(), packed.get() + NWORDS, 0U);
@@ -192,7 +202,6 @@ struct TurboBlock {
         : D(o.D)
         , BITS(o.BITS)
         , LEVELS(o.LEVELS)
-        , VPW(o.VPW)
         , R_re(o.R_re)
         , R_im(o.R_im)
         , RT_re(o.RT_re)
@@ -200,7 +209,7 @@ struct TurboBlock {
         , scales_re(o.scales_re)
         , scales_im(o.scales_im)
         , NWORDS(o.NWORDS)
-        , packed(new uint64_t[NWORDS])
+        , packed(new uint64_t[o.NWORDS])
         , initialized(o.initialized)
     {
         std::copy(o.packed.get(), o.packed.get() + o.NWORDS, packed.get());
@@ -208,10 +217,11 @@ struct TurboBlock {
 
     TurboBlock& operator=(const TurboBlock& o)
     {
+        if (this == &o)
+            return *this;
         D = o.D;
         BITS = o.BITS;
         LEVELS = o.LEVELS;
-        VPW = o.VPW;
         R_re = o.R_re;
         R_im = o.R_im;
         RT_re = o.RT_re;
@@ -219,10 +229,9 @@ struct TurboBlock {
         scales_re = o.scales_re;
         scales_im = o.scales_im;
         NWORDS = o.NWORDS;
-        packed = std::unique_ptr<uint64_t>(new uint64_t[NWORDS]);
+        packed.reset(new uint64_t[NWORDS]);
         initialized = o.initialized;
         std::copy(o.packed.get(), o.packed.get() + o.NWORDS, packed.get());
-
         return *this;
     }
 
@@ -230,31 +239,29 @@ struct TurboBlock {
     // idx is the coordinate index (0..2D-1: first D are re, next D are im).
     void pack_bucket(const size_t idx, const int bucket)
     {
-        const size_t bit_offset = idx * BITS;
+        const size_t bit_offset = idx * (size_t)BITS;
         const size_t word = bit_offset / 64U;
         const size_t bit = bit_offset % 64U;
         const uint64_t mask = (uint64_t)(LEVELS - 1) << bit;
-        packed.get()[word] = (packed.get()[word] & ~mask) | ((uint64_t)bucket << bit);
-        // Handle straddle across word boundary
-        if (bit + BITS > 64U) {
-            const size_t overflow = bit + BITS - 64U;
+        packed[word] = (packed[word] & ~mask) | ((uint64_t)bucket << bit);
+        if (bit + (size_t)BITS > 64U) {
+            const size_t overflow = bit + (size_t)BITS - 64U;
             const uint64_t mask2 = ((uint64_t)1 << overflow) - 1U;
-            packed.get()[word + 1U] = (packed.get()[word + 1U] & ~mask2) | ((uint64_t)bucket >> (BITS - overflow));
+            packed[word + 1U] = (packed[word + 1U] & ~mask2) | ((uint64_t)bucket >> (BITS - (int)overflow));
         }
     }
 
     // Unpack a bucket index from the packed array.
     int unpack_bucket(const size_t idx) const
     {
-        const size_t bit_offset = idx * BITS;
+        const size_t bit_offset = idx * (size_t)BITS;
         const size_t word = bit_offset / 64U;
         const size_t bit = bit_offset % 64U;
-        int bucket = (int)((packed.get()[word] >> bit) & (uint64_t)(LEVELS - 1));
-        // Handle straddle
-        if (bit + BITS > 64U) {
-            const size_t overflow = bit + BITS - 64U;
-            const int high = (int)(packed.get()[word + 1U] & (((uint64_t)1 << overflow) - 1U));
-            bucket |= (high << (BITS - overflow));
+        int bucket = (int)((packed[word] >> bit) & (uint64_t)(LEVELS - 1));
+        if (bit + (size_t)BITS > 64U) {
+            const size_t overflow = bit + (size_t)BITS - 64U;
+            const int high = (int)(packed[word + 1U] & (((uint64_t)1 << overflow) - 1U));
+            bucket |= (high << (BITS - (int)overflow));
             bucket &= (LEVELS - 1);
         }
         return bucket;
@@ -263,9 +270,7 @@ struct TurboBlock {
     // Compress an array of D complex amplitudes into this block.
     void compress(const complex* amps)
     {
-        std::vector<real1> re_in(D), im_in(D);
-        std::vector<real1> re_rot(D), im_rot(D);
-
+        std::vector<real1> re_in(D), im_in(D), re_rot(D), im_rot(D);
         for (size_t i = 0U; i < D; ++i) {
             re_in[i] = real(amps[i]);
             im_in[i] = imag(amps[i]);
@@ -278,12 +283,8 @@ struct TurboBlock {
         // Compute scales if first compression
         if (!initialized) {
             for (size_t j = 0U; j < D; ++j) {
-                real1 var_re = ZERO_R1, var_im = ZERO_R1;
-                // For a single block, use per-element magnitude as scale proxy
-                var_re += re_rot[j] * re_rot[j];
-                var_im += im_rot[j] * im_rot[j];
-                scales_re[j] = std::sqrt(var_re + (real1)1e-8);
-                scales_im[j] = std::sqrt(var_im + (real1)1e-8);
+                scales_re[j] = std::sqrt(re_rot[j] * re_rot[j] + (real1)1e-8);
+                scales_im[j] = std::sqrt(im_rot[j] * im_rot[j] + (real1)1e-8);
             }
             initialized = true;
         }
@@ -299,8 +300,7 @@ struct TurboBlock {
     // Decompress this block into an array of D complex amplitudes.
     void decompress(complex* amps) const
     {
-        std::vector<real1> re_rot(D), im_rot(D);
-        std::vector<real1> re_out(D), im_out(D);
+        std::vector<real1> re_rot(D), im_rot(D), re_out(D), im_out(D);
 
         // Dequantize
         for (size_t j = 0U; j < D; ++j) {
@@ -311,24 +311,9 @@ struct TurboBlock {
         // Inverse rotate (apply transpose = inverse for orthogonal matrix)
         _tq_rotate(re_rot.data(), RT_re, D, re_out.data());
         _tq_rotate(im_rot.data(), RT_im, D, im_out.data());
-
         for (size_t i = 0U; i < D; ++i) {
             amps[i] = complex(re_out[i], im_out[i]);
         }
-    }
-
-    // Get probability (squared norm) of amplitude i without full decompression.
-    // Norm is preserved under orthogonal rotation: ||Rv||^2 = ||v||^2.
-    // So sum of squared dequantized rotated coords = sum of squared original coords.
-    real1 get_prob(const size_t i) const
-    {
-        // We need to decompress just amplitude i — but rotation mixes all coords.
-        // The fast path: decompress the full block.
-        // The norm-preservation shortcut only works for the *total* norm, not per-element.
-        // So we must decompress.
-        std::vector<complex> tmp(D);
-        decompress(tmp.data());
-        return norm(tmp[i]);
     }
 
     // Get total probability mass in this block (no decompression needed).
@@ -343,37 +328,81 @@ struct TurboBlock {
         return total;
     }
 
-    static void write_bool(std::ostream& out, const bool& x)
-    {
-        out.write(reinterpret_cast<const char*>(&x), sizeof(bool));
-    }
+    // --- Serialization ------------------------------------------------------
+    //
+    // Per-block binary format:
+    //   size_t    D
+    //   int       BITS
+    //   bool      initialized
+    //   real1[D*D] R_re   (col-major rotation for real parts)
+    //   real1[D*D] R_im   (col-major rotation for imaginary parts)
+    //   if initialized:
+    //     real1[D] scales_re
+    //     real1[D] scales_im
+    //   size_t    NWORDS
+    //   uint64_t[NWORDS] packed
 
-    static void write_size_t(std::ostream& out, const size_t& x)
+    void save(std::ostream& os) const
     {
-        out.write(reinterpret_cast<const char*>(&x), sizeof(size_t));
-    }
-
-    static void write_real(std::ostream& out, const real1& x)
-    {
-        out.write(reinterpret_cast<const char*>(&x), sizeof(real1));
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const TurboBlock& s)
-    {
-        write_size_t(os, s.D);
-        write_bool(os, s.initialized);
-        if (s.initialized) {
-            for (size_t i = 0U; i < s.D; ++i) {
-                write_real(os, s.scales_re[i]);
-            }
-            for (size_t i = 0U; i < s.D; ++i) {
-                write_real(os, s.scales_im[i]);
-            }
+        _tq_write_size(os, D);
+        _tq_write_int(os, BITS);
+        _tq_write_bool(os, initialized);
+        os.write(reinterpret_cast<const char*>(R_re.data()), (std::streamsize)(D * D * sizeof(real1)));
+        os.write(reinterpret_cast<const char*>(R_im.data()), (std::streamsize)(D * D * sizeof(real1)));
+        if (initialized) {
+            os.write(reinterpret_cast<const char*>(scales_re.data()), (std::streamsize)(D * sizeof(real1)));
+            os.write(reinterpret_cast<const char*>(scales_im.data()), (std::streamsize)(D * sizeof(real1)));
         }
-        write_size_t(os, s.NWORDS);
-        os.write(reinterpret_cast<const char*>(s.packed.get()), s.NWORDS * sizeof(uint64_t));
+        _tq_write_size(os, NWORDS);
+        os.write(reinterpret_cast<const char*>(packed.get()), (std::streamsize)(NWORDS * sizeof(uint64_t)));
+    }
 
+    static TurboBlock load(std::istream& is)
+    {
+        const size_t D_in = _tq_read_size(is);
+        const int BITS_in = _tq_read_int(is);
+        const bool init = _tq_read_bool(is);
+
+        // Compute p = log2(D_in)
+        int p = 0;
+        for (size_t tmp = D_in; tmp > 1U; tmp >>= 1U) {
+            ++p;
+        }
+
+        TurboBlock blk(p, BITS_in);
+        blk.initialized = init;
+
+        // Overwrite freshly-generated rotations with the serialized ones
+        is.read(reinterpret_cast<char*>(blk.R_re.data()), (std::streamsize)(D_in * D_in * sizeof(real1)));
+        is.read(reinterpret_cast<char*>(blk.R_im.data()), (std::streamsize)(D_in * D_in * sizeof(real1)));
+
+        // Recompute transposes from loaded rotations
+        blk.RT_re = _tq_transpose(blk.R_re, D_in);
+        blk.RT_im = _tq_transpose(blk.R_im, D_in);
+
+        if (init) {
+            is.read(reinterpret_cast<char*>(blk.scales_re.data()), (std::streamsize)(D_in * sizeof(real1)));
+            is.read(reinterpret_cast<char*>(blk.scales_im.data()), (std::streamsize)(D_in * sizeof(real1)));
+        }
+
+        const size_t nwords = _tq_read_size(is);
+        blk.NWORDS = nwords;
+        blk.packed.reset(new uint64_t[nwords]);
+        is.read(reinterpret_cast<char*>(blk.packed.get()), (std::streamsize)(nwords * sizeof(uint64_t)));
+
+        return blk;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const TurboBlock& b)
+    {
+        b.save(os);
         return os;
+    }
+
+    friend std::istream& operator>>(std::istream& is, TurboBlock& b)
+    {
+        b = TurboBlock::load(is);
+        return is;
     }
 };
 
@@ -403,71 +432,91 @@ protected:
         blocks[b].compress(amps.data());
     }
 
-    // Decompress block b read-only, apply f(amps, num_amps).
-    template <typename F> void with_block_ro(const size_t b, F&& f) const
-    {
-        std::vector<complex> amps(BLOCK);
-        blocks[b].decompress(amps.data());
-        f(amps.data(), BLOCK);
-    }
-
 public:
-    StateVectorTurboQuant(bitCapIntOcl cap, size_t p, int b, const complex* copyIn)
+    // Construct from raw amplitudes (nullptr = |0⟩)
+    StateVectorTurboQuant(bitCapIntOcl cap, int p, int b, const complex* copyIn)
         : StateVector(cap)
         , BLOCK(1ULL << p)
-        , num_blocks((size_t)((cap + BLOCK - 1U) / BLOCK))
+        , num_blocks((cap + (1ULL << p) - 1U) / (1ULL << p))
         , blocks(num_blocks, TurboBlock(p, b))
         , block_mutexes(num_blocks)
     {
         copy_in(copyIn);
     }
 
-    static void write_bool(std::ostream& out, const bool& x)
+    // --- Serialization ------------------------------------------------------
+    //
+    // Stream format:
+    //   size_t  capacity
+    //   size_t  BLOCK
+    //   size_t  num_blocks
+    //   TurboBlock[num_blocks]
+
+    void save(std::ostream& os) const
     {
-        out.write(reinterpret_cast<const char*>(&x), sizeof(bool));
+        _tq_write_size(os, (size_t)capacity);
+        _tq_write_size(os, BLOCK);
+        _tq_write_size(os, num_blocks);
+        for (size_t i = 0U; i < num_blocks; ++i) {
+            blocks[i].save(os);
+        }
     }
 
-    static void write_size_t(std::ostream& out, const size_t& x)
+    static StateVectorTurboQuantPtr load(std::istream& is)
     {
-        out.write(reinterpret_cast<const char*>(&x), sizeof(size_t));
-    }
+        const bitCapIntOcl cap = (bitCapIntOcl)_tq_read_size(is);
+        const size_t block_size = _tq_read_size(is);
+        const size_t nblocks = _tq_read_size(is);
 
-    static void write_real(std::ostream& out, const real1& x)
-    {
-        out.write(reinterpret_cast<const char*>(&x), sizeof(real1));
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const StateVectorTurboQuant& s)
-    {
-        write_size_t(os, s.capacity);
-        write_size_t(os, s.BLOCK);
-        write_size_t(os, s.num_blocks);
-        for (size_t i = 0U; i < s.blocks.size(); ++i) {
-            os << s.blocks[i];
+        int p = 0;
+        for (size_t tmp = block_size; tmp > 1U; tmp >>= 1U) {
+            ++p;
         }
 
+        // Read all blocks
+        std::vector<TurboBlock> loaded;
+        loaded.reserve(nblocks);
+        for (size_t i = 0U; i < nblocks; ++i) {
+            loaded.push_back(TurboBlock::load(is));
+        }
+
+        const int bits = loaded.empty() ? QRACK_TURBO_BITS : loaded[0].BITS;
+
+        // Construct shell with correct geometry, then overwrite blocks
+        auto sv = std::make_shared<StateVectorTurboQuant>(cap, p, bits, nullptr);
+        sv->blocks = std::move(loaded);
+
+        return sv;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const StateVectorTurboQuant& sv)
+    {
+        sv.save(os);
         return os;
     }
 
-    complex read(const bitCapInt& i) { return read((bitCapIntOcl)i); }
+    friend std::istream& operator>>(std::istream& is, StateVectorTurboQuantPtr& sv)
+    {
+        sv = StateVectorTurboQuant::load(is);
+        return is;
+    }
 
+    // --- StateVector interface ----------------------------------------------
+
+    complex read(const bitCapInt& i) { return read((bitCapIntOcl)i); }
     complex read(const bitCapIntOcl& i)
     {
-        const size_t b = block_of(i);
-        const size_t off = offset_in(i);
         std::vector<complex> amps(BLOCK);
-        blocks[b].decompress(amps.data());
-        return amps[off];
+        blocks[block_of(i)].decompress(amps.data());
+        return amps[offset_in(i)];
     }
 
 #if ENABLE_COMPLEX_X2
     complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { return read2((bitCapIntOcl)i1, (bitCapIntOcl)i2); }
-
     complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2) { return complex2(read(i1), read(i2)); }
 #endif
 
     void write(const bitCapInt& i, const complex& c) { write((bitCapIntOcl)i, c); }
-
     void write(const bitCapIntOcl& i, const complex& c)
     {
         with_block(block_of(i), [&](complex* amps, size_t) { amps[offset_in(i)] = c; });
@@ -480,48 +529,41 @@ public:
 
     void write2(const bitCapIntOcl& i1, const complex& c1, const bitCapIntOcl& i2, const complex& c2)
     {
-        const size_t b1 = block_of(i1);
-        const size_t b2 = block_of(i2);
-
+        const size_t b1 = block_of(i1), b2 = block_of(i2);
         if (b1 == b2) {
-            // Same block — decompress once
             with_block(b1, [&](complex* amps, size_t) {
                 amps[offset_in(i1)] = c1;
                 amps[offset_in(i2)] = c2;
             });
         } else {
-            // Different blocks — lock lower index first to avoid deadlock
-            const size_t blo = std::min(b1, b2);
-            const size_t bhi = std::max(b1, b2);
-            std::lock_guard<std::mutex> lock_lo(block_mutexes[blo]);
-            std::lock_guard<std::mutex> lock_hi(block_mutexes[bhi]);
-
-            std::vector<complex> amps1(BLOCK), amps2(BLOCK);
-            blocks[b1].decompress(amps1.data());
-            blocks[b2].decompress(amps2.data());
-            amps1[offset_in(i1)] = c1;
-            amps2[offset_in(i2)] = c2;
-            blocks[b1].compress(amps1.data());
-            blocks[b2].compress(amps2.data());
+            const size_t blo = std::min(b1, b2), bhi = std::max(b1, b2);
+            std::lock_guard<std::mutex> lo(block_mutexes[blo]);
+            std::lock_guard<std::mutex> hi(block_mutexes[bhi]);
+            std::vector<complex> a1(BLOCK), a2(BLOCK);
+            blocks[b1].decompress(a1.data());
+            blocks[b2].decompress(a2.data());
+            a1[offset_in(i1)] = c1;
+            a2[offset_in(i2)] = c2;
+            blocks[b1].compress(a1.data());
+            blocks[b2].compress(a2.data());
         }
     }
 
     void clear()
     {
         par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
-            std::vector<complex> zeros(BLOCK, ZERO_CMPLX);
-            blocks[b].compress(zeros.data());
+            std::vector<complex> z(BLOCK, ZERO_CMPLX);
+            blocks[b].compress(z.data());
         });
     }
 
     void copy_in(const complex* copyIn)
     {
         par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
-            const complex* src = copyIn ? (copyIn + b * BLOCK) : nullptr;
             std::vector<complex> amps(BLOCK, ZERO_CMPLX);
-            if (src) {
+            if (copyIn) {
                 const size_t len = std::min(BLOCK, (size_t)(capacity - b * BLOCK));
-                std::copy(src, src + len, amps.data());
+                std::copy(copyIn + b * BLOCK, copyIn + b * BLOCK + len, amps.data());
             }
             blocks[b].compress(amps.data());
         });
@@ -529,63 +571,56 @@ public:
 
     void copy_in(const complex* copyIn, const bitCapIntOcl offset, const bitCapIntOcl length)
     {
-        // Decompress affected blocks, patch, recompress
-        const size_t b_start = block_of(offset);
-        const size_t b_end = block_of(offset + length - 1U);
-
-        for (size_t b = b_start; b <= b_end; ++b) {
+        if (!length)
+            return;
+        const size_t b0 = block_of(offset);
+        const size_t b1 = block_of(offset + length - 1U);
+        for (size_t b = b0; b <= b1; ++b) {
             with_block(b, [&](complex* amps, size_t) {
-                const size_t b_base = b * BLOCK;
+                const size_t base = b * BLOCK;
                 for (size_t j = 0U; j < BLOCK; ++j) {
-                    const size_t global = b_base + j;
-                    if (global >= offset && global < offset + length) {
-                        amps[j] = copyIn ? copyIn[global - offset] : ZERO_CMPLX;
-                    }
+                    const size_t g = base + j;
+                    if (g >= (size_t)offset && g < (size_t)(offset + length))
+                        amps[j] = copyIn ? copyIn[g - offset] : ZERO_CMPLX;
                 }
             });
         }
     }
 
-    void copy_in(
-        StateVectorPtr copyInSv, const bitCapIntOcl srcOffset, const bitCapIntOcl dstOffset, const bitCapIntOcl length)
+    void copy_in(StateVectorPtr sv, const bitCapIntOcl src, const bitCapIntOcl dst, const bitCapIntOcl len)
     {
-        std::vector<complex> tmp(length);
-        if (copyInSv) {
-            for (bitCapIntOcl i = 0U; i < length; ++i) {
-                tmp[i] = copyInSv->read(srcOffset + i);
-            }
-        }
-        copy_in(copyInSv ? tmp.data() : nullptr, dstOffset, length);
+        std::vector<complex> tmp(len, ZERO_CMPLX);
+        if (sv)
+            for (bitCapIntOcl i = 0U; i < len; ++i)
+                tmp[i] = sv->read(src + i);
+        copy_in(sv ? tmp.data() : nullptr, dst, len);
     }
 
-    void copy_out(complex* copyOut)
+    void copy_out(complex* out)
     {
         par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
             std::vector<complex> amps(BLOCK);
             blocks[b].decompress(amps.data());
             const size_t len = std::min(BLOCK, (size_t)(capacity - b * BLOCK));
-            std::copy(amps.data(), amps.data() + len, copyOut + b * BLOCK);
+            std::copy(amps.data(), amps.data() + len, out + b * BLOCK);
         });
     }
 
-    void copy_out(complex* copyOut, const bitCapIntOcl offset, const bitCapIntOcl length)
+    void copy_out(complex* out, const bitCapIntOcl offset, const bitCapIntOcl length)
     {
-        for (bitCapIntOcl i = 0U; i < length; ++i) {
-            copyOut[i] = read(offset + i);
-        }
+        for (bitCapIntOcl i = 0U; i < length; ++i)
+            out[i] = read(offset + i);
     }
 
     void copy(StateVectorPtr toCopy)
     {
-        StateVectorTurboQuantPtr src = std::dynamic_pointer_cast<StateVectorTurboQuant>(toCopy);
+        auto src = std::dynamic_pointer_cast<StateVectorTurboQuant>(toCopy);
         if (src) {
-            // Block-level copy — preserves rotations and scales
             par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
-                std::lock_guard<std::mutex> lock(block_mutexes[b]);
+                std::lock_guard<std::mutex> lk(block_mutexes[b]);
                 blocks[b] = src->blocks[b];
             });
         } else {
-            // Fallback: decompress source, copy_in
             std::vector<complex> tmp(capacity);
             toCopy->copy_out(tmp.data());
             copy_in(tmp.data());
@@ -596,22 +631,19 @@ public:
     {
         // Swap upper and lower halves block-by-block.
         // For capacity that is a power of 2, the upper half starts at capacity/2.
-        StateVectorTurboQuantPtr other = std::dynamic_pointer_cast<StateVectorTurboQuant>(svp);
-
+        auto other = std::dynamic_pointer_cast<StateVectorTurboQuant>(svp);
         const bitCapIntOcl half = capacity >> 1U;
-        const size_t half_blocks = (size_t)(half / BLOCK);
-
+        const size_t hb = (size_t)(half / BLOCK);
         if (other && (half % BLOCK == 0U)) {
             // Block-aligned shuffle: swap block pointers (swap the TurboBlock objects)
-            par_for(0U, half_blocks,
-                [&](const bitCapIntOcl& b, const unsigned&) { std::swap(blocks[b + half_blocks], other->blocks[b]); });
+            par_for(
+                0U, hb, [&](const bitCapIntOcl& b, const unsigned&) { std::swap(blocks[b + hb], other->blocks[b]); });
         } else {
             // Fallback: decompress, swap, recompress
-            const bitCapIntOcl offset = half;
-            par_for(0U, offset, [&](const bitCapIntOcl& lcv, const unsigned&) {
-                complex amp = svp->read(lcv);
-                svp->write(lcv, read(lcv + offset));
-                write(lcv + offset, amp);
+            par_for(0U, half, [&](const bitCapIntOcl& i, const unsigned&) {
+                complex amp = svp->read(i);
+                svp->write(i, read(i + half));
+                write(i + half, amp);
             });
         }
     }
@@ -624,9 +656,8 @@ public:
             std::vector<complex> amps(BLOCK);
             blocks[b].decompress(amps.data());
             const size_t len = std::min(BLOCK, (size_t)(capacity - b * BLOCK));
-            for (size_t j = 0U; j < len; ++j) {
+            for (size_t j = 0U; j < len; ++j)
                 outArray[b * BLOCK + j] = norm(amps[j]);
-            }
         });
     }
 
@@ -634,5 +665,4 @@ public:
 };
 
 typedef std::shared_ptr<StateVectorTurboQuant> StateVectorTurboQuantPtr;
-
 } // namespace Qrack
