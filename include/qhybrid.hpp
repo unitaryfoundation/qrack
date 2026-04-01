@@ -38,6 +38,7 @@ protected:
     bool isPager;
     bool useRDRAND;
     bool isSparse;
+    bool isTurbo;
     bitLenInt gpuThresholdQubits;
     bitLenInt pagerThresholdQubits;
     real1_f separabilityThreshold;
@@ -55,6 +56,7 @@ protected:
         isPager = orig->isPager;
         useRDRAND = orig->useRDRAND;
         isSparse = orig->isSparse;
+        isTurbo = orig->isTurbo;
         gpuThresholdQubits = orig->gpuThresholdQubits;
         pagerThresholdQubits = orig->pagerThresholdQubits;
         separabilityThreshold = orig->separabilityThreshold;
@@ -69,7 +71,7 @@ public:
         const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false, bool randomGlobalPhase = true,
         bool useHostMem = false, int64_t deviceId = -1, bool useHardwareRNG = true, bool useSparseStateVec = false,
         real1_f norm_thresh = REAL1_EPSILON, std::vector<int64_t> devList = {}, bitLenInt qubitThreshold = 0U,
-        real1_f ignored2 = _qrack_qunit_sep_thresh);
+        real1_f ignored2 = _qrack_qunit_sep_thresh, bool useTurbo = false);
 
     void SetQubitCount(bitLenInt qb)
     {
@@ -130,7 +132,7 @@ public:
             std::vector<QInterfaceEngine> engines{ isGpu ? QRACK_GPU_ENGINE : QINTERFACE_CPU };
             engine = std::make_shared<QPager>(engine, engines, qubitCount, ZERO_BCI, rand_generator, phaseFactor,
                 doNormalize, randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor,
-                deviceIDs, 0U, separabilityThreshold);
+                deviceIDs, 0U, separabilityThreshold, isTurbo);
         } else if (isPager && !usePager) {
             engine = std::dynamic_pointer_cast<QPager>(engine)->ReleaseEngine();
         }
@@ -264,7 +266,7 @@ public:
 
         QHybridPtr nQubits = std::make_shared<QHybrid>(length, ZERO_BCI, rand_generator, phaseFactor, doNormalize,
             randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor, deviceIDs,
-            gpuThresholdQubits, separabilityThreshold);
+            gpuThresholdQubits, separabilityThreshold, isTurbo);
         nQubits->SetConcurrency(GetConcurrencyLevel());
 
         return Compose(nQubits, start);
@@ -546,7 +548,7 @@ public:
     {
         QHybridPtr c = std::make_shared<QHybrid>(qubitCount, ZERO_BCI, rand_generator, phaseFactor, doNormalize,
             randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor, deviceIDs,
-            gpuThresholdQubits, separabilityThreshold);
+            gpuThresholdQubits, separabilityThreshold, isTurbo);
         c->runningNorm = runningNorm;
         c->SetConcurrency(GetConcurrencyLevel());
         c->engine->CopyStateVec(engine);
@@ -556,7 +558,7 @@ public:
     {
         QHybridPtr c = std::make_shared<QHybrid>(0U, ZERO_BCI, rand_generator, phaseFactor, doNormalize,
             randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor, deviceIDs,
-            gpuThresholdQubits, separabilityThreshold);
+            gpuThresholdQubits, separabilityThreshold, isTurbo);
         c->SetQubitCount(qubitCount);
         return c;
     }

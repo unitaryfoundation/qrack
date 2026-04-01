@@ -30,6 +30,7 @@ class QBdtHybrid : public QParity, public QInterface {
 protected:
     bool useRDRAND;
     bool isSparse;
+    bool isTurbo;
     bool useHostRam;
     bitLenInt thresholdQubits;
     real1_f separabilityThreshold;
@@ -106,23 +107,23 @@ public:
         qrack_rand_gen_ptr rgp = nullptr, const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false,
         bool randomGlobalPhase = true, bool useHostMem = false, int64_t deviceId = -1, bool useHardwareRNG = true,
         bool useSparseStateVec = false, real1_f norm_thresh = REAL1_EPSILON, std::vector<int64_t> devList = {},
-        bitLenInt qubitThreshold = 0U, real1_f separation_thresh = _qrack_qunit_sep_thresh);
+        bitLenInt qubitThreshold = 0U, real1_f separation_thresh = _qrack_qunit_sep_thresh, bool useTurbo = false);
 
     QBdtHybrid(QBdtPtr q, QEnginePtr e, std::vector<QInterfaceEngine> eng, bitLenInt qBitCount,
         const bitCapInt& initState = ZERO_BCI, qrack_rand_gen_ptr rgp = nullptr,
         const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false, bool randomGlobalPhase = true,
         bool useHostMem = false, int64_t deviceId = -1, bool useHardwareRNG = true, bool useSparseStateVec = false,
         real1_f norm_thresh = REAL1_EPSILON, std::vector<int64_t> devList = {}, bitLenInt qubitThreshold = 0U,
-        real1_f separation_thresh = _qrack_qunit_sep_thresh);
+        real1_f separation_thresh = _qrack_qunit_sep_thresh, bool useTurbo = false);
 
     QBdtHybrid(bitLenInt qBitCount, const bitCapInt& initState = ZERO_BCI, qrack_rand_gen_ptr rgp = nullptr,
         const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false, bool randomGlobalPhase = true,
         bool useHostMem = false, int64_t deviceId = -1, bool useHardwareRNG = true, bool useSparseStateVec = false,
         real1_f norm_thresh = REAL1_EPSILON, std::vector<int64_t> devList = {}, bitLenInt qubitThreshold = 0U,
-        real1_f separation_thresh = _qrack_qunit_sep_thresh)
+        real1_f separation_thresh = _qrack_qunit_sep_thresh, bool useTurbo = false)
         : QBdtHybrid({ QINTERFACE_OPTIMAL_BASE }, qBitCount, initState, rgp, phaseFac, doNorm, randomGlobalPhase,
               useHostMem, deviceId, useHardwareRNG, useSparseStateVec, norm_thresh, devList, qubitThreshold,
-              separation_thresh)
+              separation_thresh, useTurbo)
     {
     }
 
@@ -211,7 +212,7 @@ public:
         }
         return std::make_shared<QBdtHybrid>(q, e, engines, qubitCount, ZERO_BCI, rand_generator, phaseFactor,
             doNormalize, randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor, deviceIDs,
-            thresholdQubits, separabilityThreshold);
+            thresholdQubits, separabilityThreshold, isTurbo);
     }
     void Decompose(bitLenInt start, QInterfacePtr dest)
     {
@@ -967,7 +968,7 @@ public:
     {
         QBdtHybridPtr c = std::make_shared<QBdtHybrid>(engines, qubitCount, ZERO_BCI, rand_generator, phaseFactor,
             doNormalize, randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor, deviceIDs,
-            thresholdQubits, separabilityThreshold);
+            thresholdQubits, separabilityThreshold, isTurbo);
         c->SetConcurrency(GetConcurrencyLevel());
         if (qbdt) {
             c->qbdt = std::dynamic_pointer_cast<QBdt>(qbdt->Clone());

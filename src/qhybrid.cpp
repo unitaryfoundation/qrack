@@ -22,10 +22,11 @@ namespace Qrack {
 
 QHybrid::QHybrid(bitLenInt qBitCount, const bitCapInt& initState, qrack_rand_gen_ptr rgp, const complex& phaseFac,
     bool doNorm, bool randomGlobalPhase, bool useHostMem, int64_t deviceId, bool useHardwareRNG, bool useSparseStateVec,
-    real1_f norm_thresh, std::vector<int64_t> devList, bitLenInt qubitThreshold, real1_f sep_thresh)
+    real1_f norm_thresh, std::vector<int64_t> devList, bitLenInt qubitThreshold, real1_f sep_thresh, bool useTurbo)
     : QEngine(qBitCount, rgp, doNorm, randomGlobalPhase, useHostMem, useHardwareRNG, norm_thresh)
     , useRDRAND(useHardwareRNG)
     , isSparse(useSparseStateVec)
+    , isTurbo(useTurbo)
     , separabilityThreshold(sep_thresh)
     , devID(deviceId)
     , phaseFactor(phaseFac)
@@ -64,7 +65,7 @@ QHybrid::QHybrid(bitLenInt qBitCount, const bitCapInt& initState, qrack_rand_gen
 
     engine = std::dynamic_pointer_cast<QEngine>(CreateQuantumInterface(engines, qubitCount, initState, rand_generator,
         phaseFactor, doNormalize, randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor,
-        deviceIDs, pagerThresholdQubits, separabilityThreshold));
+        deviceIDs, pagerThresholdQubits, separabilityThreshold, isTurbo));
 }
 
 QEnginePtr QHybrid::MakeEngine(bool isOpenCL)
@@ -72,7 +73,7 @@ QEnginePtr QHybrid::MakeEngine(bool isOpenCL)
     QEnginePtr toRet =
         std::dynamic_pointer_cast<QEngine>(CreateQuantumInterface(isOpenCL ? QRACK_GPU_ENGINE : QINTERFACE_CPU, 0U,
             ZERO_BCI, rand_generator, phaseFactor, doNormalize, randGlobalPhase, useHostRam, devID, useRDRAND, isSparse,
-            (real1_f)amplitudeFloor, deviceIDs, pagerThresholdQubits, separabilityThreshold));
+            (real1_f)amplitudeFloor, deviceIDs, pagerThresholdQubits, separabilityThreshold, isTurbo));
     toRet->SetQubitCount(qubitCount);
     toRet->SetConcurrency(GetConcurrencyLevel());
     return toRet;

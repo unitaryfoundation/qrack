@@ -43,7 +43,7 @@ namespace Qrack {
 QStabilizerHybrid::QStabilizerHybrid(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCapInt& initState,
     qrack_rand_gen_ptr rgp, const complex& phaseFac, bool doNorm, bool randomGlobalPhase, bool useHostMem,
     int64_t deviceId, bool useHardwareRNG, bool useSparseStateVec, real1_f norm_thresh, std::vector<int64_t> devList,
-    bitLenInt qubitThreshold, real1_f sep_thresh)
+    bitLenInt qubitThreshold, real1_f sep_thresh, bool useTurbo)
     : QInterface(qBitCount, rgp, doNorm, useHardwareRNG, randomGlobalPhase, norm_thresh)
     , useHostRam(useHostMem)
     , doNormalize(doNorm)

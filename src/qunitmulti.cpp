@@ -31,9 +31,9 @@ namespace Qrack {
 QUnitMulti::QUnitMulti(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCapInt& initState,
     qrack_rand_gen_ptr rgp, const complex& phaseFac, bool doNorm, bool randomGlobalPhase, bool useHostMem,
     int64_t deviceID, bool useHardwareRNG, bool useSparseStateVec, real1_f norm_thresh, std::vector<int64_t> devList,
-    bitLenInt qubitThreshold, real1_f sep_thresh)
+    bitLenInt qubitThreshold, real1_f sep_thresh, bool useTurbo)
     : QUnit(eng, qBitCount, initState, rgp, phaseFac, doNorm, randomGlobalPhase, useHostMem, -1, useHardwareRNG,
-          useSparseStateVec, norm_thresh, devList, qubitThreshold, sep_thresh)
+          useSparseStateVec, norm_thresh, devList, qubitThreshold, sep_thresh, useTurbo)
     , isQEngineOCL(false)
     , deviceQbList({ (bitLenInt)-1 })
 {

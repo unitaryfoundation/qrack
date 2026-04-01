@@ -35,10 +35,11 @@ namespace Qrack {
 QTensorNetwork::QTensorNetwork(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCapInt& initState,
     qrack_rand_gen_ptr rgp, const complex& phaseFac, bool doNorm, bool randomGlobalPhase, bool useHostMem,
     int64_t deviceId, bool useHardwareRNG, bool useSparseStateVec, real1_f norm_thresh, std::vector<int64_t> devList,
-    bitLenInt qubitThreshold, real1_f sep_thresh)
+    bitLenInt qubitThreshold, real1_f sep_thresh, bool useTurbo)
     : QInterface(qBitCount, rgp, doNorm, useHardwareRNG, randomGlobalPhase, doNorm ? norm_thresh : ZERO_R1_F)
     , useHostRam(useHostMem)
     , isSparse(useSparseStateVec)
+    , isTurbo(useTurbo)
     , useTGadget(true)
     , isNearClifford(true)
 #if ENABLE_OPENCL || ENABLE_CUDA
@@ -115,9 +116,9 @@ QTensorNetwork::QTensorNetwork(std::vector<QInterfaceEngine> eng, bitLenInt qBit
 void QTensorNetwork::MakeLayerStack()
 {
     layerStack = nullptr;
-    layerStack =
-        CreateQuantumInterface(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize, randGlobalPhase,
-            useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor, deviceIDs, qbThreshold);
+    layerStack = CreateQuantumInterface(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
+        randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor, deviceIDs,
+        qbThreshold, separabilityThreshold, isTurbo);
     layerStack->SetReactiveSeparate(isReactiveSeparate);
     layerStack->SetSdrp(separabilityThreshold);
     layerStack->SetNcrp(ncrp);
@@ -135,7 +136,7 @@ QInterfacePtr QTensorNetwork::Clone()
 {
     QTensorNetworkPtr clone = std::make_shared<QTensorNetwork>(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX,
         doNormalize, randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor,
-        deviceIDs, qbThreshold);
+        deviceIDs, qbThreshold, separabilityThreshold, isTurbo);
 
     clone->circuit = circuit->Clone();
     clone->layerStack = layerStack->Clone();

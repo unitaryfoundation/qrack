@@ -53,6 +53,7 @@ protected:
         stateVec = orig->stateVec;
         logFidelity = orig->logFidelity;
         isSparse = orig->isSparse;
+        isTurbo = orig->isTurbo;
         sparse_thresh = orig->sparse_thresh;
     }
 

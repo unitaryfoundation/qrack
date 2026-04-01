@@ -33,9 +33,10 @@ namespace Qrack {
 QPager::QPager(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCapInt& _initState,
     qrack_rand_gen_ptr rgp, const complex& phaseFac, bool ignored, bool ignored2, bool useHostMem, int64_t deviceId,
     bool useHardwareRNG, bool useSparseStateVec, real1_f norm_thresh, std::vector<int64_t> devList,
-    bitLenInt qubitThreshold, real1_f sep_thresh)
+    bitLenInt qubitThreshold, real1_f sep_thresh, bool useTurbo)
     : QEngine(qBitCount, rgp, false, false, useHostMem, useHardwareRNG, norm_thresh)
     , isSparse(useSparseStateVec)
+    , isTurbo(useTurbo)
     , useTGadget(true)
     , maxPageSetting(-1)
     , maxPageQubits(-1)
@@ -70,9 +71,10 @@ QPager::QPager(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bit
 QPager::QPager(QEnginePtr enginePtr, std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCapInt& initState,
     qrack_rand_gen_ptr rgp, const complex& phaseFac, bool ignored, bool ignored2, bool useHostMem, int64_t deviceId,
     bool useHardwareRNG, bool useSparseStateVec, real1_f norm_thresh, std::vector<int64_t> devList,
-    bitLenInt qubitThreshold, real1_f sep_thresh)
+    bitLenInt qubitThreshold, real1_f sep_thresh, bool useTurbo)
     : QEngine(qBitCount, rgp, false, false, useHostMem, useHardwareRNG, norm_thresh)
     , isSparse(useSparseStateVec)
+    , isTurbo(useTurbo)
     , maxPageSetting(-1)
     , maxPageQubits(-1)
     , thresholdQubitsPerPage(qubitThreshold)
@@ -283,9 +285,9 @@ void QPager::Init()
 
 QEnginePtr QPager::MakeEngine(bitLenInt length, bitCapIntOcl pageId)
 {
-    QEnginePtr toRet = std::dynamic_pointer_cast<QEngine>(
-        CreateQuantumInterface(engines, 0U, ZERO_BCI, rand_generator, phaseFactor, false, false,
-            GetPageHostPointer(pageId), GetPageDevice(pageId), useRDRAND, isSparse, (real1_f)amplitudeFloor));
+    QEnginePtr toRet = std::dynamic_pointer_cast<QEngine>(CreateQuantumInterface(engines, 0U, ZERO_BCI, rand_generator,
+        phaseFactor, false, false, GetPageHostPointer(pageId), GetPageDevice(pageId), useRDRAND, isSparse,
+        (real1_f)amplitudeFloor, std::vector<int64_t>{}, 0U, _qrack_qunit_sep_thresh, isTurbo));
     toRet->SetQubitCount(length);
     toRet->SetTInjection(useTGadget);
     return toRet;
@@ -713,7 +715,8 @@ bitLenInt QPager::ComposeEither(QPagerPtr toCopy, bool willDestroy)
 QInterfacePtr QPager::Decompose(bitLenInt start, bitLenInt length)
 {
     QPagerPtr dest = std::make_shared<QPager>(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
-        randGlobalPhase, false, 0, !hardware_rand_generator ? false : true, isSparse, (real1_f)amplitudeFloor);
+        randGlobalPhase, false, 0, !hardware_rand_generator ? false : true, isSparse, (real1_f)amplitudeFloor,
+        std::vector<int64_t>{}, 0U, _qrack_qunit_sep_thresh, isTurbo);
 
     Decompose(start, dest);
 
@@ -802,7 +805,7 @@ bitLenInt QPager::Allocate(bitLenInt start, bitLenInt length)
 
     QPagerPtr nQubits = std::make_shared<QPager>(engines, length, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
         randGlobalPhase, false, 0, !hardware_rand_generator ? false : true, isSparse, (real1_f)amplitudeFloor,
-        deviceIDs, thresholdQubitsPerPage);
+        deviceIDs, thresholdQubitsPerPage, _qrack_qunit_sep_thresh, isTurbo);
 
     return Compose(nQubits, start);
 }
@@ -1620,7 +1623,7 @@ QInterfacePtr QPager::Clone()
     SeparateEngines();
     QPagerPtr clone = std::make_shared<QPager>(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
         randGlobalPhase, false, 0, !hardware_rand_generator ? false : true, isSparse, (real1_f)amplitudeFloor,
-        deviceIDs, thresholdQubitsPerPage);
+        deviceIDs, thresholdQubitsPerPage, _qrack_qunit_sep_thresh, isTurbo);
     for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
         clone->qPages[i] = std::dynamic_pointer_cast<QEngine>(qPages[i]->Clone());
     }
@@ -1632,7 +1635,7 @@ QEnginePtr QPager::CloneEmpty()
     SeparateEngines();
     QPagerPtr clone = std::make_shared<QPager>(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
         randGlobalPhase, false, 0, !hardware_rand_generator ? false : true, isSparse, (real1_f)amplitudeFloor,
-        deviceIDs, thresholdQubitsPerPage);
+        deviceIDs, thresholdQubitsPerPage, _qrack_qunit_sep_thresh, isTurbo);
     for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
         clone->qPages[i] = qPages[i]->CloneEmpty();
     }
@@ -1644,7 +1647,7 @@ QInterfacePtr QPager::Copy()
     SeparateEngines();
     QPagerPtr clone = std::make_shared<QPager>(engines, qubitCount, ZERO_BCI, rand_generator, ONE_CMPLX, doNormalize,
         randGlobalPhase, false, 0, !hardware_rand_generator ? false : true, isSparse, (real1_f)amplitudeFloor,
-        deviceIDs, thresholdQubitsPerPage);
+        deviceIDs, thresholdQubitsPerPage, _qrack_qunit_sep_thresh, isTurbo);
     for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
         clone->qPages[i] = std::dynamic_pointer_cast<QEngine>(qPages[i]->Copy());
     }

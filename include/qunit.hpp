@@ -39,6 +39,7 @@ protected:
     bool isCpu;
     bool isSinglePage;
     bool isSparse;
+    bool isTurbo;
     size_t aceMb;
     bitLenInt aceQubits;
     bitLenInt thresholdQubits;
@@ -149,15 +150,16 @@ public:
         qrack_rand_gen_ptr rgp = nullptr, const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false,
         bool randomGlobalPhase = true, bool useHostMem = false, int64_t deviceId = -1, bool useHardwareRNG = true,
         bool ignored = false, real1_f norm_thresh = REAL1_EPSILON, std::vector<int64_t> devIDs = {},
-        bitLenInt qubitThreshold = 0U, real1_f separation_thresh = _qrack_qunit_sep_thresh);
+        bitLenInt qubitThreshold = 0U, real1_f separation_thresh = _qrack_qunit_sep_thresh, bool useTurbo = false);
 
     QUnit(bitLenInt qBitCount, const bitCapInt& initState = ZERO_BCI, qrack_rand_gen_ptr rgp = nullptr,
         const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false, bool randomGlobalPhase = true,
         bool useHostMem = false, int64_t deviceId = -1, bool useHardwareRNG = true, bool ignored = false,
         real1_f norm_thresh = REAL1_EPSILON, std::vector<int64_t> devIDs = {}, bitLenInt qubitThreshold = 0U,
-        real1_f separation_thresh = _qrack_qunit_sep_thresh)
+        real1_f separation_thresh = _qrack_qunit_sep_thresh, bool useTurbo = false)
         : QUnit({ QINTERFACE_STABILIZER_HYBRID }, qBitCount, initState, rgp, phaseFac, doNorm, randomGlobalPhase,
-              useHostMem, deviceId, useHardwareRNG, ignored, norm_thresh, devIDs, qubitThreshold, separation_thresh)
+              useHostMem, deviceId, useHardwareRNG, ignored, norm_thresh, devIDs, qubitThreshold, separation_thresh,
+              useTurbo)
     {
     }
 

@@ -207,10 +207,10 @@ protected:
 
 public:
     QStabilizer(bitLenInt n, const bitCapInt& perm = ZERO_BCI, qrack_rand_gen_ptr rgp = nullptr,
-        const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false, bool randomGlobalPhase = true,
+        const complex& phasFac = CMPLX_DEFAULT_ARG, bool doNorm = false, bool randomGlobalPhase = true,
         bool ignored2 = false, int64_t ignored3 = -1, bool useHardwareRNG = true, bool ignored4 = false,
         real1_f ignored5 = REAL1_EPSILON, std::vector<int64_t> ignored6 = {}, bitLenInt ignored7 = 0U,
-        real1_f ignored8 = _qrack_qunit_sep_thresh);
+        real1_f ignored8 = _qrack_qunit_sep_thresh, bool ignored9 = false);
 
     ~QStabilizer() { Dump(); }
 

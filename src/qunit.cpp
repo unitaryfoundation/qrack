@@ -73,7 +73,7 @@ namespace Qrack {
 QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCapInt& initState, qrack_rand_gen_ptr rgp,
     const complex& phaseFac, bool doNorm, bool randomGlobalPhase, bool useHostMem, int64_t deviceID,
     bool useHardwareRNG, bool useSparseStateVec, real1_f norm_thresh, std::vector<int64_t> devList,
-    bitLenInt qubitThreshold, real1_f sep_thresh)
+    bitLenInt qubitThreshold, real1_f sep_thresh, bool useTurbo)
     : QInterface(qBitCount, rgp, doNorm, useHardwareRNG, randomGlobalPhase, norm_thresh)
     , freezeBasis2Qb(false)
     , useHostRam(useHostMem)
@@ -126,6 +126,7 @@ QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCa
 
     isReactiveSeparate = (separabilityThreshold > FP_NORM_EPSILON_F);
     isSparse = useSparseStateVec && isCpu;
+    isTurbo = useTurbo && isCpu;
 
     if (qubitCount) {
         SetPermutation(initState);
@@ -136,7 +137,7 @@ QInterfacePtr QUnit::MakeEngine(bitLenInt length, const bitCapInt& perm)
 {
     QInterfacePtr toRet = CreateQuantumInterface(engines, length, perm, rand_generator, phaseFactor, doNormalize,
         randGlobalPhase, useHostRam, devID, useRDRAND, isSparse, (real1_f)amplitudeFloor, deviceIDs, thresholdQubits,
-        separabilityThreshold);
+        separabilityThreshold, isTurbo);
     toRet->SetTInjection(useTGadget);
     toRet->SetUseExactNearClifford(useExactNC);
     toRet->SetNcrp(roundingThreshold);
