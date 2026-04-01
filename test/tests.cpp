@@ -306,6 +306,12 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_change_device")
 }
 #endif
 
+TEST_CASE_METHOD(QInterfaceTestFixture, "lossy_save_and_load")
+{
+    qftReg->LossySaveStateVector("lossy_test.svtq");
+    qftReg->LossyLoadStateVector("lossy_test.svtq");
+}
+
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_qengine_getmaxqpower")
 {
     // Assuming default engine has 20 qubits:

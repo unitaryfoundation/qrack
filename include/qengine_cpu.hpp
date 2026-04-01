@@ -157,8 +157,6 @@ public:
         Dispatch(1U, [this, runningNrm] { runningNorm = runningNrm; });
     }
 
-    void LossySaveStateVector(std::string f, int b = 0, int p = 4);
-    void LossyLoadStateVector(std::string f);
     void SetQuantumState(const complex* inputState);
     void GetQuantumState(complex* outputState);
     void GetProbs(real1* outputProbs);
