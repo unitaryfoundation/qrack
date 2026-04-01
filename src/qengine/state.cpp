@@ -11,8 +11,10 @@
 // for details.
 
 #include "qengine_cpu.hpp"
+#include "statevector_turboquant.hpp"
 
 #include <chrono>
+#include <fstream>
 #include <thread>
 
 #define CHECK_ZERO_SKIP()                                                                                              \
@@ -279,6 +281,32 @@ void QEngineCPU::GetQuantumState(complex* outputState)
     Finish();
 
     stateVec->copy_out(outputState);
+}
+
+void QEngineCPU::LossySaveStateVector(std::string f, int b, int p)
+{
+    StateVectorTurboQuant out(maxQPowerOcl, p, b ? b : qubitCount, stateVec);
+    std::ofstream ofile;
+    ofile.open(f);
+    ofile << out;
+    ofile.close();
+}
+void QEngineCPU::LossyLoadStateVector(std::string f)
+{
+    std::ifstream ifile;
+    ifile.open(f);
+    StateVectorTurboQuantPtr sv = StateVectorTurboQuant::load(ifile);
+    ifile.close();
+
+    const bitCapIntOcl sz = sv->get_size();
+    const bitLenInt qbCount = log2Ocl(sz);
+    if (qbCount > qubitCount) {
+        Allocate(qubitCount, qbCount - qubitCount);
+    } else if (qbCount < qubitCount) {
+        Dispose(0U, qubitCount - qbCount);
+    }
+
+    stateVec->copy(sv);
 }
 
 /// Get all probabilities, in unsigned int permutation basis

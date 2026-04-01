@@ -29,6 +29,7 @@
 #pragma once
 
 #include "common/parallel_for.hpp"
+#include "statevector.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -443,6 +444,18 @@ public:
     {
         copy_in(copyIn);
     }
+
+    StateVectorTurboQuant(bitCapIntOcl cap, int p, int b, StateVectorPtr toCopy)
+        : StateVector(cap)
+        , BLOCK(1ULL << p)
+        , num_blocks((cap + (1ULL << p) - 1U) / (1ULL << p))
+        , blocks(num_blocks, TurboBlock(p, b))
+        , block_mutexes(num_blocks)
+    {
+        copy(toCopy);
+    }
+
+    bitCapIntOcl get_size() { return capacity; }
 
     // --- Serialization ------------------------------------------------------
     //

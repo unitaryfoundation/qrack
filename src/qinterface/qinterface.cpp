@@ -11,6 +11,7 @@
 // for details.
 
 #include "qinterface.hpp"
+#include "statevector_turboquant.hpp"
 
 #include <algorithm>
 #include <mutex>

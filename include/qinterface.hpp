@@ -295,6 +295,17 @@ public:
         }
     }
 
+    /** Write the quantum state to disk with lossy compression
+     *
+     * \warning PSEUDO-QUANTUM
+     */
+    virtual void LossySaveStateVector(std::string f, int b = 0, int p = 4) {}
+    /** Read the quantum state from disk with lossy compression
+     *
+     * \warning PSEUDO-QUANTUM
+     */
+    virtual void LossyLoadStateVector(std::string f) {}
+
     /** Set an arbitrary pure quantum state representation
      *
      * \warning PSEUDO-QUANTUM
