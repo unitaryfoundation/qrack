@@ -205,7 +205,7 @@ struct TurboBlock {
     {
         std::copy(o.packed.get(), o.packed.get() + o.NWORDS, packed.get());
     }
-    
+
     TurboBlock& operator=(const TurboBlock& o)
     {
         D = o.D;
@@ -342,6 +342,39 @@ struct TurboBlock {
         }
         return total;
     }
+
+    static void write_bool(std::ostream& out, const bool& x)
+    {
+        out.write(reinterpret_cast<const char*>(&x), sizeof(bool));
+    }
+
+    static void write_size_t(std::ostream& out, const size_t& x)
+    {
+        out.write(reinterpret_cast<const char*>(&x), sizeof(size_t));
+    }
+
+    static void write_real(std::ostream& out, const real1& x)
+    {
+        out.write(reinterpret_cast<const char*>(&x), sizeof(real1));
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const TurboBlock& s)
+    {
+        write_size_t(os, s.D);
+        write_bool(os, s.initialized);
+        if (s.initialized) {
+            for (size_t i = 0U; i < s.D; ++i) {
+                write_real(os, s.scales_re[i]);
+            }
+            for (size_t i = 0U; i < s.D; ++i) {
+                write_real(os, s.scales_im[i]);
+            }
+        }
+        write_size_t(os, s.NWORDS);
+        os.write(reinterpret_cast<const char*>(s.packed.get()), s.NWORDS * sizeof(uint64_t));
+
+        return os;
+    }
 };
 
 // ---------------------------------------------------------------------------
@@ -387,6 +420,33 @@ public:
         , block_mutexes(num_blocks)
     {
         copy_in(copyIn);
+    }
+
+    static void write_bool(std::ostream& out, const bool& x)
+    {
+        out.write(reinterpret_cast<const char*>(&x), sizeof(bool));
+    }
+
+    static void write_size_t(std::ostream& out, const size_t& x)
+    {
+        out.write(reinterpret_cast<const char*>(&x), sizeof(size_t));
+    }
+
+    static void write_real(std::ostream& out, const real1& x)
+    {
+        out.write(reinterpret_cast<const char*>(&x), sizeof(real1));
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const StateVectorTurboQuant& s)
+    {
+        write_size_t(os, s.capacity);
+        write_size_t(os, s.BLOCK);
+        write_size_t(os, s.num_blocks);
+        for (size_t i = 0U; i < s.blocks.size(); ++i) {
+            os << s.blocks[i];
+        }
+
+        return os;
     }
 
     complex read(const bitCapInt& i) { return read((bitCapIntOcl)i); }
