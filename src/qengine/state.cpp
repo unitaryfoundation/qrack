@@ -34,10 +34,11 @@ namespace Qrack {
  */
 QEngineCPU::QEngineCPU(bitLenInt qBitCount, const bitCapInt& initState, qrack_rand_gen_ptr rgp, const complex& phaseFac,
     bool doNorm, bool randomGlobalPhase, bool useHostMem, int64_t deviceID, bool useHardwareRNG, bool useSparseStateVec,
-    real1_f norm_thresh, std::vector<int64_t> devList, bitLenInt qubitThreshold, real1_f sep_thresh)
+    real1_f norm_thresh, std::vector<int64_t> devList, bitLenInt qubitThreshold, real1_f sep_thresh, bool useTurbo)
     : QEngine(qBitCount, rgp, doNorm, randomGlobalPhase, true, useHardwareRNG, norm_thresh)
     , logFidelity(0.0)
     , isSparse(useSparseStateVec)
+    , isTurbo(useTurbo)
     , sparse_thresh(_qrack_sparse_thresh)
 {
     if (qBitCount > QRACK_MAX_CPU_QB_DEFAULT) {

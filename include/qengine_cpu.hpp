@@ -14,6 +14,7 @@
 
 #include "qengine.hpp"
 #include "statevector.hpp"
+#include "statevector_turboquant.hpp"
 
 #if ENABLE_QUNIT_CPU_PARALLEL && ENABLE_PTHREAD
 #include "common/dispatchqueue.hpp"
@@ -41,6 +42,7 @@ protected:
 #endif
     double logFidelity;
     bool isSparse;
+    bool isTurbo;
     real1_f sparse_thresh;
 
     using QEngine::Copy;
@@ -61,7 +63,7 @@ public:
         const complex& phaseFac = CMPLX_DEFAULT_ARG, bool doNorm = false, bool randomGlobalPhase = true,
         bool ignored = false, int64_t ignored2 = -1, bool useHardwareRNG = true, bool useSparseStateVec = false,
         real1_f norm_thresh = REAL1_EPSILON, std::vector<int64_t> ignored3 = {}, bitLenInt ignored4 = 0U,
-        real1_f ignored5 = _qrack_qunit_sep_thresh);
+        real1_f ignored5 = _qrack_qunit_sep_thresh, bool useTurbo = false);
 
     ~QEngineCPU() { Dump(); }
 
@@ -280,6 +282,8 @@ protected:
     {
         if (isSparse) {
             return std::make_shared<StateVectorSparse>(elemCount);
+        } else if (isTurbo) {
+            return std::make_shared<StateVectorTurboQuant>(elemCount);
         } else {
             return std::make_shared<StateVectorArray>(elemCount);
         }

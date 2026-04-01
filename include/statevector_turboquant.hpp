@@ -32,6 +32,7 @@
 #include "common/parallel_for.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <mutex>
@@ -104,8 +105,7 @@ static inline std::vector<real1> _tq_transpose(const std::vector<real1>& R, cons
 
 // Apply d×d column-major rotation R to vector v of length d.
 // Result written into out (may alias v if caller provides scratch).
-static inline void _tq_rotate(const real1* v, const std::vector<real1>& R,
-                               const size_t d, real1* out)
+static inline void _tq_rotate(const real1* v, const std::vector<real1>& R, const size_t d, real1* out)
 {
     for (size_t i = 0U; i < d; ++i) {
         real1 s = ZERO_R1;
@@ -121,15 +121,17 @@ static inline int _tq_quant_bucket(const real1 val, const real1 scale, const int
 {
     const int levels = 1 << bits;
     const real1 lo = (real1)-3.0 * scale;
-    const real1 hi = (real1) 3.0 * scale;
+    const real1 hi = (real1)3.0 * scale;
     const real1 step = (hi - lo) / (real1)levels;
     if (step < (real1)1e-8) {
         return 0;
     }
     const real1 clamped = std::max(lo, std::min(hi - step, val));
     int bucket = (int)((clamped - lo) / step);
-    if (bucket < 0) bucket = 0;
-    if (bucket >= levels) bucket = levels - 1;
+    if (bucket < 0)
+        bucket = 0;
+    if (bucket >= levels)
+        bucket = levels - 1;
     return bucket;
 }
 
@@ -138,7 +140,7 @@ static inline real1 _tq_dequant(const int bucket, const real1 scale, const int b
 {
     const int levels = 1 << bits;
     const real1 lo = (real1)-3.0 * scale;
-    const real1 hi = (real1) 3.0 * scale;
+    const real1 hi = (real1)3.0 * scale;
     const real1 step = (hi - lo) / (real1)levels;
     return lo + ((real1)bucket + (real1)0.5) * step;
 }
@@ -153,13 +155,13 @@ struct TurboBlock {
     static constexpr size_t D = QRACK_TURBO_BLOCK_SIZE;
     static constexpr int BITS = QRACK_TURBO_BITS;
     static constexpr int LEVELS = 1 << BITS;
-    static constexpr int VPW = 64 / BITS;  // values per 64-bit word
+    static constexpr int VPW = 64 / BITS; // values per 64-bit word
 
     // Random rotation matrices for real and imaginary parts (D×D, column-major)
-    std::vector<real1> R_re;   // rotation for real parts
-    std::vector<real1> R_im;   // rotation for imaginary parts
-    std::vector<real1> RT_re;  // transpose (inverse) of R_re
-    std::vector<real1> RT_im;  // transpose (inverse) of R_im
+    std::vector<real1> R_re; // rotation for real parts
+    std::vector<real1> R_im; // rotation for imaginary parts
+    std::vector<real1> RT_re; // transpose (inverse) of R_re
+    std::vector<real1> RT_im; // transpose (inverse) of R_im
 
     // Per-coordinate scales (std dev) for quantization
     std::vector<real1> scales_re;
@@ -198,8 +200,7 @@ struct TurboBlock {
         if (bit + BITS > 64U) {
             const size_t overflow = bit + BITS - 64U;
             const uint64_t mask2 = ((uint64_t)1 << overflow) - 1U;
-            packed[word + 1U] = (packed[word + 1U] & ~mask2) |
-                                 ((uint64_t)bucket >> (BITS - overflow));
+            packed[word + 1U] = (packed[word + 1U] & ~mask2) | ((uint64_t)bucket >> (BITS - overflow));
         }
     }
 
@@ -251,8 +252,8 @@ struct TurboBlock {
         // Quantize and pack
         packed.fill(0U);
         for (size_t j = 0U; j < D; ++j) {
-            pack_bucket(j,       _tq_quant_bucket(re_rot[j], scales_re[j], BITS));
-            pack_bucket(j + D,   _tq_quant_bucket(im_rot[j], scales_im[j], BITS));
+            pack_bucket(j, _tq_quant_bucket(re_rot[j], scales_re[j], BITS));
+            pack_bucket(j + D, _tq_quant_bucket(im_rot[j], scales_im[j], BITS));
         }
     }
 
@@ -264,7 +265,7 @@ struct TurboBlock {
 
         // Dequantize
         for (size_t j = 0U; j < D; ++j) {
-            re_rot[j] = _tq_dequant(unpack_bucket(j),     scales_re[j], BITS);
+            re_rot[j] = _tq_dequant(unpack_bucket(j), scales_re[j], BITS);
             im_rot[j] = _tq_dequant(unpack_bucket(j + D), scales_im[j], BITS);
         }
 
@@ -296,7 +297,7 @@ struct TurboBlock {
     {
         real1 total = ZERO_R1;
         for (size_t j = 0U; j < D; ++j) {
-            const real1 re = _tq_dequant(unpack_bucket(j),     scales_re[j], BITS);
+            const real1 re = _tq_dequant(unpack_bucket(j), scales_re[j], BITS);
             const real1 im = _tq_dequant(unpack_bucket(j + D), scales_im[j], BITS);
             total += re * re + im * im;
         }
@@ -307,20 +308,22 @@ struct TurboBlock {
 // ---------------------------------------------------------------------------
 // StateVectorTurboQuant
 // ---------------------------------------------------------------------------
+class StateVectorTurboQuant;
+typedef std::shared_ptr<StateVectorTurboQuant> StateVectorTurboQuantPtr;
+
 class StateVectorTurboQuant : public StateVector {
 protected:
     static constexpr size_t BLOCK = QRACK_TURBO_BLOCK_SIZE;
 
+    size_t num_blocks;
     std::vector<TurboBlock> blocks;
     std::vector<std::mutex> block_mutexes;
-    size_t num_blocks;
 
     size_t block_of(const bitCapIntOcl i) const { return (size_t)(i / BLOCK); }
     size_t offset_in(const bitCapIntOcl i) const { return (size_t)(i % BLOCK); }
 
     // Decompress block b, apply f(amps, num_amps), recompress.
-    template <typename F>
-    void with_block(const size_t b, F&& f)
+    template <typename F> void with_block(const size_t b, F&& f)
     {
         std::lock_guard<std::mutex> lock(block_mutexes[b]);
         std::vector<complex> amps(BLOCK);
@@ -330,8 +333,7 @@ protected:
     }
 
     // Decompress block b read-only, apply f(amps, num_amps).
-    template <typename F>
-    void with_block_ro(const size_t b, F&& f) const
+    template <typename F> void with_block_ro(const size_t b, F&& f) const
     {
         std::vector<complex> amps(BLOCK);
         blocks[b].decompress(amps.data());
@@ -367,34 +369,24 @@ public:
     }
 
 #if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
-    {
-        return read2((bitCapIntOcl)i1, (bitCapIntOcl)i2);
-    }
+    complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { return read2((bitCapIntOcl)i1, (bitCapIntOcl)i2); }
 
-    complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2)
-    {
-        return complex2(read(i1), read(i2));
-    }
+    complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2) { return complex2(read(i1), read(i2)); }
 #endif
 
     void write(const bitCapInt& i, const complex& c) { write((bitCapIntOcl)i, c); }
 
     void write(const bitCapIntOcl& i, const complex& c)
     {
-        with_block(block_of(i), [&](complex* amps, size_t) {
-            amps[offset_in(i)] = c;
-        });
+        with_block(block_of(i), [&](complex* amps, size_t) { amps[offset_in(i)] = c; });
     }
 
-    void write2(const bitCapInt& i1, const complex& c1,
-                const bitCapInt& i2, const complex& c2)
+    void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
     {
         write2((bitCapIntOcl)i1, c1, (bitCapIntOcl)i2, c2);
     }
 
-    void write2(const bitCapIntOcl& i1, const complex& c1,
-                const bitCapIntOcl& i2, const complex& c2)
+    void write2(const bitCapIntOcl& i1, const complex& c1, const bitCapIntOcl& i2, const complex& c2)
     {
         const size_t b1 = block_of(i1);
         const size_t b2 = block_of(i2);
@@ -443,12 +435,11 @@ public:
         });
     }
 
-    void copy_in(const complex* copyIn, const bitCapIntOcl offset,
-                 const bitCapIntOcl length)
+    void copy_in(const complex* copyIn, const bitCapIntOcl offset, const bitCapIntOcl length)
     {
         // Decompress affected blocks, patch, recompress
         const size_t b_start = block_of(offset);
-        const size_t b_end   = block_of(offset + length - 1U);
+        const size_t b_end = block_of(offset + length - 1U);
 
         for (size_t b = b_start; b <= b_end; ++b) {
             with_block(b, [&](complex* amps, size_t) {
@@ -463,8 +454,8 @@ public:
         }
     }
 
-    void copy_in(StateVectorPtr copyInSv, const bitCapIntOcl srcOffset,
-                 const bitCapIntOcl dstOffset, const bitCapIntOcl length)
+    void copy_in(
+        StateVectorPtr copyInSv, const bitCapIntOcl srcOffset, const bitCapIntOcl dstOffset, const bitCapIntOcl length)
     {
         std::vector<complex> tmp(length);
         if (copyInSv) {
@@ -485,8 +476,7 @@ public:
         });
     }
 
-    void copy_out(complex* copyOut, const bitCapIntOcl offset,
-                  const bitCapIntOcl length)
+    void copy_out(complex* copyOut, const bitCapIntOcl offset, const bitCapIntOcl length)
     {
         for (bitCapIntOcl i = 0U; i < length; ++i) {
             copyOut[i] = read(offset + i);
@@ -495,8 +485,7 @@ public:
 
     void copy(StateVectorPtr toCopy)
     {
-        StateVectorTurboQuantPtr src =
-            std::dynamic_pointer_cast<StateVectorTurboQuant>(toCopy);
+        StateVectorTurboQuantPtr src = std::dynamic_pointer_cast<StateVectorTurboQuant>(toCopy);
         if (src) {
             // Block-level copy — preserves rotations and scales
             par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
@@ -515,17 +504,15 @@ public:
     {
         // Swap upper and lower halves block-by-block.
         // For capacity that is a power of 2, the upper half starts at capacity/2.
-        StateVectorTurboQuantPtr other =
-            std::dynamic_pointer_cast<StateVectorTurboQuant>(svp);
+        StateVectorTurboQuantPtr other = std::dynamic_pointer_cast<StateVectorTurboQuant>(svp);
 
         const bitCapIntOcl half = capacity >> 1U;
         const size_t half_blocks = (size_t)(half / BLOCK);
 
         if (other && (half % BLOCK == 0U)) {
             // Block-aligned shuffle: swap block pointers (swap the TurboBlock objects)
-            par_for(0U, half_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
-                std::swap(blocks[b + half_blocks], other->blocks[b]);
-            });
+            par_for(0U, half_blocks,
+                [&](const bitCapIntOcl& b, const unsigned&) { std::swap(blocks[b + half_blocks], other->blocks[b]); });
         } else {
             // Fallback: decompress, swap, recompress
             const bitCapIntOcl offset = half;
