@@ -17,7 +17,8 @@
 //   - write2() same block: decompress once — O(block_size)
 //   - write2() cross block: decompress two blocks — O(2*block_size)
 //   - shuffle(): block-swap when half-capacity is block-aligned
-//   - Serialization: rotation matrices + scales + packed data per block
+//   - Serialization: seed (8 bytes) + scales + packed data per block;
+//     rotation matrices regenerated from seed on load — O(1) vs O(D²) storage
 //
 // Build configuration (set via CMake, overridable at runtime via constructor):
 //   QRACK_TURBO_BITS — default bits per quantized coordinate (default 4)
@@ -28,7 +29,6 @@
 
 #pragma once
 
-#include "common/parallel_for.hpp"
 #include "statevector.hpp"
 
 #include <algorithm>
@@ -90,8 +90,8 @@ static inline std::vector<real1> _tq_make_rotation(const size_t d, const uint64_
 static inline std::vector<real1> _tq_make_rotation(const size_t d, uint64_t* seed_out)
 {
     std::random_device rd;
-    (*seed_out) = ((uint64_t)rd() << 32U) | (uint64_t)rd();
-    return _tq_make_rotation(d, (const uint64_t)*seed_out);
+    *seed_out = ((uint64_t)rd() << 32U) | (uint64_t)rd();
+    return _tq_make_rotation(d, *seed_out);
 }
 
 // Compute transpose of a d×d column-major matrix.
@@ -148,10 +148,6 @@ static inline real1 _tq_dequant(const int bucket, const real1 scale, const int b
 // ---------------------------------------------------------------------------
 // Binary I/O helpers
 // ---------------------------------------------------------------------------
-static inline void _tq_write_real(std::ostream& os, const real1 x)
-{
-    os.write(reinterpret_cast<const char*>(&x), sizeof(real1));
-}
 static inline void _tq_write_size(std::ostream& os, const size_t x)
 {
     os.write(reinterpret_cast<const char*>(&x), sizeof(size_t));
@@ -163,12 +159,6 @@ static inline void _tq_write_int(std::ostream& os, const int x)
 static inline void _tq_write_bool(std::ostream& os, const bool x)
 {
     os.write(reinterpret_cast<const char*>(&x), sizeof(bool));
-}
-static inline size_t _tq_read_real(std::istream& is)
-{
-    real1 x;
-    is.read(reinterpret_cast<char*>(&x), sizeof(real1));
-    return x;
 }
 static inline size_t _tq_read_size(std::istream& is)
 {
@@ -191,22 +181,51 @@ static inline bool _tq_read_bool(std::istream& is)
 
 // ---------------------------------------------------------------------------
 // TurboBlock
+//
+// Design rationale:
+//   - Single rotation matrix R acts on the D-dimensional real vector formed
+//     by interleaving re and im parts: [re_0, im_0, re_1, im_1, ...].
+//     This respects the joint complex structure of Hilbert space — the
+//     natural unit is the complex amplitude |ψ|² = re² + im², not re and im
+//     independently. Under Haar measure, |ψ|² is uniformly distributed, and
+//     the rotation concentrates the interleaved real vector into approximately
+//     equal-variance Gaussian coordinates.
+//   - Single scalar block_scale = RMS amplitude magnitude over the whole
+//     block, estimated on first compression. Both re and im coordinates are
+//     quantized against this same scale, which is theoretically correct since
+//     Haar uniformity implies equal variance for re and im after rotation.
+//   - One seed (8 bytes) replaces the full D×D rotation matrix, reducing
+//     serialized size from O(D²) to O(1). The matrix is regenerated
+//     deterministically from the seed on load.
+//
+// Serialized size per block:
+//   header:      ~21 bytes
+//   seed:         8 bytes
+//   block_scale:  4 bytes (one real1)
+//   packed:       (2*D*BITS + 63) / 64 * 8 bytes
+//   ----------------------------------------
+//   For D=64, BITS=4: 21 + 8 + 4 + 64 = ~97 bytes per block
+//   For n=16 qubits, 1024 blocks: ~97 KB  (vs 512 KB uncompressed)
 // ---------------------------------------------------------------------------
 struct TurboBlock {
-    size_t D;
-    int BITS;
-    int LEVELS;
+    size_t D; // block size = number of complex amplitudes
+    int BITS; // bits per quantized coordinate
+    int LEVELS; // 1 << BITS
 
-    // Seeds for deterministic rotation regeneration — stored instead of
-    // the full D×D matrices, reducing serialized size from O(D²) to O(1).
-    uint64_t seed_re, seed_im;
+    // Single seed for the one rotation matrix acting on the 2D-dimensional
+    // interleaved [re_0, im_0, re_1, im_1, ...] real vector.
+    uint64_t seed;
 
-    // Rotation matrices regenerated from seeds (not serialized).
-    std::vector<real1> R_re, R_im; // rotation matrices (D×D, col-major)
-    std::vector<real1> RT_re, RT_im; // transposes (= inverses)
+    // Rotation matrix R (2D×2D, col-major) and its transpose RT (= inverse).
+    // Regenerated from seed — not serialized.
+    std::vector<real1> R; // rotation: 2D×2D
+    std::vector<real1> RT; // transpose of R
 
-    real1 scale_re, scale_im;
+    // Single scalar scale: RMS amplitude magnitude over whole block.
+    // Both re and im coordinates are quantized against this scale.
+    real1 block_scale;
 
+    // Packed bucket indices: 2D coordinates (D re + D im), BITS each.
     size_t NWORDS;
     std::unique_ptr<uint64_t[]> packed;
     bool initialized;
@@ -215,14 +234,10 @@ struct TurboBlock {
         : D(1ULL << p)
         , BITS(b)
         , LEVELS(1 << b)
-        , seed_re(0U)
-        , seed_im(0U)
-        , R_re(_tq_make_rotation(1ULL << p, &seed_re))
-        , R_im(_tq_make_rotation(1ULL << p, &seed_im))
-        , RT_re(_tq_transpose(R_re, 1ULL << p))
-        , RT_im(_tq_transpose(R_im, 1ULL << p))
-        , scale_re(ONE_R1)
-        , scale_im(ONE_R1)
+        , seed(0U)
+        , R(_tq_make_rotation(2U * (1ULL << p), &seed))
+        , RT(_tq_transpose(R, 2U * (1ULL << p)))
+        , block_scale(ONE_R1)
         , NWORDS((2U * (1ULL << p) * b + 63U) / 64U)
         , packed(new uint64_t[(2U * (1ULL << p) * b + 63U) / 64U])
         , initialized(false)
@@ -234,14 +249,10 @@ struct TurboBlock {
         : D(o.D)
         , BITS(o.BITS)
         , LEVELS(o.LEVELS)
-        , seed_re(o.seed_re)
-        , seed_im(o.seed_im)
-        , R_re(o.R_re)
-        , R_im(o.R_im)
-        , RT_re(o.RT_re)
-        , RT_im(o.RT_im)
-        , scale_re(o.scale_re)
-        , scale_im(o.scale_im)
+        , seed(o.seed)
+        , R(o.R)
+        , RT(o.RT)
+        , block_scale(o.block_scale)
         , NWORDS(o.NWORDS)
         , packed(new uint64_t[o.NWORDS])
         , initialized(o.initialized)
@@ -256,14 +267,10 @@ struct TurboBlock {
         D = o.D;
         BITS = o.BITS;
         LEVELS = o.LEVELS;
-        seed_re = o.seed_re;
-        seed_im = o.seed_im;
-        R_re = o.R_re;
-        R_im = o.R_im;
-        RT_re = o.RT_re;
-        RT_im = o.RT_im;
-        scale_re = o.scale_re;
-        scale_im = o.scale_im;
+        seed = o.seed;
+        R = o.R;
+        RT = o.RT;
+        block_scale = o.block_scale;
         NWORDS = o.NWORDS;
         packed.reset(new uint64_t[NWORDS]);
         initialized = o.initialized;
@@ -272,7 +279,7 @@ struct TurboBlock {
     }
 
     // Pack a bucket index into the packed array.
-    // idx is the coordinate index (0..2D-1: first D are re, next D are im).
+    // idx is the coordinate index.
     void pack_bucket(const size_t idx, const int bucket)
     {
         const size_t bit_offset = idx * (size_t)BITS;
@@ -306,63 +313,57 @@ struct TurboBlock {
     // Compress an array of D complex amplitudes into this block.
     void compress(const complex* amps)
     {
-        std::vector<real1> re_in(D), im_in(D), re_rot(D), im_rot(D);
+        // Interleave re and im into a single 2D-dimensional real vector,
+        // then apply the single joint rotation.
+        const size_t D2 = 2U * D;
+        std::vector<real1> v_in(D2), v_rot(D2);
         for (size_t i = 0U; i < D; ++i) {
-            re_in[i] = real(amps[i]);
-            im_in[i] = imag(amps[i]);
+            v_in[2U * i] = real(amps[i]);
+            v_in[2U * i + 1U] = imag(amps[i]);
         }
+        _tq_rotate(v_in.data(), R, D2, v_rot.data());
 
-        // Rotate
-        _tq_rotate(re_in.data(), R_re, D, re_rot.data());
-        _tq_rotate(im_in.data(), R_im, D, im_rot.data());
-
-        // Compute scales if first compression
+        // On first compression, estimate block_scale as RMS amplitude magnitude.
+        // Under Haar uniformity both re and im contributions are equal, so a
+        // single scalar captures the joint distribution correctly.
         if (!initialized) {
-            real1 sum_re = ZERO_R1, sum_im = ZERO_R1;
-            for (size_t j = 0U; j < D; ++j) {
-                sum_re += re_rot[j] * re_rot[j];
-                sum_im += im_rot[j] * im_rot[j];
+            real1 sum = ZERO_R1;
+            for (size_t j = 0U; j < D2; ++j) {
+                sum += v_rot[j] * v_rot[j];
             }
-            scale_re = std::sqrt(sum_re / (real1)D + (real1)1e-8);
-            scale_im = std::sqrt(sum_im / (real1)D + (real1)1e-8);
+            block_scale = std::sqrt(sum / (real1)D2 + (real1)1e-8);
             initialized = true;
         }
 
-        // Quantize and pack
         std::fill(packed.get(), packed.get() + NWORDS, 0U);
-        for (size_t j = 0U; j < D; ++j) {
-            pack_bucket(j, _tq_quant_bucket(re_rot[j], scale_re, BITS));
-            pack_bucket(j + D, _tq_quant_bucket(im_rot[j], scale_im, BITS));
+        for (size_t j = 0U; j < D2; ++j) {
+            pack_bucket(j, _tq_quant_bucket(v_rot[j], block_scale, BITS));
         }
     }
 
     // Decompress this block into an array of D complex amplitudes.
     void decompress(complex* amps) const
     {
-        std::vector<real1> re_rot(D), im_rot(D), re_out(D), im_out(D);
-
-        // Dequantize
-        for (size_t j = 0U; j < D; ++j) {
-            re_rot[j] = _tq_dequant(unpack_bucket(j), scale_re, BITS);
-            im_rot[j] = _tq_dequant(unpack_bucket(j + D), scale_im, BITS);
+        const size_t D2 = 2U * D;
+        std::vector<real1> v_rot(D2), v_out(D2);
+        for (size_t j = 0U; j < D2; ++j) {
+            v_rot[j] = _tq_dequant(unpack_bucket(j), block_scale, BITS);
         }
-
-        // Inverse rotate (apply transpose = inverse for orthogonal matrix)
-        _tq_rotate(re_rot.data(), RT_re, D, re_out.data());
-        _tq_rotate(im_rot.data(), RT_im, D, im_out.data());
+        _tq_rotate(v_rot.data(), RT, D2, v_out.data());
         for (size_t i = 0U; i < D; ++i) {
-            amps[i] = complex(re_out[i], im_out[i]);
+            amps[i] = complex(v_out[2U * i], v_out[2U * i + 1U]);
         }
     }
 
-    // Get total probability mass in this block (no decompression needed).
+    // Total probability mass in this block — computable without full
+    // decompression since ||Rv||² = ||v||² under orthogonal rotation.
     real1 get_total_prob() const
     {
         real1 total = ZERO_R1;
-        for (size_t j = 0U; j < D; ++j) {
-            const real1 re = _tq_dequant(unpack_bucket(j), scale_re, BITS);
-            const real1 im = _tq_dequant(unpack_bucket(j + D), scale_im, BITS);
-            total += re * re + im * im;
+        const size_t D2 = 2U * D;
+        for (size_t j = 0U; j < D2; ++j) {
+            const real1 v = _tq_dequant(unpack_bucket(j), block_scale, BITS);
+            total += v * v;
         }
         return total;
     }
@@ -373,11 +374,9 @@ struct TurboBlock {
     //   size_t    D
     //   int       BITS
     //   bool      initialized
-    //   real1[D*D] R_re   (col-major rotation for real parts)
-    //   real1[D*D] R_im   (col-major rotation for imaginary parts)
+    //   uint64_t  seed          (rotation regenerated on load — O(1) storage)
     //   if initialized:
-    //     real1 scale_re
-    //     real1 scale_im
+    //     real1   block_scale
     //   size_t    NWORDS
     //   uint64_t[NWORDS] packed
 
@@ -386,12 +385,9 @@ struct TurboBlock {
         _tq_write_size(os, D);
         _tq_write_int(os, BITS);
         _tq_write_bool(os, initialized);
-        // Store seeds instead of full rotation matrices: O(1) vs O(D²)
-        os.write(reinterpret_cast<const char*>(&seed_re), sizeof(uint64_t));
-        os.write(reinterpret_cast<const char*>(&seed_im), sizeof(uint64_t));
+        os.write(reinterpret_cast<const char*>(&seed), sizeof(uint64_t));
         if (initialized) {
-            _tq_write_real(os, scale_re);
-            _tq_write_real(os, scale_im);
+            os.write(reinterpret_cast<const char*>(&block_scale), sizeof(real1));
         }
         _tq_write_size(os, NWORDS);
         os.write(reinterpret_cast<const char*>(packed.get()), (std::streamsize)(NWORDS * sizeof(uint64_t)));
@@ -409,25 +405,18 @@ struct TurboBlock {
             ++p;
         }
 
-        // Read seeds
-        uint64_t seed_re_in, seed_im_in;
-        is.read(reinterpret_cast<char*>(&seed_re_in), sizeof(uint64_t));
-        is.read(reinterpret_cast<char*>(&seed_im_in), sizeof(uint64_t));
+        uint64_t seed_in;
+        is.read(reinterpret_cast<char*>(&seed_in), sizeof(uint64_t));
 
-        // Reconstruct block with known seeds — regenerates rotation matrices
-        // deterministically without storing them
+        // Reconstruct block, then overwrite rotation with seeded version
         TurboBlock blk(p, BITS_in);
-        blk.seed_re = seed_re_in;
-        blk.seed_im = seed_im_in;
-        blk.R_re = _tq_make_rotation(D_in, seed_re_in);
-        blk.R_im = _tq_make_rotation(D_in, seed_im_in);
-        blk.RT_re = _tq_transpose(blk.R_re, D_in);
-        blk.RT_im = _tq_transpose(blk.R_im, D_in);
+        blk.seed = seed_in;
+        blk.R = _tq_make_rotation(2U * D_in, seed_in);
+        blk.RT = _tq_transpose(blk.R, 2U * D_in);
         blk.initialized = init;
 
         if (init) {
-            blk.scale_re = _tq_read_real(is);
-            blk.scale_im = _tq_read_real(is);
+            is.read(reinterpret_cast<char*>(&blk.block_scale), sizeof(real1));
         }
 
         const size_t nwords = _tq_read_size(is);
@@ -467,7 +456,6 @@ protected:
     size_t block_of(const bitCapIntOcl i) const { return (size_t)(i / BLOCK); }
     size_t offset_in(const bitCapIntOcl i) const { return (size_t)(i % BLOCK); }
 
-    // Decompress block b, apply f(amps, num_amps), recompress.
     template <typename F> void with_block(const size_t b, F&& f)
     {
         std::lock_guard<std::mutex> lock(block_mutexes[b]);
@@ -487,16 +475,6 @@ public:
         , block_mutexes(num_blocks)
     {
         copy_in(copyIn);
-    }
-
-    StateVectorTurboQuant(bitCapIntOcl cap, int p, int b, StateVectorPtr toCopy)
-        : StateVector(cap)
-        , BLOCK(1ULL << p)
-        , num_blocks((cap + (1ULL << p) - 1U) / (1ULL << p))
-        , blocks(num_blocks, TurboBlock(p, b))
-        , block_mutexes(num_blocks)
-    {
-        copy(toCopy);
     }
 
     bitCapIntOcl get_size() { return capacity; }
@@ -687,7 +665,7 @@ public:
     void shuffle(StateVectorPtr svp)
     {
         // Swap upper and lower halves block-by-block.
-        // For capacity that is a power of 2, the upper half starts at capacity/2.
+        // For capacity that is a power of 2, the upper half starts at capacity/2
         auto other = std::dynamic_pointer_cast<StateVectorTurboQuant>(svp);
         const bitCapIntOcl half = capacity >> 1U;
         const size_t hb = (size_t)(half / BLOCK);
