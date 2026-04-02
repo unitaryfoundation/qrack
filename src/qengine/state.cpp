@@ -253,6 +253,40 @@ void QEngineCPU::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
     logFidelity = 0.0;
 }
 
+void QEngineCPU::LossySaveStateVector(std::string f, int p, int b)
+{
+    if (isSparse) {
+        return QInterface::LossySaveStateVector(f, p, b);
+    }
+
+    StateVectorTurboQuant out(maxQPowerOcl, p ? p : qubitCount, b, CastStateVecDense()->get_raw());
+    std::ofstream ofile;
+    ofile.open(f);
+    ofile << out;
+    ofile.close();
+}
+void QEngineCPU::LossyLoadStateVector(std::string f)
+{
+    if (isSparse) {
+        return QInterface::LossyLoadStateVector(f);
+    }
+
+    std::ifstream ifile;
+    ifile.open(f);
+    StateVectorTurboQuantPtr sv = StateVectorTurboQuant::load(ifile);
+    ifile.close();
+
+    const bitCapIntOcl sz = sv->get_size();
+    const bitLenInt qbCount = log2Ocl(sz);
+    if (qbCount > qubitCount) {
+        Allocate(qubitCount, qbCount - qubitCount);
+    } else if (qbCount < qubitCount) {
+        Dispose(0U, qubitCount - qbCount);
+    }
+
+    sv->copy_out(CastStateVecDense()->get_raw());
+}
+
 /// Set arbitrary pure quantum state, in unsigned int permutation basis
 void QEngineCPU::SetQuantumState(const complex* inputState)
 {

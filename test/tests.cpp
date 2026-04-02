@@ -306,8 +306,11 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_change_device")
 }
 #endif
 
-TEST_CASE_METHOD(QInterfaceTestFixture, "lossy_save_and_load")
+TEST_CASE_METHOD(QInterfaceTestFixture, "test_lossy_save_and_load")
 {
+    qftReg =
+        CreateQuantumInterface({ testEngineType, testSubEngineType, testSubSubEngineType, testSubSubSubEngineType }, 6,
+            ZERO_BCI, rng, CMPLX_DEFAULT_ARG, false, false);
     qftReg->LossySaveStateVector("lossy_test.svtq");
     qftReg->LossyLoadStateVector("lossy_test.svtq");
 }

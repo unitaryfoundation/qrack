@@ -55,6 +55,7 @@ protected:
     }
 
     StateVectorSparsePtr CastStateVecSparse() { return std::dynamic_pointer_cast<StateVectorSparse>(stateVec); }
+    StateVectorArrayPtr CastStateVecDense() { return std::dynamic_pointer_cast<StateVectorArray>(stateVec); }
 
 public:
     QEngineCPU(bitLenInt qBitCount, const bitCapInt& initState, qrack_rand_gen_ptr rgp = nullptr,
@@ -157,6 +158,8 @@ public:
         Dispatch(1U, [this, runningNrm] { runningNorm = runningNrm; });
     }
 
+    void LossySaveStateVector(std::string f, int p = 6, int b = 4);
+    void LossyLoadStateVector(std::string f);
     void SetQuantumState(const complex* inputState);
     void GetQuantumState(complex* outputState);
     void GetProbs(real1* outputProbs);

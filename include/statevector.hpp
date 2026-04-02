@@ -138,6 +138,8 @@ public:
 
     virtual ~StateVectorArray() { Free(); }
 
+    complex* get_raw() { return amplitudes.get(); }
+
     complex read(const bitCapInt& i) { return read((bitCapIntOcl)i); }
 #if ENABLE_COMPLEX_X2
     complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { return read2((bitCapIntOcl)i1, (bitCapIntOcl)i2); }
