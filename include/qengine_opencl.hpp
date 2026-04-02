@@ -427,6 +427,8 @@ public:
     void SetDeviceList(std::vector<int64_t> dIDs);
     std::vector<int64_t> GetDeviceList() { return std::vector<int64_t>{ deviceID }; }
 
+    void LossySaveStateVector(std::string f, int p = 6, int b = 4);
+    void LossyLoadStateVector(std::string f);
     void SetQuantumState(const complex* inputState);
     void GetQuantumState(complex* outputState);
     void GetProbs(real1* outputProbs);

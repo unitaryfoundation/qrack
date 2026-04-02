@@ -259,6 +259,11 @@ void QEngineCPU::LossySaveStateVector(std::string f, int p, int b)
         return QInterface::LossySaveStateVector(f, p, b);
     }
 
+    if (doNormalize) {
+        NormalizeState();
+    }
+    Finish();
+
     StateVectorTurboQuant out(maxQPowerOcl, p ? p : qubitCount, b, CastStateVecDense()->get_raw());
     std::ofstream ofile;
     ofile.open(f);
@@ -270,6 +275,11 @@ void QEngineCPU::LossyLoadStateVector(std::string f)
     if (isSparse) {
         return QInterface::LossyLoadStateVector(f);
     }
+
+    if (doNormalize) {
+        NormalizeState();
+    }
+    Finish();
 
     std::ifstream ifile;
     ifile.open(f);
