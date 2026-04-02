@@ -148,6 +148,10 @@ static inline real1 _tq_dequant(const int bucket, const real1 scale, const int b
 // ---------------------------------------------------------------------------
 // Binary I/O helpers
 // ---------------------------------------------------------------------------
+static inline void _tq_write_real(std::ostream& os, const real1 x)
+{
+    os.write(reinterpret_cast<const char*>(&x), sizeof(real1));
+}
 static inline void _tq_write_size(std::ostream& os, const size_t x)
 {
     os.write(reinterpret_cast<const char*>(&x), sizeof(size_t));
@@ -159,6 +163,12 @@ static inline void _tq_write_int(std::ostream& os, const int x)
 static inline void _tq_write_bool(std::ostream& os, const bool x)
 {
     os.write(reinterpret_cast<const char*>(&x), sizeof(bool));
+}
+static inline size_t _tq_read_real(std::istream& is)
+{
+    real1 x;
+    is.read(reinterpret_cast<char*>(&x), sizeof(real1));
+    return x;
 }
 static inline size_t _tq_read_size(std::istream& is)
 {
@@ -195,7 +205,7 @@ struct TurboBlock {
     std::vector<real1> R_re, R_im; // rotation matrices (D×D, col-major)
     std::vector<real1> RT_re, RT_im; // transposes (= inverses)
 
-    std::vector<real1> scales_re, scales_im;
+    real1 scale_re, scale_im;
 
     size_t NWORDS;
     std::unique_ptr<uint64_t[]> packed;
@@ -211,8 +221,8 @@ struct TurboBlock {
         , R_im(_tq_make_rotation(1ULL << p, &seed_im))
         , RT_re(_tq_transpose(R_re, 1ULL << p))
         , RT_im(_tq_transpose(R_im, 1ULL << p))
-        , scales_re(1ULL << p, ONE_R1)
-        , scales_im(1ULL << p, ONE_R1)
+        , scale_re(ONE_R1)
+        , scale_im(ONE_R1)
         , NWORDS((2U * (1ULL << p) * b + 63U) / 64U)
         , packed(new uint64_t[(2U * (1ULL << p) * b + 63U) / 64U])
         , initialized(false)
@@ -230,8 +240,8 @@ struct TurboBlock {
         , R_im(o.R_im)
         , RT_re(o.RT_re)
         , RT_im(o.RT_im)
-        , scales_re(o.scales_re)
-        , scales_im(o.scales_im)
+        , scale_re(o.scale_re)
+        , scale_im(o.scale_im)
         , NWORDS(o.NWORDS)
         , packed(new uint64_t[o.NWORDS])
         , initialized(o.initialized)
@@ -252,8 +262,8 @@ struct TurboBlock {
         R_im = o.R_im;
         RT_re = o.RT_re;
         RT_im = o.RT_im;
-        scales_re = o.scales_re;
-        scales_im = o.scales_im;
+        scale_re = o.scale_re;
+        scale_im = o.scale_im;
         NWORDS = o.NWORDS;
         packed.reset(new uint64_t[NWORDS]);
         initialized = o.initialized;
@@ -308,18 +318,21 @@ struct TurboBlock {
 
         // Compute scales if first compression
         if (!initialized) {
+            real1 sum_re = ZERO_R1, sum_im = ZERO_R1;
             for (size_t j = 0U; j < D; ++j) {
-                scales_re[j] = std::sqrt(re_rot[j] * re_rot[j] + (real1)1e-8);
-                scales_im[j] = std::sqrt(im_rot[j] * im_rot[j] + (real1)1e-8);
+                sum_re += re_rot[j] * re_rot[j];
+                sum_im += im_rot[j] * im_rot[j];
             }
+            scale_re = std::sqrt(sum_re / (real1)D + (real1)1e-8);
+            scale_im = std::sqrt(sum_im / (real1)D + (real1)1e-8);
             initialized = true;
         }
 
         // Quantize and pack
         std::fill(packed.get(), packed.get() + NWORDS, 0U);
         for (size_t j = 0U; j < D; ++j) {
-            pack_bucket(j, _tq_quant_bucket(re_rot[j], scales_re[j], BITS));
-            pack_bucket(j + D, _tq_quant_bucket(im_rot[j], scales_im[j], BITS));
+            pack_bucket(j, _tq_quant_bucket(re_rot[j], scale_re, BITS));
+            pack_bucket(j + D, _tq_quant_bucket(im_rot[j], scale_im, BITS));
         }
     }
 
@@ -330,8 +343,8 @@ struct TurboBlock {
 
         // Dequantize
         for (size_t j = 0U; j < D; ++j) {
-            re_rot[j] = _tq_dequant(unpack_bucket(j), scales_re[j], BITS);
-            im_rot[j] = _tq_dequant(unpack_bucket(j + D), scales_im[j], BITS);
+            re_rot[j] = _tq_dequant(unpack_bucket(j), scale_re, BITS);
+            im_rot[j] = _tq_dequant(unpack_bucket(j + D), scale_im, BITS);
         }
 
         // Inverse rotate (apply transpose = inverse for orthogonal matrix)
@@ -347,8 +360,8 @@ struct TurboBlock {
     {
         real1 total = ZERO_R1;
         for (size_t j = 0U; j < D; ++j) {
-            const real1 re = _tq_dequant(unpack_bucket(j), scales_re[j], BITS);
-            const real1 im = _tq_dequant(unpack_bucket(j + D), scales_im[j], BITS);
+            const real1 re = _tq_dequant(unpack_bucket(j), scale_re, BITS);
+            const real1 im = _tq_dequant(unpack_bucket(j + D), scale_im, BITS);
             total += re * re + im * im;
         }
         return total;
@@ -363,8 +376,8 @@ struct TurboBlock {
     //   real1[D*D] R_re   (col-major rotation for real parts)
     //   real1[D*D] R_im   (col-major rotation for imaginary parts)
     //   if initialized:
-    //     real1[D] scales_re
-    //     real1[D] scales_im
+    //     real1 scale_re
+    //     real1 scale_im
     //   size_t    NWORDS
     //   uint64_t[NWORDS] packed
 
@@ -377,8 +390,8 @@ struct TurboBlock {
         os.write(reinterpret_cast<const char*>(&seed_re), sizeof(uint64_t));
         os.write(reinterpret_cast<const char*>(&seed_im), sizeof(uint64_t));
         if (initialized) {
-            os.write(reinterpret_cast<const char*>(scales_re.data()), (std::streamsize)(D * sizeof(real1)));
-            os.write(reinterpret_cast<const char*>(scales_im.data()), (std::streamsize)(D * sizeof(real1)));
+            _tq_write_real(os, scale_re);
+            _tq_write_real(os, scale_im);
         }
         _tq_write_size(os, NWORDS);
         os.write(reinterpret_cast<const char*>(packed.get()), (std::streamsize)(NWORDS * sizeof(uint64_t)));
@@ -413,8 +426,8 @@ struct TurboBlock {
         blk.initialized = init;
 
         if (init) {
-            is.read(reinterpret_cast<char*>(blk.scales_re.data()), (std::streamsize)(D_in * sizeof(real1)));
-            is.read(reinterpret_cast<char*>(blk.scales_im.data()), (std::streamsize)(D_in * sizeof(real1)));
+            blk.scale_re = _tq_read_real(is);
+            blk.scale_im = _tq_read_real(is);
         }
 
         const size_t nwords = _tq_read_size(is);
