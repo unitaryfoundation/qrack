@@ -87,11 +87,11 @@ static inline std::vector<real1> _tq_make_rotation(const size_t d, const uint64_
 
 // Convenience overload: generate a random seed from hardware entropy,
 // return both the rotation and the seed used (for later serialization).
-static inline std::vector<real1> _tq_make_rotation(const size_t d, uint64_t& seed_out)
+static inline std::vector<real1> _tq_make_rotation(const size_t d, uint64_t* seed_out)
 {
     std::random_device rd;
-    seed_out = ((uint64_t)rd() << 32U) | (uint64_t)rd();
-    return _tq_make_rotation(d, (const uint64_t)seed_out);
+    (*seed_out) = ((uint64_t)rd() << 32U) | (uint64_t)rd();
+    return _tq_make_rotation(d, (const uint64_t)*seed_out);
 }
 
 // Compute transpose of a d×d column-major matrix.
@@ -207,8 +207,8 @@ struct TurboBlock {
         , LEVELS(1 << b)
         , seed_re(0U)
         , seed_im(0U)
-        , R_re(_tq_make_rotation(1ULL << p, (uint64_t)seed_re))
-        , R_im(_tq_make_rotation(1ULL << p, (uint64_t)seed_im))
+        , R_re(_tq_make_rotation(1ULL << p, &seed_re))
+        , R_im(_tq_make_rotation(1ULL << p, &seed_im))
         , RT_re(_tq_transpose(R_re, 1ULL << p))
         , RT_im(_tq_transpose(R_im, 1ULL << p))
         , scales_re(1ULL << p, ONE_R1)
@@ -406,8 +406,8 @@ struct TurboBlock {
         TurboBlock blk(p, BITS_in);
         blk.seed_re = seed_re_in;
         blk.seed_im = seed_im_in;
-        blk.R_re = _tq_make_rotation(D_in, (const uint64_t)seed_re_in);
-        blk.R_im = _tq_make_rotation(D_in, (const uint64_t)seed_im_in);
+        blk.R_re = _tq_make_rotation(D_in, seed_re_in);
+        blk.R_im = _tq_make_rotation(D_in, seed_im_in);
         blk.RT_re = _tq_transpose(blk.R_re, D_in);
         blk.RT_im = _tq_transpose(blk.R_im, D_in);
         blk.initialized = init;
