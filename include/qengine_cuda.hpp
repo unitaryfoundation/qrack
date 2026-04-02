@@ -404,6 +404,8 @@ public:
     void SetDevice(int64_t dID);
     int64_t GetDevice() { return deviceID; }
 
+    void LossySaveStateVector(std::string f, int p = 6, int b = 4);
+    void LossyLoadStateVector(std::string f);
     void SetQuantumState(const complex* inputState);
     void GetQuantumState(complex* outputState);
     void GetProbs(real1* outputProbs);

@@ -12,8 +12,10 @@
 
 #include "common/cuda_kernels.cuh"
 #include "qengine_cuda.hpp"
+#include "statevector_turboquant.hpp"
 
 #include <algorithm>
+#include <fstream>
 #include <stdexcept>
 #include <thread>
 
@@ -3010,6 +3012,54 @@ void QEngineCUDA::SetAmplitude(const bitCapInt& perm, const complex& amp)
         return cudaMemcpy((void*)((complex*)(stateBuffer.get()) + maxQPowerOcl), (void*)&permutationAmp,
             sizeof(complex), cudaMemcpyHostToDevice);
     });
+}
+
+void QEngineCUDA::LossySaveStateVector(std::string f, int p, int b)
+{
+    if (!stateBuffer) {
+        return;
+    }
+
+    if (doNormalize) {
+        NormalizeState();
+    }
+
+    LockSync(CL_MAP_READ);
+    StateVectorTurboQuant out(maxQPowerOcl, p ? p : qubitCount, b, stateVec.get());
+    UnlockSync();
+
+    std::ofstream ofile;
+    ofile.open(f);
+    ofile << out;
+    ofile.close();
+}
+void QEngineCUDA::LossyLoadStateVector(std::string f)
+{
+    if (!stateBuffer) {
+        return;
+    }
+
+    if (doNormalize) {
+        NormalizeState();
+    }
+    Finish();
+
+    std::ifstream ifile;
+    ifile.open(f);
+    StateVectorTurboQuantPtr sv = StateVectorTurboQuant::load(ifile);
+    ifile.close();
+
+    const bitCapIntOcl sz = sv->get_size();
+    const bitLenInt qbCount = log2Ocl(sz);
+    if (qbCount > qubitCount) {
+        Allocate(qubitCount, qbCount - qubitCount);
+    } else if (qbCount < qubitCount) {
+        Dispose(0U, qubitCount - qbCount);
+    }
+
+    LockSync(CL_MAP_WRITE);
+    sv->copy_out(stateVec.get());
+    UnlockSync();
 }
 
 /// Get pure quantum state, in unsigned int permutation basis
