@@ -158,6 +158,35 @@ void QUnit::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
     }
 }
 
+void QUnit::LossySaveStateVector(std::string f, int p, int b)
+{
+    QUnitPtr thisCopyShared;
+    QUnit* thisCopy;
+    if (shards[0U].unit && (shards[0U].unit->GetQubitCount() == qubitCount)) {
+        OrderContiguous(shards[0U].unit);
+        thisCopy = this;
+    } else {
+        thisCopyShared = std::dynamic_pointer_cast<QUnit>(Copy());
+        thisCopy = thisCopyShared.get();
+        thisCopy->EntangleAll();
+    }
+
+    thisCopy->shards[0U].unit->LossySaveStateVector(f, p, b);
+}
+void QUnit::LossyLoadStateVector(std::string f)
+{
+    Dump();
+
+    logFidelity = 0.0;
+
+    QInterfacePtr unit = MakeEngine(1U, ZERO_BCI);
+    unit->LossyLoadStateVector(f);
+    SetQubitCount(unit->GetQubitCount());
+    for (bitLenInt idx = 0U; idx < qubitCount; ++idx) {
+        shards[idx] = QEngineShard(unit, idx);
+    }
+}
+
 void QUnit::SetQuantumState(const complex* inputState)
 {
     Dump();

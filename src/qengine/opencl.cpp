@@ -3119,10 +3119,6 @@ void QEngineOCL::LossySaveStateVector(std::string f, int p, int b)
 }
 void QEngineOCL::LossyLoadStateVector(std::string f)
 {
-    if (!stateBuffer) {
-        return;
-    }
-
     if (doNormalize) {
         NormalizeState();
     }
@@ -3130,6 +3126,13 @@ void QEngineOCL::LossyLoadStateVector(std::string f)
 
     std::ifstream ifile;
     ifile.open(f);
+
+    if (!ifile.good()) {
+        ifile.close();
+        ResetStateBuffer(nullptr);
+        return;
+    }
+
     StateVectorTurboQuantPtr sv = StateVectorTurboQuant::load(ifile);
     ifile.close();
 

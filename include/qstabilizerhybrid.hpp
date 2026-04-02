@@ -589,6 +589,18 @@ public:
     using QInterface::Allocate;
     bitLenInt Allocate(bitLenInt start, bitLenInt length);
 
+    void LossySaveStateVector(std::string f, int p = 6, int b = 4)
+    {
+        if (stabilizer) {
+            return stabilizer->LossySaveStateVector(f, 6, 4);
+        }
+        engine->LossySaveStateVector(f, p, b);
+    }
+    void LossyLoadStateVector(std::string f)
+    {
+        SwitchToEngine();
+        engine->LossyLoadStateVector(f);
+    }
     void GetQuantumState(complex* outputState);
     void GetProbs(real1* outputProbs);
     complex GetAmplitude(const bitCapInt& perm) { return GetAmplitudeOrProb(perm, false); }

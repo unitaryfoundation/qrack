@@ -249,6 +249,8 @@ public:
         return prob;
     }
 
+    virtual void LossySaveStateVector(std::string f, int p = 6, int b = 4);
+    virtual void LossyLoadStateVector(std::string f);
     virtual void SetQuantumState(const complex* inputState);
     virtual void GetQuantumState(complex* outputState) { GetQuantumStateOrProbs(outputState, nullptr); }
     virtual void GetProbs(real1* outputProbs) { GetQuantumStateOrProbs(nullptr, outputProbs); }

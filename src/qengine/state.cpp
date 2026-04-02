@@ -283,6 +283,13 @@ void QEngineCPU::LossyLoadStateVector(std::string f)
 
     std::ifstream ifile;
     ifile.open(f);
+
+    if (!ifile.good()) {
+        ifile.close();
+        stateVec = nullptr;
+        return;
+    }
+
     StateVectorTurboQuantPtr sv = StateVectorTurboQuant::load(ifile);
     ifile.close();
 
