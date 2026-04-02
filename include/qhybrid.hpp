@@ -284,6 +284,8 @@ public:
         return result;
     }
 
+    void LossySaveStateVector(std::string f, int p = 6, int b = 4) { engine->LossySaveStateVector(f, p, b); }
+    void LossyLoadStateVector(std::string f) { engine->LossyLoadStateVector(f); }
     void SetQuantumState(const complex* inputState) { engine->SetQuantumState(inputState); }
     void GetQuantumState(complex* outputState) { engine->GetQuantumState(outputState); }
     void GetProbs(real1* outputProbs) { engine->GetProbs(outputProbs); }
