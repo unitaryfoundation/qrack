@@ -49,9 +49,13 @@ namespace Qrack {
 // TurboQuant helpers
 // ---------------------------------------------------------------------------
 
-static inline std::vector<real1> _tq_make_rotation(const size_t d)
+// Build a random orthogonal d×d matrix from a fixed seed.
+// Storing the seed rather than the matrix reduces serialized size from
+// O(d²) to O(1) — critical for large block sizes.
+// Column-major storage: column j starts at R[j*d].
+static inline std::vector<real1> _tq_make_rotation(const size_t d, const uint64_t seed)
 {
-    std::mt19937 rng(std::random_device{}());
+    std::mt19937_64 rng(seed);
     std::normal_distribution<real1> normal(ZERO_R1, ONE_R1);
     std::vector<real1> R(d * d);
     for (auto& v : R) {
@@ -79,6 +83,15 @@ static inline std::vector<real1> _tq_make_rotation(const size_t d)
         }
     }
     return R;
+}
+
+// Convenience overload: generate a random seed from hardware entropy,
+// return both the rotation and the seed used (for later serialization).
+static inline std::vector<real1> _tq_make_rotation(const size_t d, uint64_t& seed_out)
+{
+    std::random_device rd;
+    seed_out = ((uint64_t)rd() << 32U) | (uint64_t)rd();
+    return _tq_make_rotation(d, (const uint64_t)seed_out);
 }
 
 // Compute transpose of a d×d column-major matrix.
@@ -174,8 +187,14 @@ struct TurboBlock {
     int BITS;
     int LEVELS;
 
+    // Seeds for deterministic rotation regeneration — stored instead of
+    // the full D×D matrices, reducing serialized size from O(D²) to O(1).
+    uint64_t seed_re, seed_im;
+
+    // Rotation matrices regenerated from seeds (not serialized).
     std::vector<real1> R_re, R_im; // rotation matrices (D×D, col-major)
     std::vector<real1> RT_re, RT_im; // transposes (= inverses)
+
     std::vector<real1> scales_re, scales_im;
 
     size_t NWORDS;
@@ -186,8 +205,10 @@ struct TurboBlock {
         : D(1ULL << p)
         , BITS(b)
         , LEVELS(1 << b)
-        , R_re(_tq_make_rotation(1ULL << p))
-        , R_im(_tq_make_rotation(1ULL << p))
+        , seed_re(0U)
+        , seed_im(0U)
+        , R_re(_tq_make_rotation(1ULL << p, (uint64_t)seed_re))
+        , R_im(_tq_make_rotation(1ULL << p, (uint64_t)seed_im))
         , RT_re(_tq_transpose(R_re, 1ULL << p))
         , RT_im(_tq_transpose(R_im, 1ULL << p))
         , scales_re(1ULL << p, ONE_R1)
@@ -203,6 +224,8 @@ struct TurboBlock {
         : D(o.D)
         , BITS(o.BITS)
         , LEVELS(o.LEVELS)
+        , seed_re(o.seed_re)
+        , seed_im(o.seed_im)
         , R_re(o.R_re)
         , R_im(o.R_im)
         , RT_re(o.RT_re)
@@ -223,6 +246,8 @@ struct TurboBlock {
         D = o.D;
         BITS = o.BITS;
         LEVELS = o.LEVELS;
+        seed_re = o.seed_re;
+        seed_im = o.seed_im;
         R_re = o.R_re;
         R_im = o.R_im;
         RT_re = o.RT_re;
@@ -348,8 +373,9 @@ struct TurboBlock {
         _tq_write_size(os, D);
         _tq_write_int(os, BITS);
         _tq_write_bool(os, initialized);
-        os.write(reinterpret_cast<const char*>(R_re.data()), (std::streamsize)(D * D * sizeof(real1)));
-        os.write(reinterpret_cast<const char*>(R_im.data()), (std::streamsize)(D * D * sizeof(real1)));
+        // Store seeds instead of full rotation matrices: O(1) vs O(D²)
+        os.write(reinterpret_cast<const char*>(&seed_re), sizeof(uint64_t));
+        os.write(reinterpret_cast<const char*>(&seed_im), sizeof(uint64_t));
         if (initialized) {
             os.write(reinterpret_cast<const char*>(scales_re.data()), (std::streamsize)(D * sizeof(real1)));
             os.write(reinterpret_cast<const char*>(scales_im.data()), (std::streamsize)(D * sizeof(real1)));
@@ -370,16 +396,21 @@ struct TurboBlock {
             ++p;
         }
 
+        // Read seeds
+        uint64_t seed_re_in, seed_im_in;
+        is.read(reinterpret_cast<char*>(&seed_re_in), sizeof(uint64_t));
+        is.read(reinterpret_cast<char*>(&seed_im_in), sizeof(uint64_t));
+
+        // Reconstruct block with known seeds — regenerates rotation matrices
+        // deterministically without storing them
         TurboBlock blk(p, BITS_in);
-        blk.initialized = init;
-
-        // Overwrite freshly-generated rotations with the serialized ones
-        is.read(reinterpret_cast<char*>(blk.R_re.data()), (std::streamsize)(D_in * D_in * sizeof(real1)));
-        is.read(reinterpret_cast<char*>(blk.R_im.data()), (std::streamsize)(D_in * D_in * sizeof(real1)));
-
-        // Recompute transposes from loaded rotations
+        blk.seed_re = seed_re_in;
+        blk.seed_im = seed_im_in;
+        blk.R_re = _tq_make_rotation(D_in, (const uint64_t)seed_re_in);
+        blk.R_im = _tq_make_rotation(D_in, (const uint64_t)seed_im_in);
         blk.RT_re = _tq_transpose(blk.R_re, D_in);
         blk.RT_im = _tq_transpose(blk.R_im, D_in);
+        blk.initialized = init;
 
         if (init) {
             is.read(reinterpret_cast<char*>(blk.scales_re.data()), (std::streamsize)(D_in * sizeof(real1)));

@@ -299,7 +299,7 @@ public:
      *
      * \warning PSEUDO-QUANTUM
      */
-    virtual void LossySaveStateVector(std::string f, int b = 0, int p = 4);
+    virtual void LossySaveStateVector(std::string f, int p = 6, int b = 4);
     /** Read the quantum state from disk with lossy compression
      *
      * \warning PSEUDO-QUANTUM

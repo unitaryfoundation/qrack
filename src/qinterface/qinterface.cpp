@@ -852,12 +852,12 @@ bool QInterface::TryDecompose(bitLenInt start, QInterfacePtr dest, real1_f error
     return didSeparate;
 }
 
-void QInterface::LossySaveStateVector(std::string f, int b, int p)
+void QInterface::LossySaveStateVector(std::string f, int p, int b)
 {
     const bitCapIntOcl maxQPowerOcl = (bitCapIntOcl)maxQPower;
     std::unique_ptr<complex[]> sv(new complex[maxQPowerOcl]);
     GetQuantumState(sv.get());
-    StateVectorTurboQuant out(maxQPowerOcl, p, b ? b : qubitCount, sv.get());
+    StateVectorTurboQuant out(maxQPowerOcl, p ? p : qubitCount, b, sv.get());
     std::ofstream ofile;
     ofile.open(f);
     ofile << out;

@@ -54,7 +54,7 @@ MICROSOFT_QUANTUM_DECL void set_device(_In_ uintq sid, _In_ intq did);
 MICROSOFT_QUANTUM_DECL void set_device_list(_In_ uintq sid, _In_ uintq n, _In_reads_(n) intq* dids);
 MICROSOFT_QUANTUM_DECL void qstabilizer_out_to_file(_In_ uintq sid, _In_ char* f);
 MICROSOFT_QUANTUM_DECL void qstabilizer_in_from_file(_In_ uintq sid, _In_ char* f);
-MICROSOFT_QUANTUM_DECL void lossy_out_to_file(_In_ uintq sid, _In_ int b, _In_ int p, _In_ char* f);
+MICROSOFT_QUANTUM_DECL void lossy_out_to_file(_In_ uintq sid, _In_ char* f, _In_ int p, _In_ int b);
 MICROSOFT_QUANTUM_DECL void lossy_in_from_file(_In_ uintq sid, _In_ char* f);
 
 // pseudo-quantum
