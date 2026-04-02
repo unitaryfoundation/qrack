@@ -1186,6 +1186,29 @@ MICROSOFT_QUANTUM_DECL void qstabilizer_in_from_file(_In_ uintq sid, _In_ char* 
     FillSimShards(simulator);
 }
 
+MICROSOFT_QUANTUM_DECL void lossy_out_to_file(_In_ uintq sid, _In_ char* f, _In_ int p, _In_ int b)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+
+    try {
+        simulators[sid]->LossySaveStateVector(std::string(f), p, b);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+MICROSOFT_QUANTUM_DECL void lossy_in_from_file(_In_ uintq sid, _In_ char* f)
+{
+    SIMULATOR_LOCK_GUARD_VOID(sid)
+
+    try {
+        simulators[sid]->LossyLoadStateVector(std::string(f));
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
 /**
  * (External API) "Dump" all IDs from the selected simulator ID into the callback
  */

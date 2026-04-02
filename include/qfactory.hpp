@@ -40,6 +40,8 @@
 
 #include "qinterface_noisy.hpp"
 
+#include "statevector_turboquant.hpp"
+
 namespace Qrack {
 
 /** Factory method to create specific engine implementations. */

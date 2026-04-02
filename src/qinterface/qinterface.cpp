@@ -11,8 +11,10 @@
 // for details.
 
 #include "qinterface.hpp"
+#include "statevector_turboquant.hpp"
 
 #include <algorithm>
+#include <fstream>
 #include <mutex>
 #include <random>
 #include <thread>
@@ -848,6 +850,37 @@ bool QInterface::TryDecompose(bitLenInt start, QInterfacePtr dest, real1_f error
     }
 
     return didSeparate;
+}
+
+void QInterface::LossySaveStateVector(std::string f, int p, int b)
+{
+    const bitCapIntOcl maxQPowerOcl = (bitCapIntOcl)maxQPower;
+    std::unique_ptr<complex[]> sv(new complex[maxQPowerOcl]);
+    GetQuantumState(sv.get());
+    StateVectorTurboQuant out(maxQPowerOcl, p ? p : qubitCount, b, sv.get());
+    std::ofstream ofile;
+    ofile.open(f);
+    ofile << out;
+    ofile.close();
+}
+void QInterface::LossyLoadStateVector(std::string f)
+{
+    std::ifstream ifile;
+    ifile.open(f);
+    StateVectorTurboQuantPtr sv = StateVectorTurboQuant::load(ifile);
+    ifile.close();
+
+    const bitCapIntOcl sz = sv->get_size();
+    const bitLenInt qbCount = log2Ocl(sz);
+    if (qbCount > qubitCount) {
+        Allocate(qubitCount, qbCount - qubitCount);
+    } else if (qbCount < qubitCount) {
+        Dispose(0U, qubitCount - qbCount);
+    }
+
+    std::unique_ptr<complex[]> c(new complex[(bitCapIntOcl)maxQPower]);
+    sv->copy_out(c.get());
+    SetQuantumState(c.get());
 }
 
 void QInterface::GetReducedDensityMatrix(const std::vector<bitLenInt>& qubits, complex* outputState)
