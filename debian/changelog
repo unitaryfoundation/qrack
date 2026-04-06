@@ -1,3 +1,27 @@
+libqrack (10.6.5) bionic; urgency=medium
+
+  * TurboQuant-based lossy state vector save/load
+
+ -- Daniel Strano <stranoj@gmail.com>  Fri, 03 Apr 2026 00:09:57 -0400
+
+libqrack (10.6.4) focal; urgency=medium
+
+  * TurboQuant-based lossy state vector save/load
+
+ -- Daniel Strano <stranoj@gmail.com>  Fri, 03 Apr 2026 00:08:00 -0400
+
+libqrack (10.6.3) jammy; urgency=medium
+
+  * TurboQuant-based lossy state vector save/load
+
+ -- Daniel Strano <stranoj@gmail.com>  Fri, 03 Apr 2026 00:05:42 -0400
+
+libqrack (10.6.2) noble; urgency=medium
+
+  * TurboQuant-based lossy state vector save/load
+
+ -- Daniel Strano <stranoj@gmail.com>  Fri, 03 Apr 2026 00:03:09 -0400
+
 libqrack (9.35.5) bionic; urgency=medium
 
   * Fidelity estimator, ACE, and QNeuron improvements (Bionic 4/4)
