@@ -60,7 +60,7 @@ protected:
     bitCapIntOcl pageMaxQPower()
     {
         bitCapInt toRet;
-        bi_div_mod_small(maxQPower, qPages.size(), &toRet, nullptr);
+        bi_div_mod_small(maxQPower, (uint32_t)qPages.size(), &toRet, nullptr);
         return (bitCapIntOcl)toRet;
     }
     bitLenInt pagedQubitCount() { return log2Ocl(qPages.size()); }

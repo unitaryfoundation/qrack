@@ -269,7 +269,7 @@ inline BigInteger bi_lshift_word(const BigInteger& left, BIG_INTEGER_WORD rightM
     }
 
     BigInteger result = 0;
-    for (int i = rightMult; i < BIG_INTEGER_WORD_SIZE; ++i) {
+    for (BIG_INTEGER_WORD i = rightMult; i < BIG_INTEGER_WORD_SIZE; ++i) {
         result.bits[i] = left.bits[i - rightMult];
     }
 
@@ -284,7 +284,7 @@ inline void bi_lshift_word_ip(BigInteger* left, BIG_INTEGER_WORD rightMult)
         return;
     }
 
-    for (int i = rightMult; i < BIG_INTEGER_WORD_SIZE; ++i) {
+    for (BIG_INTEGER_WORD i = rightMult; i < BIG_INTEGER_WORD_SIZE; ++i) {
         left->bits[i] = left->bits[i - rightMult];
     }
     for (BIG_INTEGER_WORD i = 0U; i < rightMult; ++i) {
@@ -299,7 +299,7 @@ inline BigInteger bi_rshift_word(const BigInteger& left, const BIG_INTEGER_WORD&
     }
 
     BigInteger result = 0U;
-    for (int i = rightMult; i < BIG_INTEGER_WORD_SIZE; ++i) {
+    for (BIG_INTEGER_WORD i = rightMult; i < BIG_INTEGER_WORD_SIZE; ++i) {
         result.bits[i - rightMult] = left.bits[i];
     }
 
@@ -312,7 +312,7 @@ inline void bi_rshift_word_ip(BigInteger* left, const BIG_INTEGER_WORD& rightMul
         return;
     }
 
-    for (int i = rightMult; i < BIG_INTEGER_WORD_SIZE; ++i) {
+    for (BIG_INTEGER_WORD i = rightMult; i < BIG_INTEGER_WORD_SIZE; ++i) {
         left->bits[i - rightMult] = left->bits[i];
     }
     for (BIG_INTEGER_WORD i = 0U; i < rightMult; ++i) {
