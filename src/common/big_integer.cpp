@@ -218,7 +218,7 @@ void bi_div_mod_small(
     }
 
     if (rmndr) {
-        *rmndr = carry;
+        *rmndr = (BIG_INTEGER_HALF_WORD)carry;
     }
 }
 
