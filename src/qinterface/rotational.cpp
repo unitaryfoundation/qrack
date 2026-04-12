@@ -229,7 +229,8 @@ void QInterface::Exp(real1_f radians, bitLenInt qubit)
 }
 
 /// Imaginary exponentiate of arbitrary single bit gate
-void QInterface::Exp(const std::vector<bitLenInt>& controls, bitLenInt qubit, const complex* matrix2x2, bool antiCtrled)
+void QInterface::Exp(
+    const std::vector<bitLenInt>& controls, bitLenInt qubit, const complex matrix2x2[4U], bool antiCtrled)
 {
     complex timesI[4U];
     for (bitLenInt i = 0U; i < 4U; ++i) {

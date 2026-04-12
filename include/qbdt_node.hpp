@@ -31,7 +31,7 @@ protected:
         const complex2& mtrxColShuff2, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth,
         bitLenInt parDepth = 1U);
 #else
-    virtual void PushStateVector(const complex* mtrx, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1,
+    virtual void PushStateVector(const complex mtrx[4U], QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1,
         bitLenInt depth, bitLenInt parDepth = 1U);
 #endif
 #else
@@ -40,7 +40,7 @@ protected:
         const complex2& mtrxColShuff2, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth);
 #else
     virtual void PushStateVector(
-        const complex* mtrx, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth);
+        const complex mtrx[4U], QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth);
 #endif
 #endif
 

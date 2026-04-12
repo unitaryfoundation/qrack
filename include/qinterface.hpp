@@ -500,17 +500,17 @@ public:
     /**
      * Apply an arbitrary single bit unitary transformation.
      */
-    virtual void Mtrx(const complex* mtrx, bitLenInt qubit) = 0;
+    virtual void Mtrx(const complex mtrx[4U], bitLenInt qubit) = 0;
 
     /**
      * Apply an arbitrary single bit unitary transformation, with arbitrary control bits.
      */
-    virtual void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target) = 0;
+    virtual void MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target) = 0;
 
     /**
      * Apply an arbitrary single bit unitary transformation, with arbitrary (anti-)control bits.
      */
-    virtual void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    virtual void MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
             MACPhase(controls, mtrx[0U], mtrx[3U], target);
@@ -1591,7 +1591,7 @@ public:
      * Applies \f$ e^{-i*Op} \f$, where "Op" is a 2x2 matrix, (with controls on the application of the gate).
      */
     virtual void Exp(
-        const std::vector<bitLenInt>& controls, bitLenInt qubit, const complex* matrix2x2, bool antiCtrled = false);
+        const std::vector<bitLenInt>& controls, bitLenInt qubit, const complex mtrx[4U], bool antiCtrled = false);
 
     /**
      * Dyadic fraction (identity) exponentiation gate

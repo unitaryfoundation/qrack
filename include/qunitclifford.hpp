@@ -654,7 +654,7 @@ public:
         return shard.unit->Prob(shard.mapped);
     }
 
-    void Mtrx(const complex* mtrx, bitLenInt t)
+    void Mtrx(const complex mtrx[4U], bitLenInt t)
     {
         ThrowIfQubitInvalid(t, std::string("QUnitClifford::Mtrx"));
         CliffordShard& shard = shards[t];
@@ -763,7 +763,7 @@ public:
             [](QStabilizerPtr unit, const bitLenInt& t, const complex* mtrx) { unit->Invert(mtrx[1U], mtrx[2U], t); },
             true);
     }
-    void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt t)
+    void MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt t)
     {
         if ((norm(mtrx[1U]) <= FP_NORM_EPSILON) && (norm(mtrx[2U]) <= FP_NORM_EPSILON)) {
             return MCPhase(controls, mtrx[0U], mtrx[3U], t);
@@ -785,7 +785,7 @@ public:
             },
             [](QStabilizerPtr unit, const bitLenInt& t, const complex* mtrx) { unit->Mtrx(mtrx, t); }, false);
     }
-    void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt t)
+    void MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt t)
     {
         if ((norm(mtrx[1U]) <= FP_NORM_EPSILON) && (norm(mtrx[2U]) <= FP_NORM_EPSILON)) {
             return MACPhase(controls, mtrx[0U], mtrx[3U], t);

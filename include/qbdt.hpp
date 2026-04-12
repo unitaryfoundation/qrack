@@ -123,7 +123,7 @@ protected:
 
     void DecomposeDispose(bitLenInt start, bitLenInt length, QBdtPtr dest);
 
-    void ApplyControlledSingle(const complex* mtrx, std::vector<bitLenInt> controls, bitLenInt target, bool isAnti);
+    void ApplyControlledSingle(const complex mtrx[4U], std::vector<bitLenInt> controls, bitLenInt target, bool isAnti);
 
     static size_t SelectBit(const bitCapInt& perm, bitLenInt bit) { return (size_t)bi_and_1(perm >> bit); }
 
@@ -133,7 +133,7 @@ protected:
         return (perm & power) | ((perm >> 1U) & ~power);
     }
 
-    void ApplySingle(const complex* mtrx, bitLenInt target);
+    void ApplySingle(const complex mtrx[4U], bitLenInt target);
 
     void Init();
 
@@ -361,9 +361,9 @@ public:
     }
     bitCapInt MAll() { return MAllOptionalCollapse(true); }
 
-    void Mtrx(const complex* mtrx, bitLenInt target);
-    void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target);
-    void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target);
+    void Mtrx(const complex mtrx[4U], bitLenInt target);
+    void MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target);
+    void MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target);
     void MCPhase(
         const std::vector<bitLenInt>& controls, const complex& topLeft, const complex& bottomRight, bitLenInt target);
     void MCInvert(

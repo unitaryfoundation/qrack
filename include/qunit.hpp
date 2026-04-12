@@ -81,7 +81,7 @@ protected:
     // Returns payload factor in [0,3] = negator + phase0 + phase1
     // clamped to range [0,2] as lower bound for general worst-case input
     // m: row-major [u00, u01, u10, u11]
-    double PayloadInfidelityFactor3(const complex* m)
+    double PayloadInfidelityFactor3(const complex m[4U])
     {
         const complex& u00 = m[0];
         const complex& u01 = m[1];
@@ -373,19 +373,19 @@ public:
         bitLenInt target, const bitCapInt& controlPerm);
     virtual void UCInvert(const std::vector<bitLenInt>& controls, const complex& topRight, const complex& bottomLeft,
         bitLenInt target, const bitCapInt& controlPerm);
-    virtual void Mtrx(const complex* mtrx, bitLenInt qubit);
-    virtual void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    virtual void Mtrx(const complex mtrx[4U], bitLenInt qubit);
+    virtual void MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         bitCapInt m = pow2(controls.size());
         bi_decrement(&m, 1U);
         UCMtrx(controls, mtrx, target, m);
     }
-    virtual void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    virtual void MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         UCMtrx(controls, mtrx, target, ZERO_BCI);
     }
     virtual void UCMtrx(
-        const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target, const bitCapInt& controlPerm);
+        const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target, const bitCapInt& controlPerm);
     using QInterface::UniformlyControlledSingleBit;
     virtual void UniformlyControlledSingleBit(const std::vector<bitLenInt>& controls, bitLenInt qubitIndex,
         const complex* mtrxs, const std::vector<bitCapInt>& mtrxSkipPowers, const bitCapInt& mtrxSkipValueMask);
@@ -861,7 +861,7 @@ protected:
         CheckFidelity();
     }
 
-    void TransformX2x2(const complex* mtrxIn, complex* mtrxOut)
+    void TransformX2x2(const complex mtrxIn[4U], complex mtrxOut[4U])
     {
         mtrxOut[0U] = HALF_R1 * (mtrxIn[0U] + mtrxIn[1U] + mtrxIn[2U] + mtrxIn[3U]);
         mtrxOut[1U] = HALF_R1 * (mtrxIn[0U] - mtrxIn[1U] + mtrxIn[2U] - mtrxIn[3U]);
@@ -869,7 +869,7 @@ protected:
         mtrxOut[3U] = HALF_R1 * (mtrxIn[0U] - mtrxIn[1U] - mtrxIn[2U] + mtrxIn[3U]);
     }
 
-    void TransformXInvert(const complex& topRight, const complex& bottomLeft, complex* mtrxOut)
+    void TransformXInvert(const complex& topRight, const complex& bottomLeft, complex mtrxOut[4U])
     {
         mtrxOut[0U] = HALF_R1 * (topRight + bottomLeft);
         mtrxOut[1U] = HALF_R1 * (-topRight + bottomLeft);
@@ -877,7 +877,7 @@ protected:
         mtrxOut[3U] = -mtrxOut[0U];
     }
 
-    void TransformY2x2(const complex* mtrxIn, complex* mtrxOut)
+    void TransformY2x2(const complex mtrxIn[4U], complex mtrxOut[4U])
     {
         mtrxOut[0U] = HALF_R1 * (mtrxIn[0U] + I_CMPLX * (mtrxIn[1U] - mtrxIn[2U]) + mtrxIn[3U]);
         mtrxOut[1U] = HALF_R1 * (mtrxIn[0U] - I_CMPLX * (mtrxIn[1U] + mtrxIn[2U]) - mtrxIn[3U]);
@@ -885,7 +885,7 @@ protected:
         mtrxOut[3U] = HALF_R1 * (mtrxIn[0U] - I_CMPLX * (mtrxIn[1U] - mtrxIn[2U]) + mtrxIn[3U]);
     }
 
-    void TransformYInvert(const complex& topRight, const complex& bottomLeft, complex* mtrxOut)
+    void TransformYInvert(const complex& topRight, const complex& bottomLeft, complex mtrxOut[4U])
     {
         mtrxOut[0U] = I_CMPLX * HALF_R1 * (topRight - bottomLeft);
         mtrxOut[1U] = I_CMPLX * HALF_R1 * (-topRight - bottomLeft);

@@ -2448,7 +2448,7 @@ void QUnit::UCInvert(const std::vector<bitLenInt>& lControls, const complex& top
     CTRLED_PHASE_INVERT_WRAP(UCInvert(CTRL_I_ARGS), UCMtrx(CTRL_GEN_ARGS), true, topRight, bottomLeft);
 }
 
-void QUnit::Mtrx(const complex* mtrx, bitLenInt target)
+void QUnit::Mtrx(const complex mtrx[4U], bitLenInt target)
 {
     QEngineShard& shard = shards[target];
 
@@ -2504,7 +2504,7 @@ void QUnit::Mtrx(const complex* mtrx, bitLenInt target)
 }
 
 void QUnit::UCMtrx(
-    const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target, const bitCapInt& _controlPerm)
+    const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target, const bitCapInt& _controlPerm)
 {
     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
         return UCPhase(controls, mtrx[0U], mtrx[3U], target, _controlPerm);

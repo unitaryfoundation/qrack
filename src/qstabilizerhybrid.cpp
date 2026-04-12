@@ -1106,7 +1106,7 @@ void QStabilizerHybrid::ZMask(const bitCapInt& _mask)
     }
 }
 
-void QStabilizerHybrid::Mtrx(const complex* lMtrx, bitLenInt target)
+void QStabilizerHybrid::Mtrx(const complex lMtrx[4U], bitLenInt target)
 {
     MpsShardPtr shard = shards[target];
     shards[target] = nullptr;
@@ -1184,7 +1184,7 @@ void QStabilizerHybrid::Mtrx(const complex* lMtrx, bitLenInt target)
     }
 }
 
-void QStabilizerHybrid::MCMtrx(const std::vector<bitLenInt>& lControls, const complex* mtrx, bitLenInt target)
+void QStabilizerHybrid::MCMtrx(const std::vector<bitLenInt>& lControls, const complex mtrx[4U], bitLenInt target)
 {
     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
         return MCPhase(lControls, mtrx[0U], mtrx[3U], target);
@@ -1310,7 +1310,7 @@ void QStabilizerHybrid::MCInvert(
     }
 }
 
-void QStabilizerHybrid::MACMtrx(const std::vector<bitLenInt>& lControls, const complex* mtrx, bitLenInt target)
+void QStabilizerHybrid::MACMtrx(const std::vector<bitLenInt>& lControls, const complex mtrx[4U], bitLenInt target)
 {
     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
         return MACPhase(lControls, mtrx[0U], mtrx[3U], target);

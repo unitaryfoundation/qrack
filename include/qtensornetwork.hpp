@@ -333,12 +333,12 @@ public:
         RunAsAmplitudes([&](QInterfacePtr ls) { ls->MultiShotMeasureMask(qPowers, shots, shotsArray); }, qubits);
     }
 
-    void Mtrx(const complex* mtrx, bitLenInt target)
+    void Mtrx(const complex mtrx[4U], bitLenInt target)
     {
         CheckQubitCount(target);
         circuit->AppendGate(std::make_shared<QCircuitGate>(target, mtrx));
     }
-    void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    void MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         CheckQubitCount(target, controls);
         bitCapInt m = pow2(controls.size());
@@ -346,7 +346,7 @@ public:
         circuit->AppendGate(
             std::make_shared<QCircuitGate>(target, mtrx, std::set<bitLenInt>{ controls.begin(), controls.end() }, m));
     }
-    void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    void MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         CheckQubitCount(target, controls);
         circuit->AppendGate(std::make_shared<QCircuitGate>(

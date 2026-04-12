@@ -194,7 +194,7 @@ public:
         engine->SetPermutation(perm, phaseFac);
     }
 
-    void Mtrx(const complex* mtrx, bitLenInt qubitIndex)
+    void Mtrx(const complex mtrx[4U], bitLenInt qubitIndex)
     {
         engine->Mtrx(mtrx, qubitIndex);
         Apply1QbNoise(qubitIndex);
@@ -209,7 +209,7 @@ public:
         engine->Invert(topRight, bottomLeft, qubitIndex);
         Apply1QbNoise(qubitIndex);
     }
-    void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    void MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         engine->MCMtrx(controls, mtrx, target);
         Apply1QbNoise(target);
@@ -217,7 +217,7 @@ public:
             Apply1QbNoise(control);
         }
     }
-    void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    void MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         engine->MACMtrx(controls, mtrx, target);
         Apply1QbNoise(target);

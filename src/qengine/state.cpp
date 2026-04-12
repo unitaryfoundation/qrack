@@ -389,7 +389,7 @@ void QEngineCPU::GetProbs(real1* outputProbs)
         stateVec->write2(lcv + offset1, qubit.c(0U), lcv + offset2, qubit.c(1U));                                      \
     };
 
-void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* matrix, const bitLenInt bitCount,
+void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex matrix[4U], const bitLenInt bitCount,
     const bitCapInt* qPowsSorted, bool doCalcNorm, real1_f nrm_thresh)
 {
     CHECK_ZERO_SKIP();
@@ -532,8 +532,8 @@ void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* m
         });
 }
 
-void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const complex* matrix, const bitLenInt bitCount,
-    const bitCapInt* qPowsSorted, bool doCalcNorm, real1_f nrm_thresh)
+void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const complex matrix[4U],
+    const bitLenInt bitCount, const bitCapInt* qPowsSorted, bool doCalcNorm, real1_f nrm_thresh)
 {
     std::shared_ptr<complex> mtrxS(new complex[4U], std::default_delete<complex[]>());
     std::copy(matrix, matrix + 4U, mtrxS.get());
@@ -702,7 +702,7 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
         stateVec->write2(lcv + offset1, qubit[0U], lcv + offset2, qubit[1U]);                                          \
     };
 
-void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* matrix, const bitLenInt bitCount,
+void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex matrix[4U], const bitLenInt bitCount,
     const bitCapInt* qPowsSorted, bool doCalcNorm, real1_f nrm_thresh)
 {
     CHECK_ZERO_SKIP();
@@ -839,8 +839,8 @@ void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* m
         });
 }
 
-void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const complex* matrix, const bitLenInt bitCount,
-    const bitCapInt* qPowsSorted, bool doCalcNorm, real1_f nrm_thresh)
+void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const complex matrix[4U],
+    const bitLenInt bitCount, const bitCapInt* qPowsSorted, bool doCalcNorm, real1_f nrm_thresh)
 {
     std::shared_ptr<complex> mtrxS(new complex[4U], std::default_delete<complex[]>());
     std::copy(matrix, matrix + 4U, mtrxS.get());

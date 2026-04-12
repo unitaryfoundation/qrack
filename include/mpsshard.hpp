@@ -27,11 +27,11 @@ struct MpsShard {
         // Intentionally left blank
     }
 
-    MpsShard(const complex* g) { std::copy(g, g + 4U, gate); }
+    MpsShard(const complex g[4U]) { std::copy(g, g + 4U, gate); }
 
     MpsShardPtr Clone() { return std::make_shared<MpsShard>(gate); }
 
-    void Compose(const complex* g)
+    void Compose(const complex g[4U])
     {
         complex o[4U];
         std::copy(gate, gate + 4U, o);

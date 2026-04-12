@@ -313,12 +313,12 @@ public:
     void XMask(const bitCapInt& mask) { engine->XMask(mask); }
     void PhaseParity(real1_f radians, const bitCapInt& mask) { engine->PhaseParity(radians, mask); }
     void PhaseRootNMask(bitLenInt n, const bitCapInt& mask) { engine->PhaseRootNMask(n, mask); }
-    void Mtrx(const complex* mtrx, bitLenInt qubitIndex) { engine->Mtrx(mtrx, qubitIndex); }
-    void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    void Mtrx(const complex mtrx[4U], bitLenInt qubitIndex) { engine->Mtrx(mtrx, qubitIndex); }
+    void MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         engine->MCMtrx(controls, mtrx, target);
     }
-    void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    void MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         engine->MACMtrx(controls, mtrx, target);
     }
@@ -592,16 +592,16 @@ protected:
         return engine->GetExpectation(valueStart, valueLength);
     }
 
-    void Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* mtrx, bitLenInt bitCount,
+    void Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex mtrx[4U], bitLenInt bitCount,
         const bitCapInt* qPowersSorted, bool doCalcNorm, real1_f norm_thresh = REAL1_DEFAULT_ARG)
     {
         engine->Apply2x2(offset1, offset2, mtrx, bitCount, qPowersSorted, doCalcNorm, norm_thresh);
     }
-    void ApplyControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex* mtrx)
+    void ApplyControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex mtrx[4U])
     {
         engine->ApplyControlled2x2(controls, target, mtrx);
     }
-    void ApplyAntiControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex* mtrx)
+    void ApplyAntiControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex mtrx[4U])
     {
         engine->ApplyAntiControlled2x2(controls, target, mtrx);
     }

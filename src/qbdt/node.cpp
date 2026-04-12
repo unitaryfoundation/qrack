@@ -814,7 +814,7 @@ void QBdtNode::PushStateVector(const complex2& mtrxCol1, const complex2& mtrxCol
     b1->PopStateVector();
 }
 #else
-void QBdtNode::Apply2x2(const complex* mtrx, bitLenInt depth)
+void QBdtNode::Apply2x2(const complex mtrx[4U], bitLenInt depth)
 {
     if (!depth) {
         return;
@@ -868,13 +868,14 @@ void QBdtNode::Apply2x2(const complex* mtrx, bitLenInt depth)
 
 #if ENABLE_QBDT_CPU_PARALLEL && ENABLE_PTHREAD
 void QBdtNode::PushStateVector(
-    const complex* mtrx, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth, bitLenInt parDepth)
+    const complex mtrx[4U], QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth, bitLenInt parDepth)
 {
     std::lock(b0->mtx, b1->mtx);
     std::lock_guard<std::mutex> lock0(b0->mtx, std::adopt_lock);
     std::lock_guard<std::mutex> lock1(b1->mtx, std::adopt_lock);
 #else
-void QBdtNode::PushStateVector(const complex* mtrx, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth)
+void QBdtNode::PushStateVector(
+    const complex mtrx[4U], QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth)
 {
 #endif
 

@@ -632,13 +632,13 @@ public:
 
     bitCapInt MAll();
 
-    void Mtrx(const complex* mtrx, bitLenInt target);
-    void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target);
+    void Mtrx(const complex mtrx[4U], bitLenInt target);
+    void MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target);
     void MCPhase(
         const std::vector<bitLenInt>& controls, const complex& topLeft, const complex& bottomRight, bitLenInt target);
     void MCInvert(
         const std::vector<bitLenInt>& controls, const complex& topRight, const complex& bottomLeft, bitLenInt target);
-    void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target);
+    void MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target);
     void MACPhase(
         const std::vector<bitLenInt>& controls, const complex& topLeft, const complex& bottomRight, bitLenInt target);
     void MACInvert(

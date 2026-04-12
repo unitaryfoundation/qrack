@@ -40,10 +40,10 @@ protected:
     bitCapIntOcl maxQPowerOcl;
     double fidelity;
 
-    inline bool IsPhase(const complex* mtrx) { return IS_NORM_0(mtrx[1]) && IS_NORM_0(mtrx[2]); }
-    inline bool IsInvert(const complex* mtrx) { return IS_NORM_0(mtrx[0]) && IS_NORM_0(mtrx[3]); }
+    inline bool IsPhase(const complex mtrx[4U]) { return IS_NORM_0(mtrx[1]) && IS_NORM_0(mtrx[2]); }
+    inline bool IsInvert(const complex mtrx[4U]) { return IS_NORM_0(mtrx[0]) && IS_NORM_0(mtrx[3]); }
 
-    bool IsIdentity(const complex* mtrx, bool isControlled)
+    bool IsIdentity(const complex mtrx[4U], bool isControlled)
     {
         // If the effect of applying the buffer would be (approximately or exactly) that of applying the identity
         // operator, then we can discard this buffer without applying it.
@@ -66,7 +66,7 @@ protected:
         return true;
     }
 
-    void EitherMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target, bool isAnti);
+    void EitherMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target, bool isAnti);
 
     virtual void Copy(QInterfacePtr orig) { Copy(std::dynamic_pointer_cast<QEngine>(orig)); }
     virtual void Copy(QEnginePtr orig)

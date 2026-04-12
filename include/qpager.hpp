@@ -77,7 +77,7 @@ protected:
     void SingleBitGate(bitLenInt target, Qubit1Fn fn, bool isSqiCtrl = false, bool isAnti = false);
     template <typename Qubit1Fn>
     void MetaControlled(const bitCapInt& controlPerm, const std::vector<bitLenInt>& controls, bitLenInt target,
-        Qubit1Fn fn, const complex* mtrx, bool isSqiCtrl = false, bool isIntraCtrled = false);
+        Qubit1Fn fn, const complex mtrx[4U], bool isSqiCtrl = false, bool isIntraCtrled = false);
     template <typename Qubit1Fn>
     void SemiMetaControlled(
         const bitCapInt& controlPerm, std::vector<bitLenInt> controls, bitLenInt target, Qubit1Fn fn);
@@ -89,7 +89,7 @@ protected:
 
     void ApplySingleEither(bool isInvert, const complex& top, const complex& bottom, bitLenInt target);
     void ApplyEitherControlledSingleBit(
-        const bitCapInt& controlPerm, const std::vector<bitLenInt>& controls, bitLenInt target, const complex* mtrx);
+        const bitCapInt& controlPerm, const std::vector<bitLenInt>& controls, bitLenInt target, const complex mtrx[4U]);
     void EitherISwap(bitLenInt qubit1, bitLenInt qubit2, bool isInverse);
 
     void Init();
@@ -275,7 +275,7 @@ public:
         CombineEngines();
         return qPages[0U]->GetExpectation(valueStart, valueLength);
     }
-    void Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex* mtrx, bitLenInt bitCount,
+    void Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex mtrx[4U], bitLenInt bitCount,
         const bitCapInt* qPowersSorted, bool doCalcNorm, real1_f norm_thresh = REAL1_DEFAULT_ARG)
     {
         CombineEngines();
@@ -341,7 +341,7 @@ public:
     using QEngine::Allocate;
     bitLenInt Allocate(bitLenInt start, bitLenInt length);
 
-    void Mtrx(const complex* mtrx, bitLenInt target);
+    void Mtrx(const complex mtrx[4U], bitLenInt target);
     void Phase(const complex& topLeft, const complex& bottomRight, bitLenInt qubitIndex)
     {
         ApplySingleEither(false, topLeft, bottomRight, qubitIndex);
@@ -350,7 +350,7 @@ public:
     {
         ApplySingleEither(true, topRight, bottomLeft, qubitIndex);
     }
-    void MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    void MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         if (qPages.size() == 1U) {
             return qPages[0U]->MCMtrx(controls, mtrx, target);
@@ -359,7 +359,7 @@ public:
         bi_decrement(&p, 1U);
         ApplyEitherControlledSingleBit(p, controls, target, mtrx);
     }
-    void MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+    void MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
     {
         if (qPages.size() == 1U) {
             return qPages[0U]->MACMtrx(controls, mtrx, target);

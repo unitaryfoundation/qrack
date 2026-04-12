@@ -16,7 +16,7 @@
 
 namespace Qrack {
 
-void QEngine::Mtrx(const complex* mtrx, bitLenInt qubit)
+void QEngine::Mtrx(const complex mtrx[4U], bitLenInt qubit)
 {
     if (IsIdentity(mtrx, false)) {
         return;
@@ -26,7 +26,7 @@ void QEngine::Mtrx(const complex* mtrx, bitLenInt qubit)
     Apply2x2(0U, qPowers[0U], mtrx, 1U, qPowers, doNormalize && !(IsPhase(mtrx) || IsInvert(mtrx)));
 }
 
-void QEngine::EitherMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target, bool isAnti)
+void QEngine::EitherMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target, bool isAnti)
 {
     if (controls.empty()) {
         return Mtrx(mtrx, target);
@@ -48,7 +48,7 @@ void QEngine::EitherMtrx(const std::vector<bitLenInt>& controls, const complex* 
 }
 
 void QEngine::UCMtrx(
-    const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target, const bitCapInt& controlPerm)
+    const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target, const bitCapInt& controlPerm)
 {
     if (controls.empty()) {
         return Mtrx(mtrx, target);
@@ -368,7 +368,7 @@ void QEngine::AntiCISqrtSwap(const std::vector<bitLenInt>& controls, bitLenInt q
     Apply2x2(pow2(qubit1), pow2(qubit2), iSqrtX, controls.size() + 2U, qPowersSorted.get(), false);
 }
 
-void QEngine::ApplyControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex* mtrx)
+void QEngine::ApplyControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex mtrx[4U])
 {
     std::unique_ptr<bitCapInt[]> qPowersSorted(new bitCapInt[controls.size() + 1U]);
     const bitCapInt targetMask = pow2Ocl(target);
@@ -384,7 +384,7 @@ void QEngine::ApplyControlled2x2(const std::vector<bitLenInt>& controls, bitLenI
     Apply2x2(controlMask, fullMask, mtrx, controls.size() + 1U, qPowersSorted.get(), false);
 }
 
-void QEngine::ApplyAntiControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex* mtrx)
+void QEngine::ApplyAntiControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex mtrx[4U])
 {
     std::unique_ptr<bitCapInt[]> qPowersSorted(new bitCapInt[controls.size() + 1U]);
     const bitCapInt targetMask = pow2(target);

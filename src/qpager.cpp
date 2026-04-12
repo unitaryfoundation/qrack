@@ -451,7 +451,7 @@ template <typename Qubit1Fn> void QPager::SingleBitGate(bitLenInt target, Qubit1
 // instead of amplitude indices.
 template <typename Qubit1Fn>
 void QPager::MetaControlled(const bitCapInt& controlPerm, const std::vector<bitLenInt>& controls, bitLenInt target,
-    Qubit1Fn fn, const complex* mtrx, bool isSqiCtrl, bool isIntraCtrled)
+    Qubit1Fn fn, const complex mtrx[4U], bool isSqiCtrl, bool isIntraCtrled)
 {
     const bitLenInt qpp = qubitsPerPage();
     const bitLenInt sqi = qpp - 1U;
@@ -951,7 +951,7 @@ void QPager::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
     }
 }
 
-void QPager::Mtrx(const complex* mtrx, bitLenInt target)
+void QPager::Mtrx(const complex mtrx[4U], bitLenInt target)
 {
     if (IS_NORM_0(mtrx[1U]) && IS_NORM_0(mtrx[2U])) {
         return Phase(mtrx[0U], mtrx[3U], target);
@@ -1009,7 +1009,7 @@ void QPager::ApplySingleEither(bool isInvert, const complex& _top, const complex
 }
 
 void QPager::ApplyEitherControlledSingleBit(
-    const bitCapInt& controlPerm, const std::vector<bitLenInt>& controls, bitLenInt target, const complex* mtrx)
+    const bitCapInt& controlPerm, const std::vector<bitLenInt>& controls, bitLenInt target, const complex mtrx[4U])
 {
     if (controls.empty()) {
         return Mtrx(mtrx, target);

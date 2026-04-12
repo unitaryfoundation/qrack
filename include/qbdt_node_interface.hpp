@@ -48,7 +48,7 @@ public:
         const complex2& mtrxColShuff2, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth,
         bitLenInt parDepth = 1U)
 #else
-    virtual void PushStateVector(const complex* mtrx, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1,
+    virtual void PushStateVector(const complex mtrx[4U], QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1,
         bitLenInt depth, bitLenInt parDepth = 1U)
 #endif
 #else
@@ -57,7 +57,7 @@ public:
         const complex2& mtrxColShuff2, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth)
 #else
     virtual void PushStateVector(
-        const complex* mtrx, QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth)
+        const complex mtrx[4U], QBdtNodeInterfacePtr& b0, QBdtNodeInterfacePtr& b1, bitLenInt depth)
 #endif
 #endif
     {
@@ -204,7 +204,7 @@ public:
     virtual void Apply2x2(const complex2& mtrxCol1, const complex2& mtrxCol2, const complex2& mtrxColShuff1,
         const complex2& mtrxColShuff2, bitLenInt depth)
 #else
-    virtual void Apply2x2(const complex* mtrx, bitLenInt depth)
+    virtual void Apply2x2(const complex mtrx[4U], bitLenInt depth)
 #endif
     {
         if (!depth) {
@@ -219,7 +219,7 @@ public:
     virtual void PushSpecial(const complex2& mtrxCol1, const complex2& mtrxCol2, const complex2& mtrxColShuff1,
         const complex2& mtrxColShuff2, QBdtNodeInterfacePtr& b1)
 #else
-    virtual void PushSpecial(const complex* mtrx, QBdtNodeInterfacePtr& b1)
+    virtual void PushSpecial(const complex mtrx[4U], QBdtNodeInterfacePtr& b1)
 #endif
     {
         throw std::out_of_range("QBdtNodeInterface::PushSpecial() not implemented! (You probably called "

@@ -443,7 +443,7 @@ bitCapInt QBdt::MAllOptionalCollapse(bool isCollapsing)
     return result;
 }
 
-void QBdt::ApplySingle(const complex* mtrx, bitLenInt target)
+void QBdt::ApplySingle(const complex mtrx[4U], bitLenInt target)
 {
     if (target >= qubitCount) {
         throw std::invalid_argument("QBdt::ApplySingle target parameter must be within allocated qubit bounds!");
@@ -501,7 +501,7 @@ void QBdt::ApplySingle(const complex* mtrx, bitLenInt target)
         });
 }
 
-void QBdt::ApplyControlledSingle(const complex* mtrx, std::vector<bitLenInt> controls, bitLenInt target, bool isAnti)
+void QBdt::ApplyControlledSingle(const complex mtrx[4U], std::vector<bitLenInt> controls, bitLenInt target, bool isAnti)
 {
     if (target >= qubitCount) {
         throw std::invalid_argument(
@@ -588,9 +588,9 @@ void QBdt::ApplyControlledSingle(const complex* mtrx, std::vector<bitLenInt> con
         });
 }
 
-void QBdt::Mtrx(const complex* mtrx, bitLenInt target) { ApplySingle(mtrx, target); }
+void QBdt::Mtrx(const complex mtrx[4U], bitLenInt target) { ApplySingle(mtrx, target); }
 
-void QBdt::MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+void QBdt::MCMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
 {
     if (controls.empty()) {
         Mtrx(mtrx, target);
@@ -603,7 +603,7 @@ void QBdt::MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, b
     }
 }
 
-void QBdt::MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
+void QBdt::MACMtrx(const std::vector<bitLenInt>& controls, const complex mtrx[4U], bitLenInt target)
 {
 
     if (controls.empty()) {

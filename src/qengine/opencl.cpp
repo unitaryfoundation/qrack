@@ -807,7 +807,7 @@ void QEngineOCL::PhaseRootNMask(bitLenInt n, const bitCapInt& mask)
     QueueCall(OCL_API_PHASE_MASK, ngc, ngs, { stateBuffer, poolItem->ulongBuffer });
 }
 
-void QEngineOCL::Apply2x2(bitCapIntOcl offset1, bitCapIntOcl offset2, const complex* mtrx, bitLenInt bitCount,
+void QEngineOCL::Apply2x2(bitCapIntOcl offset1, bitCapIntOcl offset2, const complex mtrx[4U], bitLenInt bitCount,
     const bitCapIntOcl* qPowersSorted, bool doCalcNorm, SPECIAL_2X2 special, real1_f norm_thresh)
 {
     CHECK_ZERO_SKIP();
