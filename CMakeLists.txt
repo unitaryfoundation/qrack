@@ -44,6 +44,7 @@ add_library (qrack STATIC
     src/qcircuit.cpp
     src/qtensornetwork.cpp
     src/qinterface_noisy.cpp
+    src/qmps.cpp
     )
 set_property(TARGET qrack PROPERTY POSITION_INDEPENDENT_CODE ON)
 if (ENABLE_PTHREAD AND ENABLE_QUNIT_CPU_PARALLEL)
@@ -418,6 +419,7 @@ install (FILES
     include/qbdt_node.hpp
     include/qbdt_node_interface.hpp
     include/qbdthybrid.hpp
+    include/qmps.hpp
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/qrack
     )
 
