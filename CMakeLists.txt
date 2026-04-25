@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.10)
-project (Qrack VERSION 10.6.5 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
+project (Qrack VERSION 10.7.0 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
 
 # Installation commands
 include (GNUInstallDirs)
@@ -37,6 +37,7 @@ add_library (qrack STATIC
     src/qengine/utility.cpp
     src/qengineshard.cpp
     src/qunit.cpp
+    src/qunit_turboquant.cpp
     src/qunitclifford.cpp
     src/qpager.cpp
     src/qstabilizer.cpp
