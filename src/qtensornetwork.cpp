@@ -152,4 +152,14 @@ QInterfacePtr QTensorNetwork::Clone()
 
     return clone;
 }
+QInterfacePtr QTensorNetwork::Decompose(bitLenInt start, bitLenInt length)
+{
+    QTensorNetworkPtr clone = std::make_shared<QTensorNetwork>(engines, length, ZERO_BCI, rand_generator, ONE_CMPLX,
+        doNormalize, randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor,
+        deviceIDs, qbThreshold);
+    clone->MakeLayerStack();
+    RunAsAmplitudes([&](QInterfacePtr ls) { clone->layerStack = ls->Decompose(start, length); });
+    SetQubitCount(qubitCount - length);
+    return clone;
+}
 } // namespace Qrack

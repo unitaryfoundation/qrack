@@ -231,18 +231,13 @@ public:
     void Decompose(bitLenInt start, QInterfacePtr dest)
     {
         dest->SetPermutation(0U);
+        std::dynamic_pointer_cast<QTensorNetwork>(dest)->MakeLayerStack();
         RunAsAmplitudes([&](QInterfacePtr ls) {
             ls->Decompose(start, std::dynamic_pointer_cast<QTensorNetwork>(dest)->layerStack);
         });
         SetQubitCount(qubitCount - dest->GetQubitCount());
     }
-    QInterfacePtr Decompose(bitLenInt start, bitLenInt length)
-    {
-        QInterfacePtr toRet;
-        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->Decompose(start, length); });
-        SetQubitCount(qubitCount - toRet->GetQubitCount());
-        return toRet;
-    }
+    QInterfacePtr Decompose(bitLenInt start, bitLenInt length);
     void Dispose(bitLenInt start, bitLenInt length)
     {
         RunAsAmplitudes([&](QInterfacePtr ls) { ls->Dispose(start, length); });
