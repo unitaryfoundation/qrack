@@ -86,6 +86,11 @@ QUnit::QUnit(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bitCa
     , isCpu(true)
 #endif
     , isSinglePage(false)
+#if ENABLE_ENV_VARS
+    , isAce((bool)getenv("QRACK_DISABLE_QUNIT_FIDELITY_GUARD"))
+#else
+    , isAce(true)
+#endif
     , aceMb(QRACK_SPARSE_MAX_ALLOC_MB_DEFAULT)
     , thresholdQubits(qubitThreshold)
     , separabilityThreshold(sep_thresh)
@@ -1815,6 +1820,12 @@ void QUnit::EitherISwap(bitLenInt qubit1, bitLenInt qubit2, bool isInverse)
                 unit->ISwap(shard1.mapped, shard2.mapped);
             }
         } catch (const bad_alloc& e) {
+            if (!isAce) {
+                throw std::runtime_error(
+                    "QUnit needed to engage automatic circuit elision (ACE)! Please read the Qrack README, and then, "
+                    "afterward, consider setting environment variable QRACK_DISABLE_QUNIT_FIDELITY_GUARD=1.)");
+            }
+
             // We failed to allocate; use a classical shadow.
             if (isInverse) {
                 S(qubit2);
@@ -2701,6 +2712,12 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
         // target bit in X or Y basis and acting as if Z basis by commutation).
         cfn(unit, controlVec);
     } catch (const bad_alloc& e) {
+        if (!isAce) {
+            throw std::runtime_error(
+                "QUnit needed to engage automatic circuit elision (ACE)! Please read the Qrack README, and then, "
+                "afterward, consider setting environment variable QRACK_DISABLE_QUNIT_FIDELITY_GUARD=1.)");
+        }
+
         // We overallocated; use a really primitive classical shadow, at least.
         if (freezeBasis2Qb) {
             throw e;
@@ -3943,6 +3960,12 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
             }
         }
     } catch (const bad_alloc& e) {
+        if (!isAce) {
+            throw std::runtime_error(
+                "QUnit needed to engage automatic circuit elision (ACE)! Please read the Qrack README, and then, "
+                "afterward, consider setting environment variable QRACK_DISABLE_QUNIT_FIDELITY_GUARD=1.)");
+        }
+
         // We can't fully allocate for ideal simulation;
         // try approximate simulation.
         complex polarTop, polarBottom;

@@ -39,6 +39,7 @@ protected:
     bool isCpu;
     bool isSinglePage;
     bool isSparse;
+    bool isAce;
     size_t aceMb;
     bitLenInt aceQubits;
     bitLenInt thresholdQubits;
