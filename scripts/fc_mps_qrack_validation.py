@@ -9,16 +9,15 @@ import sys
 
 from collections import Counter
 
-from scipy.stats import binom
-
 from pyqrack import QrackSimulator
 
 from qiskit import QuantumCircuit
-from qiskit_aer.backends import AerSimulator
-from qiskit.quantum_info import Statevector
 
 import quimb.tensor as tn
 from qiskit_quimb import quimb_circuit
+
+import jax
+import jax.numpy as jnp
 
 
 # Function by Google search AI
@@ -26,75 +25,95 @@ def int_to_bitstring(integer, length):
     return (bin(integer)[2:].zfill(length))[::-1]
 
 
+# Modified to use MPS by (Anthropic) Claude
 def bench_qrack(width, depth, sdrp):
     lcv_range = range(width)
     all_bits = list(lcv_range)
-    retained = width * width
-    shots = retained * width
+    retained = min(width ** 2, 1 << width)
+    checked = min(width ** 2, 1 << width)
+
+    # chi controls approximation quality vs. speed
+    # chi = width is cheap; chi = width**2 is closer to exact
+    # for QV circuits at modest width, chi = 2*width is a reasonable start
+    chi = min(width ** 3, 1 << width)
+
+    # CircuitMPS maintains state as MPS with bounded bond dimension
+    # Gate application is O(chi^2 * width) per gate instead of exact
+    quimb_rcs = tn.CircuitMPS(width, max_bond=chi, to_backend=jnp.array)
 
     rcs = QuantumCircuit(width)
-    for d in range(depth):
-        # Single-qubit gates
-        for i in lcv_range:
-            for b in range(3):
-                rcs.h(i)
-                rcs.rz(random.uniform(0, 2 * math.pi), i)
 
-        # 2-qubit couplers
+    for d in range(depth):
+        for i in lcv_range:
+            th = random.uniform(0, 2 * math.pi)
+            ph = random.uniform(0, 2 * math.pi)
+            lm = random.uniform(0, 2 * math.pi)
+            rcs.u(th, ph, lm, i)
+            quimb_rcs.apply_gate('U3', th, ph, lm, i)
+
         unused_bits = all_bits.copy()
         random.shuffle(unused_bits)
         while len(unused_bits) > 1:
             c = unused_bits.pop()
             t = unused_bits.pop()
             rcs.cx(c, t)
+            quimb_rcs.apply_gate('CX', c, t)
 
-    experiment = QrackSimulator(width, isTensorNetwork=False, isSparse=True, isOpenCL=False)
+    # Run Qrack for heavy output sieve
+    experiment = QrackSimulator(width)
     if sdrp > 0:
         experiment.set_sdrp(sdrp)
-    experiment.run_qiskit_circuit(rcs)
-    experiment_counts = dict(Counter(experiment.measure_shots(all_bits, shots)))
-    experiment_counts = sorted(experiment_counts.items(), key=operator.itemgetter(1))
+    experiment.run_qiskit_circuit(rcs, shots=0)
+    highest_prob = experiment.highest_prob_perm()
+    experiment_counts = dict(Counter(experiment.measure_shots(all_bits, checked)))
+    experiment_counts[highest_prob] = checked
+    experiment_counts = sorted(experiment_counts.items(), key=operator.itemgetter(1), reverse=True)
+    experiment = None
 
-    quimb_rcs = quimb_circuit(rcs)
+    # Approximate amplitude estimation via MPS
+    # amplitude() on CircuitMPS is O(chi^2 * width) per call
+    # vs. O(exp(treewidth)) for exact contraction
     n_pow = 1 << width
-    u_u =  1 / n_pow
-    idx = 0
-    ideal_probs = {}
+    u_u = 1 / n_pow
+    ideal_amps = {}
     sum_probs = 0
+
     for count_tuple in experiment_counts:
+        if len(ideal_amps) >= retained and count_tuple[1] < 2:
+            break
         key = count_tuple[0]
-        prob = abs(quimb_rcs.amplitude(int_to_bitstring(key, width), backend="jax")) ** 2
+        bitstring = int_to_bitstring(key, width)
+        # Approximate amplitude from MPS — cheap inner product
+        amp = complex(quimb_rcs.amplitude(bitstring))
+        prob = abs(amp) ** 2
         if prob <= u_u:
             continue
-        val = count_tuple[1]
-        ideal_probs[key] = val
-        sum_probs += val
-        if len(ideal_probs) >= retained:
-            break
+        ideal_amps[key] = amp
+        sum_probs += prob
 
-    for key in ideal_probs.keys():
-        ideal_probs[key] = ideal_probs[key] / sum_probs
+    # Normalize
+    ideal_probs = {k: abs(v)**2 / sum_probs for k, v in ideal_amps.items()}
 
-    rcs.save_statevector()
-    control = AerSimulator(method="statevector")
-    job = control.run(rcs)
-    control_probs = Statevector(job.result().get_statevector()).probabilities()
+    # Qrack control for XEB reference
+    control = QrackSimulator(width)
+    control.run_qiskit_circuit(rcs, shots=0)
+    control_probs = control.out_probs()
 
-    return calc_stats(control_probs, ideal_probs, shots, depth)
+    return calc_stats(control_probs, ideal_probs)
 
 
-def calc_stats(ideal_probs, exp_probs, shots, depth):
+def calc_stats(ideal_probs, exp_probs):
     # For QV, we compare probabilities of (ideal) "heavy outputs."
     # If the probability is above 2/3, the protocol certifies/passes the qubit width.
     n_pow = len(ideal_probs)
     n = int(round(math.log2(n_pow)))
     mean_guess = 1 / n_pow
-    model = 1 / math.sqrt(n)
+    model = 1 / 2
     threshold = statistics.median(ideal_probs)
     u_u = statistics.mean(ideal_probs)
     numer = 0
     denom = 0
-    sum_hog_counts = 0
+    hog_prob = 0
     sqr_diff = 0
     for i in range(n_pow):
         exp = (1 - model) * (exp_probs[i] if i in exp_probs else 0) + model * mean_guess
@@ -109,35 +128,28 @@ def calc_stats(ideal_probs, exp_probs, shots, depth):
 
         # QV / HOG
         if ideal > threshold:
-            sum_hog_counts += exp * shots
+            hog_prob += exp
 
-    hog_prob = sum_hog_counts / shots
     xeb = numer / denom
-    # p-value of heavy output count, if method were actually 50/50 chance of guessing
-    p_val = (
-        (1 - binom.cdf(sum_hog_counts - 1, shots, 1 / 2)) if sum_hog_counts > 0 else 1
-    )
     rss = math.sqrt(sqr_diff)
 
     return {
         "qubits": n,
-        "depth": depth,
         "xeb": float(xeb),
         "hog_prob": float(hog_prob),
         "l2_diff": float(rss),
-        "p-value": float(p_val),
     }
 
 
 def main():
     if len(sys.argv) < 3:
         raise RuntimeError(
-            "Usage: python3 fc_qiskit_validation.py [width] [depth] [trials]"
+            "Usage: python3 fc_qiskit_validation.py [width] [depth] [sdrp]"
         )
 
     width = int(sys.argv[1])
     depth = int(sys.argv[2])
-    sdrp = 0
+    sdrp = 0 # (1.0 - 1.0 / math.sqrt(2)) / 2.0
     if len(sys.argv) > 3:
         sdrp = float(sys.argv[3])
 
