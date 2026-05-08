@@ -26,13 +26,13 @@
 #   h_bits, h_val, exact_bits, exact_val, certified = solve_qubo_exact(G_csr)
 #
 # Usage (as library — custom warm start):
-#   from qubo_exact import qubo_branch_and_bound
-#   exact_bits, exact_value, certified = qubo_branch_and_bound(Q, warm_bits)
+#   from qubo_exact import maxcut_branch_and_bound
+#   exact_bits, exact_value, certified = maxcut_branch_and_bound(Q, warm_bits)
 #
 # Q / G_csr convention:
 #   PyQrackIsing expects a scipy CSR upper-triangular matrix with non-negative
 #   edge weights (MAXCUT convention, no diagonal / self-loops).
-#   qubo_branch_and_bound accepts a dense upper-triangular or symmetric numpy
+#   maxcut_branch_and_bound accepts a dense upper-triangular or symmetric numpy
 #   float64 matrix; diagonal terms are handled correctly throughout.
 
 import argparse
@@ -51,10 +51,20 @@ except ImportError:
 # QUBO objective (dense upper-triangular or symmetric Q)
 # ---------------------------------------------------------------------------
 
-def qubo_value(Q, bits):
-    """Evaluate x^T Q x for a boolean assignment given as a bool/int array."""
-    x = np.asarray(bits, dtype=np.float64)
-    return float(x @ Q @ x)
+def cut_value(Q, bits):
+    """
+    Evaluate the MAXCUT objective for a boolean assignment: sum of Q[i,j]
+    for all edges (i,j) where bits[i] != bits[j] (i.e. opposite partitions).
+    Q is upper-triangular; only entries with i < j are edge weights.
+    """
+    bits = np.asarray(bits, dtype=np.bool_)
+    n = len(bits)
+    total = 0.0
+    for i in range(n):
+        for j in range(i + 1, n):
+            if Q[i, j] != 0.0 and bits[i] != bits[j]:
+                total += Q[i, j]
+    return total
 
 
 # ---------------------------------------------------------------------------
@@ -63,31 +73,28 @@ def qubo_value(Q, bits):
 
 def _lp_upper_bound(Q, fixed, n):
     """
-    Return an upper bound on the QUBO objective over the subproblem defined
+    Return an upper bound on the MAXCUT objective over the subproblem defined
     by `fixed`: a dict mapping variable index -> {0, 1} for already-branched
     variables. Free variables are relaxed to [0, 1].
 
-    The objective is x^T Q x where Q may be upper-triangular (Q[j,i]=0 for
-    j>i). We split the value into three additive parts that are computed
-    independently to avoid double-counting:
+    MAXCUT objective: sum_{i<j} Q[i,j] * (x_i + x_j - 2*x_i*x_j)
+    i.e. edge (i,j) contributes Q[i,j] iff x_i != x_j.
 
-      fixed_fixed : sum_{i<j, both fixed} Q[i,j]*f_i*f_j
-                    + sum_i Q[i,i]*f_i         (diagonal of fixed vars)
-      fixed_free  : for each free var k, its linear coefficient is
-                    Q[k,k] + sum_{fj fixed, fj<k} Q[fj,k]*f_fj
-                            + sum_{fj fixed, fj>k} Q[k,fj]*f_fj
-      free_free   : LP relaxation over free vars only, using auxiliaries
-                    w_ij for each free pair (i<j), with coefficient Q[i,j].
+    We split into three parts:
+      fixed_fixed : exact cut value among already-fixed variable pairs
+      fixed_free  : for free var k, contribution from edges to fixed vars is
+                    Q[fj,k]*|f_fj - x_k|, linearised as Q[fj,k]*(f_fj + x_k - 2*f_fj*x_k)
+      free_free   : LP relaxation using auxiliary y_ij = x_i*x_j, so the
+                    edge contribution is Q[i,j]*(x_i + x_j - 2*y_ij)
 
     Falls back to a cheap bound if scipy is unavailable.
     """
-    # --- fixed-fixed contribution (exact, no relaxation) ---
+    # --- fixed-fixed contribution (exact) ---
     fixed_fixed = 0.0
     for i in fixed:
-        fixed_fixed += Q[i, i] * fixed[i]          # diagonal
         for j in fixed:
-            if i < j:
-                fixed_fixed += Q[i, j] * fixed[i] * fixed[j]
+            if i < j and Q[i, j] != 0.0 and fixed[i] != fixed[j]:
+                fixed_fixed += Q[i, j]
 
     free = [i for i in range(n) if i not in fixed]
     n_free = len(free)
@@ -96,45 +103,60 @@ def _lp_upper_bound(Q, fixed, n):
         return fixed_fixed
 
     if not _HAVE_SCIPY:
-        # Cheap fallback: assume each free var takes its most beneficial value
+        # Cheap fallback: sum max possible contribution of each free edge
         bound = fixed_fixed
         for i in free:
-            lin = Q[i, i]
             for fj, fval in fixed.items():
-                lin += Q[min(i, fj), max(i, fj)] * fval
-            bound += max(0.0, lin)
+                a, b_ = min(i, fj), max(i, fj)
+                bound += max(0.0, Q[a, b_])   # best case: edge is cut
             for j in free:
                 if i < j:
                     bound += max(0.0, Q[i, j])
         return bound
 
     free_idx = {v: k for k, v in enumerate(free)}
-    pairs = [(i, j) for idx, i in enumerate(free) for j in free[idx + 1:]]
+    pairs = [(i, j) for idx, i in enumerate(free) for j in free[idx + 1:]
+             if Q[i, j] != 0.0]
     n_pairs = len(pairs)
-    total_vars = n_free + n_pairs
+    total_vars = n_free + n_pairs   # x_i for free vars, then y_ij for free pairs
 
-    # --- linear coefficients for free vars (fixed-free cross terms + diagonal) ---
+    # Objective (negated for minimisation):
+    # For each free var k: sum over fixed neighbours fj of Q[fj,k]*(fval + x_k - 2*fval*x_k)
+    #   The constant fval*Q[fj,k] goes into fixed_free_const; the x_k coefficient is
+    #   Q[fj,k]*(1 - 2*fval).
+    # For each free pair (i,j): Q[i,j]*(x_i + x_j - 2*y_ij)
+    #   x_i and x_j coefficients are Q[i,j]; y_ij coefficient is -2*Q[i,j].
+
+    fixed_free_const = 0.0
     c = np.zeros(total_vars)
+
     for k, i in enumerate(free):
-        lin = Q[i, i]
         for fj, fval in fixed.items():
             a, b_ = min(i, fj), max(i, fj)
-            lin += Q[a, b_] * fval
-        c[k] = -lin  # negate for minimisation
+            w = Q[a, b_]
+            if w == 0.0:
+                continue
+            fixed_free_const += w * fval
+            c[k] -= w * (1.0 - 2.0 * fval)   # negate: subtract from minimisation obj
 
-    # --- quadratic free-free terms via auxiliary variables ---
     for p, (i, j) in enumerate(pairs):
-        c[n_free + p] = -Q[i, j]   # Q is upper-tri so Q[i,j] is the full coeff (i<j)
+        w = Q[i, j]
+        c[free_idx[i]] -= w       # x_i term
+        c[free_idx[j]] -= w       # x_j term
+        c[n_free + p]  += 2.0 * w # y_ij term (negated sign: -2w in max = +2w in min)
 
     bounds = [(0.0, 1.0)] * total_vars
 
     if not pairs:
-        # No free-free interactions: LP is trivially solved by greedy
-        lp_val = sum(max(0.0, -c[k]) for k in range(n_free))
-        return fixed_fixed + lp_val
+        # No free-free edges: LP trivially solved — each free var independently
+        # contributes its linear term, clamped to [0,1]
+        lp_val = sum(max(-c[k], 0.0) if c[k] < 0.0 else 0.0 for k in range(n_free))
+        # also add terms where c[k] is negative (free var set to 1 helps)
+        lp_val = sum((-c[k] if c[k] < 0.0 else 0.0) for k in range(n_free))
+        return fixed_fixed + fixed_free_const + lp_val
 
-    # Constraints: w_p = x_i * x_j linearisation
-    #   w_p <= x_i, w_p <= x_j, x_i + x_j - w_p <= 1
+    # Constraints: y_ij = x_i * x_j linearisation
+    #   y_ij <= x_i, y_ij <= x_j, x_i + x_j - y_ij <= 1
     A_ub = []
     b_ub = []
     for p, (i, j) in enumerate(pairs):
@@ -155,7 +177,7 @@ def _lp_upper_bound(Q, fixed, n):
     )
 
     if res.success:
-        return fixed_fixed + (-res.fun)
+        return fixed_fixed + fixed_free_const + (-res.fun)
     else:
         return float("inf")
 
@@ -188,17 +210,18 @@ def _most_influential(Q, fixed, n):
 # Branch and bound
 # ---------------------------------------------------------------------------
 
-def qubo_branch_and_bound(Q, warm_bits, verbose=True, time_limit=None):
+def maxcut_branch_and_bound(Q, warm_bits, verbose=True, time_limit=None):
     """
-    Exact QUBO maximiser via branch and bound with LP relaxation upper bounds.
+    Exact MAXCUT solver via branch and bound with LP relaxation upper bounds.
 
     Parameters
     ----------
     Q : (n, n) float64 ndarray
-        Dense upper-triangular or symmetric QUBO matrix.
-        Objective: maximise x^T Q x over x in {0,1}^n.
+        Dense upper-triangular edge weight matrix (no diagonal).
+        Objective: maximise sum_{i<j} Q[i,j] * (x_i != x_j).
     warm_bits : array-like of bool/int, length n
-        Warm-start incumbent (e.g. from PyQrackIsing via solve_qubo_exact).
+        Warm-start incumbent from PyQrackIsing (via solve_qubo_exact) or any
+        heuristic. The partition is defined by which nodes have bit=1 vs bit=0.
     verbose : bool
     time_limit : float or None
         Wall-clock seconds before returning best-so-far (not certified exact).
@@ -218,7 +241,7 @@ def qubo_branch_and_bound(Q, warm_bits, verbose=True, time_limit=None):
     assert len(warm_bits) == n, "warm_bits length must match Q dimension"
 
     best_bits = warm_bits.copy()
-    best_value = qubo_value(Q, best_bits)
+    best_value = cut_value(Q, best_bits)
 
     if verbose:
         print(f"Warm-start incumbent: {best_value:.6f}")
@@ -246,7 +269,7 @@ def qubo_branch_and_bound(Q, warm_bits, verbose=True, time_limit=None):
 
         if len(fixed) == n:
             bits = np.array([fixed[i] for i in range(n)], dtype=np.bool_)
-            val = qubo_value(Q, bits)
+            val = cut_value(Q, bits)
             if val > best_value:
                 best_value = val
                 best_bits = bits.copy()
@@ -279,7 +302,7 @@ def qubo_branch_and_bound(Q, warm_bits, verbose=True, time_limit=None):
 def graph_to_dense_upper(G):
     """
     Convert a NetworkX graph to a dense upper-triangular numpy matrix
-    suitable for qubo_branch_and_bound. Node labels must be integers 0..n-1.
+    suitable for maxcut_branch_and_bound. Node labels must be integers 0..n-1.
     Diagonal is left zero (PyQrackIsing MAXCUT graphs have no self-loops).
     """
     n = G.number_of_nodes()
@@ -304,7 +327,7 @@ def solve_qubo_exact(G, is_spin_glass=False, pyqrackising_kwargs=None, verbose=T
 
     If your problem has diagonal terms (linear penalties/bonuses per variable),
     add them to the dense Q returned by graph_to_dense_upper before calling
-    qubo_branch_and_bound directly — the B&B handles diagonal correctly.
+    maxcut_branch_and_bound directly — the B&B handles diagonal correctly.
 
     Parameters
     ----------
@@ -347,10 +370,10 @@ def solve_qubo_exact(G, is_spin_glass=False, pyqrackising_kwargs=None, verbose=T
         print("Starting branch and bound...")
 
     # Convert graph to dense upper-tri for B&B. If the caller has diagonal terms,
-    # add them to Q here before passing to qubo_branch_and_bound.
+    # add them to Q here before passing to maxcut_branch_and_bound.
     Q = graph_to_dense_upper(G)
 
-    exact_bits, exact_value, certified = qubo_branch_and_bound(
+    exact_bits, exact_value, certified = maxcut_branch_and_bound(
         Q, heuristic_bits, verbose=verbose, time_limit=time_limit
     )
 
@@ -390,16 +413,16 @@ def _random_maxcut_graph(n, density, seed):
 
 
 def _brute_force(Q, n):
-    """Reference exact solver for small n to validate B&B."""
+    """Reference exact MAXCUT solver for small n to validate B&B."""
     best_val = -float("inf")
     best_bits = None
     for mask in range(1 << n):
-        bits = np.array([(mask >> i) & 1 for i in range(n)], dtype=np.float64)
-        val = float(bits @ Q @ bits)
+        bits = np.array([(mask >> i) & 1 for i in range(n)], dtype=np.bool_)
+        val = cut_value(Q, bits)
         if val > best_val:
             best_val = val
             best_bits = bits.copy()
-    return best_bits.astype(np.bool_), best_val
+    return best_bits, best_val
 
 
 # ---------------------------------------------------------------------------
@@ -418,7 +441,7 @@ if __name__ == "__main__":
     n = args.n
     print(f"Random MAXCUT: n={n}, density={args.density}, seed={args.seed}")
     G = _random_maxcut_graph(n, args.density, args.seed)
-    Q = graph_to_dense_upper(G)
+    # Q = graph_to_dense_upper(G)
 
     # Here we use a random warm start so the demo runs without PyQrackIsing.
     # rng = np.random.default_rng(args.seed + 1)
