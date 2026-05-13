@@ -182,6 +182,15 @@ public:
 
     QInterfacePtr Clone();
 
+    void LossySaveStateVector(std::string f, int p = 6, int b = 4)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) { ls->LossySaveStateVector(f, p, b); });
+    }
+    void LossyLoadStateVector(std::string f)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) { ls->LossyLoadStateVector(f); });
+    }
+
     void GetQuantumState(complex* state)
     {
         RunAsAmplitudes([&](QInterfacePtr ls) { ls->GetQuantumState(state); });
