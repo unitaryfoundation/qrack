@@ -26,7 +26,7 @@ typedef std::shared_ptr<QTensorNetwork> QTensorNetworkPtr;
 // typedef std::shared_ptr<TensorNetworkMeta> TensorNetworkMetaPtr;
 // #endif
 
-class QTensorNetwork : public QInterface {
+class QTensorNetwork : public QAlu, public QInterface {
 protected:
     bool useHostRam;
     bool isSparse;
@@ -408,5 +408,193 @@ public:
         circuit->AppendGate(std::make_shared<QCircuitGate>(
             target, lMtrx.get(), std::set<bitLenInt>{ controls.begin(), controls.end() }, ZERO_BCI));
     }
+
+#if ENABLE_ALU
+    using QInterface::M;
+    bool M(bitLenInt q) { return QInterface::M(q); }
+    using QInterface::X;
+    void X(bitLenInt q) { QInterface::X(q); }
+
+    /**
+     * \defgroup ArithGate Arithmetic and other opcode-like gate implemenations.
+     *
+     * @{
+     */
+
+    void DEC(const bitCapInt& toSub, bitLenInt start, bitLenInt length) { QInterface::DEC(toSub, start, length); }
+    void DECS(const bitCapInt& toSub, bitLenInt start, bitLenInt length, bitLenInt overflowIndex)
+    {
+        QInterface::DECS(toSub, start, length, overflowIndex);
+    }
+    void CINC(const bitCapInt& toAdd, bitLenInt inOutStart, bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        QInterface::CINC(toAdd, inOutStart, length, controls);
+    }
+    void CDEC(const bitCapInt& toSub, bitLenInt inOutStart, bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        QInterface::CDEC(toSub, inOutStart, length, controls);
+    }
+    void INCDECC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
+    {
+        QInterface::INCDECC(toAdd, start, length, carryIndex);
+    }
+    void MULModNOut(
+        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
+    {
+        QInterface::MULModNOut(toMul, modN, inStart, outStart, length);
+    }
+    void IMULModNOut(
+        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
+    {
+        QInterface::IMULModNOut(toMul, modN, inStart, outStart, length);
+    }
+    void CMULModNOut(const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
+        bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        QInterface::CMULModNOut(toMul, modN, inStart, outStart, length, controls);
+    }
+    void CIMULModNOut(const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
+        bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        QInterface::CIMULModNOut(toMul, modN, inStart, outStart, length, controls);
+    }
+
+    void INC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->INC(toAdd, start, length); });
+    }
+    void INCC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
+    {
+        RunAsAmplitudes(
+            [&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->INCC(toAdd, start, length, carryIndex); });
+    }
+    void INCS(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt overflowIndex)
+    {
+        RunAsAmplitudes(
+            [&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->INCS(toAdd, start, length, overflowIndex); });
+    }
+    void INCDECSC(
+        const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt overflowIndex, bitLenInt carryIndex)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            std::dynamic_pointer_cast<QAlu>(ls)->INCDECSC(toAdd, start, length, overflowIndex, carryIndex);
+        });
+    }
+    void INCDECSC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
+    {
+        RunAsAmplitudes(
+            [&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->INCDECSC(toAdd, start, length, carryIndex); });
+    }
+    void DECC(const bitCapInt& toSub, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
+    {
+        RunAsAmplitudes(
+            [&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->DECC(toSub, start, length, carryIndex); });
+    }
+#if ENABLE_BCD
+    void INCBCD(const bitCapInt& toAdd, bitLenInt start, bitLenInt length)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->INCBCD(toAdd, start, length); });
+    }
+    void DECBCD(const bitCapInt& toAdd, bitLenInt start, bitLenInt length)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->DECBCD(toAdd, start, length); });
+    }
+    void INCDECBCDC(const bitCapInt& toSub, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            std::dynamic_pointer_cast<QAlu>(ls)->INCDECBCDC(toAdd, start, length, carryIndex);
+        });
+    }
+#endif
+    void MUL(const bitCapInt& toMul, bitLenInt inOutStart, bitLenInt carryStart, bitLenInt length)
+    {
+        RunAsAmplitudes(
+            [&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->MUL(toMul, inOutStart, carryStart, length); });
+    }
+    void DIV(const bitCapInt& toDiv, bitLenInt inOutStart, bitLenInt carryStart, bitLenInt length)
+    {
+        RunAsAmplitudes(
+            [&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->DIV(toDiv, inOutStart, carryStart, length); });
+    }
+    void POWModNOut(
+        const bitCapInt& base, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            std::dynamic_pointer_cast<QAlu>(ls)->POWModNOut(base, modN, inStart, outStart, length);
+        });
+    }
+    void CMUL(const bitCapInt& toMul, bitLenInt inOutStart, bitLenInt carryStart, bitLenInt length,
+        const std::vector<bitLenInt>& controls)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            std::dynamic_pointer_cast<QAlu>(ls)->CMUL(toMul, inOutStart, carryStart, length, controls);
+        });
+    }
+    void CDIV(const bitCapInt& toDiv, bitLenInt inOutStart, bitLenInt carryStart, bitLenInt length,
+        const std::vector<bitLenInt>& controls)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            std::dynamic_pointer_cast<QAlu>(ls)->CDIV(toDiv, inOutStart, carryStart, length, controls);
+        });
+    }
+    void CPOWModNOut(const bitCapInt& base, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
+        bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            std::dynamic_pointer_cast<QAlu>(ls)->CPOWModNOut(base, modN, inStart, outStart, length, controls);
+        });
+    }
+    bitCapInt IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bitLenInt valueStart, bitLenInt valueLength,
+        const unsigned char* values, bool resetValue = true)
+    {
+        bitCapInt toRet;
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            toRet = std::dynamic_pointer_cast<QAlu>(ls)->IndexedLDA(
+                indexStart, indexLength, valueStart, valueLength, values, resetValue);
+        });
+
+        return toRet;
+    }
+    bitCapInt IndexedADC(bitLenInt indexStart, bitLenInt indexLength, bitLenInt valueStart, bitLenInt valueLength,
+        bitLenInt carryIndex, const unsigned char* values)
+    {
+        bitCapInt toRet;
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            toRet = std::dynamic_pointer_cast<QAlu>(ls)->IndexedADC(
+                indexStart, indexLength, valueStart, valueLength, carryIndex, values);
+        });
+
+        return toRet;
+    }
+    bitCapInt IndexedSBC(bitLenInt indexStart, bitLenInt indexLength, bitLenInt valueStart, bitLenInt valueLength,
+        bitLenInt carryIndex, const unsigned char* values)
+    {
+        bitCapInt toRet;
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            toRet = std::dynamic_pointer_cast<QAlu>(ls)->IndexedSBC(
+                indexStart, indexLength, valueStart, valueLength, carryIndex, values);
+        });
+
+        return toRet;
+    }
+    void Hash(bitLenInt start, bitLenInt length, const unsigned char* values)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->Hash(start, length, values); });
+    }
+    void CPhaseFlipIfLess(const bitCapInt& greaterPerm, bitLenInt start, bitLenInt length, bitLenInt flagIndex)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            std::dynamic_pointer_cast<QAlu>(ls)->CPhaseFlipIfLess(greaterPerm, start, length, flagIndex);
+        });
+    }
+    void PhaseFlipIfLess(const bitCapInt& greaterPerm, bitLenInt start, bitLenInt length)
+    {
+        RunAsAmplitudes([&](QInterfacePtr ls) {
+            std::dynamic_pointer_cast<QAlu>(ls)->PhaseFlipIfLess(greaterPerm, start, length);
+        });
+    }
+
+    /** @} */
+#endif
 };
 } // namespace Qrack

@@ -444,8 +444,7 @@ public:
     // Swap two bits and apply a phase factor of i if they are different
     void ISwap(bitLenInt c, bitLenInt t)
     {
-        SwapGate(
-            c, t, [](QStabilizerPtr unit, const bitLenInt& c, const bitLenInt& t) { unit->ISwap(c, t); }, I_CMPLX);
+        SwapGate(c, t, [](QStabilizerPtr unit, const bitLenInt& c, const bitLenInt& t) { unit->ISwap(c, t); }, I_CMPLX);
     }
     // Swap two bits and apply a phase factor of -i if they are different
     void IISwap(bitLenInt c, bitLenInt t)

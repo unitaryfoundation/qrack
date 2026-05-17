@@ -2934,11 +2934,11 @@ public:
     /**
      * Set the "Schmidt decomposition rounding parameter" value, (between 0 and 1)
      */
-    virtual void SetSdrp(real1_f sdrp){};
+    virtual void SetSdrp(real1_f sdrp) {};
     /**
      * Set the "Near-clifford rounding parameter" value, (between 0 and 1)
      */
-    virtual void SetNcrp(real1_f ncrp){};
+    virtual void SetNcrp(real1_f ncrp) {};
     /**
      *  Set reactive separation option (on by default if available)
      *
@@ -3039,7 +3039,7 @@ public:
     /**
      *  Set the device index, if more than one device is available.
      */
-    virtual void SetDevice(int64_t dID){};
+    virtual void SetDevice(int64_t dID) {};
 
     /**
      *  Get the device index. ("-1" is default).
@@ -3048,7 +3048,7 @@ public:
     /**
      *  Set the device index list, if more than one device is available.
      */
-    virtual void SetDeviceList(std::vector<int64_t> dIDs){};
+    virtual void SetDeviceList(std::vector<int64_t> dIDs) {};
 
     /**
      *  Get the device index.

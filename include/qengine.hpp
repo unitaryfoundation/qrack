@@ -84,7 +84,7 @@ public:
         , useHostRam(useHostMem)
         , runningNorm(ONE_R1)
         , maxQPowerOcl(pow2Ocl(qBitCount))
-        , fidelity(1.0){};
+        , fidelity(1.0) {};
 
     /** Default constructor, primarily for protected internal use */
     QEngine()
@@ -116,7 +116,7 @@ public:
     }
 
     /** Switch to/from host/device state vector bufffer */
-    virtual void SwitchHostPtr(bool useHostMem){};
+    virtual void SwitchHostPtr(bool useHostMem) {};
     /** Reset host/device state vector bufffer usage to default */
     virtual void ResetHostPtr() { SwitchHostPtr(useHostRam); }
     /** Set GPU device ID */

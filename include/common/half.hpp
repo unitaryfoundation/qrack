@@ -461,18 +461,15 @@ namespace literal {
 namespace detail {
 #if HALF_ENABLE_CPP11_TYPE_TRAITS
     /// Conditional type.
-    template <bool B, typename T, typename F> struct conditional : std::conditional<B, T, F> {
-    };
+    template <bool B, typename T, typename F> struct conditional : std::conditional<B, T, F> {};
 
     /// Helper for tag dispatching.
-    template <bool B> struct bool_type : std::integral_constant<bool, B> {
-    };
+    template <bool B> struct bool_type : std::integral_constant<bool, B> {};
     using std::false_type;
     using std::true_type;
 
     /// Type traits for floating-point types.
-    template <typename T> struct is_float : std::is_floating_point<T> {
-    };
+    template <typename T> struct is_float : std::is_floating_point<T> {};
 #else
     /// Conditional type.
     template <bool, typename T, typename> struct conditional {
@@ -483,38 +480,27 @@ namespace detail {
     };
 
     /// Helper for tag dispatching.
-    template <bool> struct bool_type {
-    };
+    template <bool> struct bool_type {};
     typedef bool_type<true> true_type;
     typedef bool_type<false> false_type;
 
     /// Type traits for floating-point types.
-    template <typename> struct is_float : false_type {
-    };
-    template <typename T> struct is_float<const T> : is_float<T> {
-    };
-    template <typename T> struct is_float<volatile T> : is_float<T> {
-    };
-    template <typename T> struct is_float<const volatile T> : is_float<T> {
-    };
-    template <> struct is_float<float> : true_type {
-    };
-    template <> struct is_float<double> : true_type {
-    };
-    template <> struct is_float<long double> : true_type {
-    };
+    template <typename> struct is_float : false_type {};
+    template <typename T> struct is_float<const T> : is_float<T> {};
+    template <typename T> struct is_float<volatile T> : is_float<T> {};
+    template <typename T> struct is_float<const volatile T> : is_float<T> {};
+    template <> struct is_float<float> : true_type {};
+    template <> struct is_float<double> : true_type {};
+    template <> struct is_float<long double> : true_type {};
 #endif
 
     /// Type traits for floating-point bits.
     template <typename T> struct bits {
         typedef unsigned char type;
     };
-    template <typename T> struct bits<const T> : bits<T> {
-    };
-    template <typename T> struct bits<volatile T> : bits<T> {
-    };
-    template <typename T> struct bits<const volatile T> : bits<T> {
-    };
+    template <typename T> struct bits<const T> : bits<T> {};
+    template <typename T> struct bits<volatile T> : bits<T> {};
+    template <typename T> struct bits<const volatile T> : bits<T> {};
 
 #if HALF_ENABLE_CPP11_CSTDINT
     /// Unsigned integer of (at least) 16 bits width.
@@ -547,15 +533,13 @@ namespace detail {
 
     /// Unsigned integer of (at least) 32 bits width.
     template <>
-    struct bits<float> : conditional<std::numeric_limits<unsigned int>::digits >= 32, unsigned int, unsigned long> {
-    };
+    struct bits<float> : conditional<std::numeric_limits<unsigned int>::digits >= 32, unsigned int, unsigned long> {};
 
 #if HALF_ENABLE_CPP11_LONG_LONG
     /// Unsigned integer of (at least) 64 bits width.
     template <>
     struct bits<double>
-        : conditional<std::numeric_limits<unsigned long>::digits >= 64, unsigned long, unsigned long long> {
-    };
+        : conditional<std::numeric_limits<unsigned long>::digits >= 64, unsigned long, unsigned long long> {};
 #else
     /// Unsigned integer of (at least) 64 bits width.
     template <> struct bits<double> {
@@ -1128,7 +1112,7 @@ namespace detail {
     template <std::float_round_style R, typename T> unsigned int float2half(T value)
     {
         return float2half_impl<R>(
-            value, bool_type < std::numeric_limits<T>::is_iec559 && sizeof(typename bits<T>::type) == sizeof(T) > ());
+            value, bool_type<std::numeric_limits<T>::is_iec559 && sizeof(typename bits<T>::type) == sizeof(T)>());
     }
 
     /// Convert integer to half-precision floating-point.
@@ -1478,8 +1462,8 @@ namespace detail {
     /// \return floating-point value
     template <typename T> T half2float(unsigned int value)
     {
-        return half2float_impl(value, T(),
-            bool_type < std::numeric_limits<T>::is_iec559 && sizeof(typename bits<T>::type) == sizeof(T) > ());
+        return half2float_impl(
+            value, T(), bool_type<std::numeric_limits<T>::is_iec559 && sizeof(typename bits<T>::type) == sizeof(T)>());
     }
 
     /// Convert half-precision floating-point to integer.
@@ -2475,8 +2459,7 @@ namespace detail {
     /// \tparam U source type
     /// \tparam R rounding mode to use
     template <typename T, typename U, std::float_round_style R = (std::float_round_style)(HALF_ROUND_STYLE)>
-    struct half_caster {
-    };
+    struct half_caster {};
     template <typename U, std::float_round_style R> struct half_caster<half, U, R> {
 #if HALF_ENABLE_CPP11_STATIC_ASSERT && HALF_ENABLE_CPP11_TYPE_TRAITS
         static_assert(std::is_arithmetic<U>::value, "half_cast from non-arithmetic type unsupported");
