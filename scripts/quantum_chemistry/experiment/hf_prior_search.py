@@ -11,6 +11,13 @@ from openfermionpyscf import run_pyscf
 
 import numpy as np
 
+# Optional DMRG via block2/pyscf-dmrg
+try:
+    from pyscf import dmrgscf
+    HAS_DMRG = True
+except ImportError:
+    HAS_DMRG = False
+
 
 # ---------------------------------------------------------------------------
 # Molecule definition
@@ -24,6 +31,11 @@ charge_radius = 2
 # basis = "sto-3g"  # Minimal Basis Set
 # basis = '6-31g'  # Larger basis set
 basis = 'cc-pVDZ' # Even larger basis set!
+
+# Post-HF: maximum number of orbitals for which FCI is attempted.
+# FCI scales as O(n_orb! / (n_elec! * (n_orb-n_elec)!)) so becomes
+# intractable quickly. CCSD(T) is attempted for larger systems.
+fci_orbital_limit = 20
 
 # Hydrogen (and lighter):
 
@@ -41,7 +53,7 @@ basis = 'cc-pVDZ' # Even larger basis set!
 # Lithium (and lighter):
 
 # geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 1.596))]  # equilibrium
-# geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 2.5))]   # stretched
+geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 2.5))]   # stretched
 # geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 4.0))]   # near dissociation
 
 # Beryllium (and lighter):
@@ -216,29 +228,29 @@ basis = 'cc-pVDZ' # Even larger basis set!
 # Benzene (C6H6)
 
 # Define bond lengths (in angstroms, converted to script units)
-C_C = 1.39  # Carbon-carbon bond (1.39 Å)
-C_H = 1.09  # Carbon-hydrogen bond (1.09 Å)
+# C_C = 1.39  # Carbon-carbon bond (1.39 Å)
+# C_H = 1.09  # Carbon-hydrogen bond (1.09 Å)
 
 # Angle of 120° between C-C bonds in the hexagonal ring
-theta = np.deg2rad(120)
+# theta = np.deg2rad(120)
 
 # Define carbon positions (hexagonal ring)
-geometry = [
-    ('C', (C_C, 0.0, 0.0)),  # First carbon at x-axis
-    ('C', (C_C * np.cos(theta), C_C * np.sin(theta), 0.0)),
-    ('C', (-C_C * np.cos(theta), C_C * np.sin(theta), 0.0)),
-    ('C', (-C_C, 0.0, 0.0)),
-    ('C', (-C_C * np.cos(theta), -C_C * np.sin(theta), 0.0)),
-    ('C', (C_C * np.cos(theta), -C_C * np.sin(theta), 0.0))
-]
+# geometry = [
+#     ('C', (C_C, 0.0, 0.0)),  # First carbon at x-axis
+#     ('C', (C_C * np.cos(theta), C_C * np.sin(theta), 0.0)),
+#     ('C', (-C_C * np.cos(theta), C_C * np.sin(theta), 0.0)),
+#     ('C', (-C_C, 0.0, 0.0)),
+#     ('C', (-C_C * np.cos(theta), -C_C * np.sin(theta), 0.0)),
+#     ('C', (C_C * np.cos(theta), -C_C * np.sin(theta), 0.0))
+# ]
 
 # Define hydrogen positions (bonded to carbons)
-for i in range(6):
-    x, y, z = geometry[i][1]  # Get carbon position
-    hydrogen_x = x + (C_H * (x / C_C))  # Extend outward along C-C axis
-    hydrogen_y = y + (C_H * (y / C_C))
-    hydrogen_z = z  # Planar
-    geometry.append(('H', (hydrogen_x, hydrogen_y, hydrogen_z)))
+# for i in range(6):
+#     x, y, z = geometry[i][1]  # Get carbon position
+#     hydrogen_x = x + (C_H * (x / C_C))  # Extend outward along C-C axis
+#     hydrogen_y = y + (C_H * (y / C_C))
+#     hydrogen_z = z  # Planar
+#     geometry.append(('H', (hydrogen_x, hydrogen_y, hydrogen_z)))
 
 # Now, `geometry` contains all 6 carbons and 6 hydrogens!
 
@@ -270,6 +282,81 @@ def valid_charge_multiplicity_pairs(n_neutral, charge_radius):
 
 
 # ---------------------------------------------------------------------------
+# Post-HF refinement cascade
+# ---------------------------------------------------------------------------
+
+def refine(molecule, fci_orbital_limit):
+    """
+    Attempt post-HF methods in order of increasing cost using the already-
+    converged HF solution embedded in molecule. Returns (method_name, energy).
+    """
+    charge      = molecule.charge
+    multiplicity = molecule.multiplicity
+    n_orbitals  = molecule.n_qubits // 2   # spatial orbitals
+
+    # CISD
+    print("  Attempting CISD...")
+    try:
+        mol = run_pyscf(molecule, run_scf=False, run_mp2=False,
+                        run_cisd=True, run_ccsd=False, run_fci=False)
+        if mol.cisd_energy is not None:
+            print(f"  CISD energy = {mol.cisd_energy:.10f} Ha")
+        molecule = mol
+    except Exception as e:
+        print(f"  CISD failed: {e}")
+
+    # CCSD
+    print("  Attempting CCSD...")
+    try:
+        mol = run_pyscf(molecule, run_scf=False, run_mp2=False,
+                        run_cisd=False, run_ccsd=True, run_fci=False)
+        if mol.ccsd_energy is not None:
+            print(f"  CCSD energy = {mol.ccsd_energy:.10f} Ha")
+        molecule = mol
+    except Exception as e:
+        print(f"  CCSD failed: {e}")
+
+    # FCI — only tractable for small active spaces
+    if n_orbitals <= fci_orbital_limit:
+        print(f"  Attempting FCI ({n_orbitals} orbitals <= limit {fci_orbital_limit})...")
+        try:
+            mol = run_pyscf(molecule, run_scf=False, run_mp2=False,
+                            run_cisd=False, run_ccsd=False, run_fci=True)
+            if mol.fci_energy is not None:
+                print(f"  FCI energy  = {mol.fci_energy:.10f} Ha")
+                return "FCI", mol.fci_energy
+        except Exception as e:
+            print(f"  FCI failed: {e}")
+    else:
+        print(f"  FCI skipped ({n_orbitals} orbitals > limit {fci_orbital_limit}).")
+
+    # DMRG — if available and FCI was skipped or failed
+    if HAS_DMRG:
+        print("  Attempting DMRG...")
+        try:
+            from pyscf import gto, scf, mcscf
+            mol_pyscf = molecule._pyscf_data.get('mol') or gto.Mole()
+            mf        = molecule._pyscf_data.get('scf')
+            n_active  = min(n_orbitals, 16)   # active space cap for laptop
+            n_elec    = molecule.n_electrons
+            mc = mcscf.CASCI(mf, n_active, n_elec)
+            mc.fcisolver = dmrgscf.DMRGCI(mol_pyscf, maxM=512)
+            mc.kernel()
+            dmrg_energy = mc.e_tot
+            print(f"  DMRG energy = {dmrg_energy:.10f} Ha")
+            return "DMRG", dmrg_energy
+        except Exception as e:
+            print(f"  DMRG failed: {e}")
+
+    # Return best available from CCSD or CISD
+    if molecule.ccsd_energy is not None:
+        return "CCSD", molecule.ccsd_energy
+    if molecule.cisd_energy is not None:
+        return "CISD", molecule.cisd_energy
+    return "HF", molecule.hf_energy
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -283,6 +370,7 @@ if __name__ == "__main__":
 
     best_energy = None
     best_result = None
+    best_molecule = None
 
     for charge, multiplicity in pairs:
         label = f"charge={charge:+d}, multiplicity={multiplicity}"
@@ -292,6 +380,9 @@ if __name__ == "__main__":
             molecule = run_pyscf(molecule, run_scf=True, run_mp2=False,
                                  run_cisd=False, run_ccsd=False, run_fci=False)
         except Exception as e:
+            msg = str(e)
+            if "spin multiplicity" in msg.lower() or "invalid spin" in msg.lower():
+                continue
             print(f"  [{label}] PySCF failed: {e}")
             continue
 
@@ -301,6 +392,7 @@ if __name__ == "__main__":
         if best_energy is None or energy < best_energy:
             best_energy = energy
             best_result = {'charge': charge, 'multiplicity': multiplicity, 'hf_energy': energy}
+            best_molecule = molecule
             print(f"    *** New best: {energy:.10f} Ha ***")
 
     print()
@@ -309,3 +401,16 @@ if __name__ == "__main__":
     print(f"  charge       = {best_result['charge']}")
     print(f"  multiplicity = {best_result['multiplicity']}")
     print(f"  HF energy    = {best_result['hf_energy']:.10f} Ha")
+
+    print()
+    print("=" * 60)
+    print("Post-HF refinement with best priors:")
+    method, final_energy = refine(best_molecule, fci_orbital_limit)
+
+    print()
+    print("=" * 60)
+    print("Final result:")
+    print(f"  charge       = {best_result['charge']}")
+    print(f"  multiplicity = {best_result['multiplicity']}")
+    print(f"  method       = {method}")
+    print(f"  energy       = {final_energy:.10f} Ha")
