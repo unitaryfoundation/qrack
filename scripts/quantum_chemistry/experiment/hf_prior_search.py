@@ -4,7 +4,7 @@
 # combinations for a given geometry and basis, runs PySCF for each,
 # prints improvements as found, and returns the best priors and HF energy.
 #
-# Developed with help from (Anthropic) Claude.
+# Developed with help from (Anthropic) Claude and (OpenAI) ChatGPT.
 
 from openfermion import MolecularData
 from openfermionpyscf import run_pyscf
@@ -258,7 +258,7 @@ geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 2.5))]   # stretched
 # ---------------------------------------------------------------------------
 # Enumerate valid (charge, multiplicity) pairs
 # ---------------------------------------------------------------------------
-
+ 
 def neutral_electron_count(geometry):
     atomic_numbers = {
         'H': 1, 'He': 2, 'Li': 3, 'Be': 4, 'B': 5, 'C': 6,
@@ -267,8 +267,8 @@ def neutral_electron_count(geometry):
         'K': 19, 'Ca': 20,
     }
     return sum(atomic_numbers[symbol] for symbol, _ in geometry)
-
-
+ 
+ 
 def valid_charge_multiplicity_pairs(n_neutral, charge_radius):
     pairs = []
     for charge in range(-charge_radius, charge_radius + 1):
@@ -279,81 +279,94 @@ def valid_charge_multiplicity_pairs(n_neutral, charge_radius):
         for multiplicity in range(min_mult, n_electrons + 2, 2):
             pairs.append((charge, multiplicity))
     return pairs
+ 
+ 
+def fresh_molecule(charge, multiplicity):
+    mol = MolecularData(geometry, basis, multiplicity=multiplicity, charge=charge)
+    return mol
 
 
 # ---------------------------------------------------------------------------
 # Post-HF refinement cascade
 # ---------------------------------------------------------------------------
 
-def refine(molecule, fci_orbital_limit):
+def refine(charge, multiplicity, fci_orbital_limit):
     """
-    Attempt post-HF methods in order of increasing cost using the already-
-    converged HF solution embedded in molecule. Returns (method_name, energy).
+    Run SCF + post-HF methods in a single fresh PySCF call each time,
+    avoiding the canonical_orbitals setter issue with reused molecule objects.
+    Returns (method_name, energy).
     """
-    charge      = molecule.charge
-    multiplicity = molecule.multiplicity
-    n_orbitals  = molecule.n_qubits // 2   # spatial orbitals
-
+    n_orbitals = None
+    best_method = "HF"
+    best_energy = None
+ 
     # CISD
     print("  Attempting CISD...")
     try:
-        mol = run_pyscf(molecule, run_scf=False, run_mp2=False,
+        mol = fresh_molecule(charge, multiplicity)
+        mol = run_pyscf(mol, run_scf=True, run_mp2=False,
                         run_cisd=True, run_ccsd=False, run_fci=False)
         if mol.cisd_energy is not None:
             print(f"  CISD energy = {mol.cisd_energy:.10f} Ha")
-        molecule = mol
+            best_method = "CISD"
+            best_energy = mol.cisd_energy
+        if n_orbitals is None:
+            n_orbitals = mol.n_qubits // 2
     except Exception as e:
         print(f"  CISD failed: {e}")
-
+ 
     # CCSD
     print("  Attempting CCSD...")
     try:
-        mol = run_pyscf(molecule, run_scf=False, run_mp2=False,
+        mol = fresh_molecule(charge, multiplicity)
+        mol = run_pyscf(mol, run_scf=True, run_mp2=False,
                         run_cisd=False, run_ccsd=True, run_fci=False)
         if mol.ccsd_energy is not None:
             print(f"  CCSD energy = {mol.ccsd_energy:.10f} Ha")
-        molecule = mol
+            best_method = "CCSD"
+            best_energy = mol.ccsd_energy
+        if n_orbitals is None:
+            n_orbitals = mol.n_qubits // 2
     except Exception as e:
         print(f"  CCSD failed: {e}")
-
-    # FCI — only tractable for small active spaces
-    if n_orbitals <= fci_orbital_limit:
+ 
+    # FCI
+    if n_orbitals is not None and n_orbitals <= fci_orbital_limit:
         print(f"  Attempting FCI ({n_orbitals} orbitals <= limit {fci_orbital_limit})...")
         try:
-            mol = run_pyscf(molecule, run_scf=False, run_mp2=False,
+            mol = fresh_molecule(charge, multiplicity)
+            mol = run_pyscf(mol, run_scf=True, run_mp2=False,
                             run_cisd=False, run_ccsd=False, run_fci=True)
             if mol.fci_energy is not None:
                 print(f"  FCI energy  = {mol.fci_energy:.10f} Ha")
                 return "FCI", mol.fci_energy
         except Exception as e:
             print(f"  FCI failed: {e}")
-    else:
+    elif n_orbitals is not None:
         print(f"  FCI skipped ({n_orbitals} orbitals > limit {fci_orbital_limit}).")
-
-    # DMRG — if available and FCI was skipped or failed
+ 
+    # DMRG
     if HAS_DMRG:
         print("  Attempting DMRG...")
         try:
             from pyscf import gto, scf, mcscf
-            mol_pyscf = molecule._pyscf_data.get('mol') or gto.Mole()
-            mf        = molecule._pyscf_data.get('scf')
-            n_active  = min(n_orbitals, 16)   # active space cap for laptop
-            n_elec    = molecule.n_electrons
-            mc = mcscf.CASCI(mf, n_active, n_elec)
-            mc.fcisolver = dmrgscf.DMRGCI(mol_pyscf, maxM=512)
+            mol = fresh_molecule(charge, multiplicity)
+            mol = run_pyscf(mol, run_scf=True, run_mp2=False,
+                            run_cisd=False, run_ccsd=False, run_fci=False)
+            pyscf_mol = mol._pyscf_data['mol']
+            pyscf_mf  = mol._pyscf_data['scf']
+            n_active  = min(n_orbitals or 16, 16)
+            n_elec    = mol.n_electrons
+            mc = mcscf.CASCI(pyscf_mf, n_active, n_elec)
+            mc.fcisolver = dmrgscf.DMRGCI(pyscf_mol, maxM=512)
             mc.kernel()
-            dmrg_energy = mc.e_tot
-            print(f"  DMRG energy = {dmrg_energy:.10f} Ha")
-            return "DMRG", dmrg_energy
+            print(f"  DMRG energy = {mc.e_tot:.10f} Ha")
+            return "DMRG", mc.e_tot
         except Exception as e:
             print(f"  DMRG failed: {e}")
+ 
+    return best_method, best_energy
 
-    # Return best available from CCSD or CISD
-    if molecule.ccsd_energy is not None:
-        return "CCSD", molecule.ccsd_energy
-    if molecule.cisd_energy is not None:
-        return "CISD", molecule.cisd_energy
-    return "HF", molecule.hf_energy
 
 
 # ---------------------------------------------------------------------------
@@ -363,20 +376,18 @@ def refine(molecule, fci_orbital_limit):
 if __name__ == "__main__":
     n_neutral = neutral_electron_count(geometry)
     pairs = valid_charge_multiplicity_pairs(n_neutral, charge_radius)
-
+ 
     print(f"Neutral electron count: {n_neutral}")
     print(f"Searching {len(pairs)} (charge, multiplicity) combinations...")
     print()
-
-    best_energy = None
-    best_result = None
-    best_molecule = None
-
+ 
+    best_hf_energy = None
+    best_result = {'charge': 0, 'multiplicity': 1, 'hf_energy': float('inf')}
+ 
     for charge, multiplicity in pairs:
         label = f"charge={charge:+d}, multiplicity={multiplicity}"
         try:
-            molecule = MolecularData(geometry, basis,
-                                     multiplicity=multiplicity, charge=charge)
+            molecule = fresh_molecule(charge, multiplicity)
             molecule = run_pyscf(molecule, run_scf=True, run_mp2=False,
                                  run_cisd=False, run_ccsd=False, run_fci=False)
         except Exception as e:
@@ -385,28 +396,28 @@ if __name__ == "__main__":
                 continue
             print(f"  [{label}] PySCF failed: {e}")
             continue
-
+ 
         energy = molecule.hf_energy
         print(f"  [{label}] HF energy = {energy:.10f} Ha")
-
-        if best_energy is None or energy < best_energy:
-            best_energy = energy
+ 
+        if best_hf_energy is None or energy < best_hf_energy:
+            best_hf_energy = energy
             best_result = {'charge': charge, 'multiplicity': multiplicity, 'hf_energy': energy}
-            best_molecule = molecule
             print(f"    *** New best: {energy:.10f} Ha ***")
-
+ 
     print()
     print("=" * 60)
     print("Best Hartree-Fock priors:")
     print(f"  charge       = {best_result['charge']}")
     print(f"  multiplicity = {best_result['multiplicity']}")
     print(f"  HF energy    = {best_result['hf_energy']:.10f} Ha")
-
+ 
     print()
     print("=" * 60)
     print("Post-HF refinement with best priors:")
-    method, final_energy = refine(best_molecule, fci_orbital_limit)
-
+    method, final_energy = refine(best_result['charge'], best_result['multiplicity'],
+                                  fci_orbital_limit)
+ 
     print()
     print("=" * 60)
     print("Final result:")
@@ -414,3 +425,4 @@ if __name__ == "__main__":
     print(f"  multiplicity = {best_result['multiplicity']}")
     print(f"  method       = {method}")
     print(f"  energy       = {final_energy:.10f} Ha")
+
