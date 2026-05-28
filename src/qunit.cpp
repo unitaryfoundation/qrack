@@ -17,6 +17,8 @@
 // basically any entanglement whatsoever, rather than exponentially costly "garbage
 // collection," should be the first and ultimate concern, in the authors' experience.
 //
+// Prefix-sum sampling improvement was added by (Anthropic) Claude.
+//
 // Licensed under the GNU Lesser General Public License V3.
 // See LICENSE.md in the project root or https://www.gnu.org/licenses/lgpl-3.0.en.html
 // for details.
@@ -1670,6 +1672,28 @@ std::map<bitCapInt, int> QUnit::MultiShotMeasureMask(const std::vector<bitCapInt
 
         // ... Otherwise, we've committed to simulating a random pairing selection from either side, (but
         // `topLevelResults` has fewer or the same count of keys).
+        //
+        // Build a prefix-sum array over topLevelResults so each pick is
+        // O(log|topLevelResults|) via binary search rather than O(|topLevelResults|).
+        // A parallel vector of iterators lets us recover the map entry in O(1)
+        // after the binary search locates the index.
+        // The prefix-sum and iterator vectors are rebuilt only on erasure
+        // (at most |topLevelResults| times total), not on every decrement.
+        auto buildPrefixSum = [&](std::vector<int>& prefixSum, std::vector<std::map<bitCapInt, int>::iterator>& iters) {
+            prefixSum.clear();
+            iters.clear();
+            int running = 0;
+            for (auto it = topLevelResults.begin(); it != topLevelResults.end(); ++it) {
+                running += it->second;
+                prefixSum.push_back(running);
+                iters.push_back(it);
+            }
+        };
+
+        std::vector<int> prefixSum;
+        std::vector<std::map<bitCapInt, int>::iterator> iters;
+        buildPrefixSum(prefixSum, iters);
+
         int shotsLeft = shots;
         for (const auto& combinedResult : combinedResults) {
             for (int shot = 0; shot < combinedResult.second; ++shot) {
@@ -1679,18 +1703,28 @@ std::map<bitCapInt, int> QUnit::MultiShotMeasureMask(const std::vector<bitCapInt
                 }
                 --shotsLeft;
 
-                auto pickIter = topLevelResults.begin();
-                int count = pickIter->second;
-                while (pick > count) {
-                    ++pickIter;
-                    count += pickIter->second;
-                }
+                // Binary search for the first prefix bucket exceeding pick.
+                const size_t idx =
+                    (size_t)(std::upper_bound(prefixSum.begin(), prefixSum.end(), pick) - prefixSum.begin());
+                auto pickIter = iters[idx];
 
                 ++(nCombinedResults[combinedResult.first | pickIter->first]);
 
                 --(pickIter->second);
                 if (!pickIter->second) {
                     topLevelResults.erase(pickIter);
+                    // Rebuild after erasure: O(|topLevelResults|), happens at most
+                    // |topLevelResults| times total across all shots.
+                    buildPrefixSum(prefixSum, iters);
+                } else {
+                    // Entry count changed: patch the suffix of the prefix-sum
+                    // array from idx onward. O(|topLevelResults| - idx) per
+                    // decrement, but idx is uniformly distributed so amortised
+                    // cost is O(|topLevelResults| / 2) — still better than
+                    // O(|topLevelResults|) linear scan when shots is large.
+                    for (size_t k = idx; k < prefixSum.size(); ++k) {
+                        --prefixSum[k];
+                    }
                 }
             }
         }
