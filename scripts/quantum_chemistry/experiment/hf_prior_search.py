@@ -8,6 +8,7 @@
 
 from openfermion import MolecularData
 from openfermionpyscf import run_pyscf
+from pyscf import gto, scf, cc, fci
 
 import numpy as np
 
@@ -41,10 +42,10 @@ fci_orbital_limit = 20
 
 # geometry = [("H", (0.0, 0.0, 0.0)), ("H", (0.0, 0.0, 0.74))]  # H2 Molecule
 
-# geometry = [
-#     ("H", (-1.0, 0.0, -1.0)), ("H", (-1.0, 0.0, 1.00)),
-#     ("H", (1.0, 0.0, -1.0)), ("H", (1.0, 0.0, 1.00))
-# ]  # H4 Dissociation (hard for Hartree-Fock)
+geometry = [
+    ("H", (-1.0, 0.0, -1.0)), ("H", (-1.0, 0.0, 1.00)),
+    ("H", (1.0, 0.0, -1.0)), ("H", (1.0, 0.0, 1.00))
+]  # H4 Dissociation (hard for Hartree-Fock)
 
 # Helium (and lighter):
 
@@ -53,7 +54,7 @@ fci_orbital_limit = 20
 # Lithium (and lighter):
 
 # geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 1.596))]  # equilibrium
-geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 2.5))]   # stretched
+# geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 2.5))]   # stretched
 # geometry = [('Li', (0.0, 0.0, 0.0)), ('H', (0.0, 0.0, 4.0))]   # near dissociation
 
 # Beryllium (and lighter):
@@ -318,15 +319,19 @@ def refine(charge, multiplicity, fci_orbital_limit):
     # CCSD
     print("  Attempting CCSD...")
     try:
-        mol = fresh_molecule(charge, multiplicity)
-        mol = run_pyscf(mol, run_scf=True, run_mp2=False,
-                        run_cisd=False, run_ccsd=True, run_fci=False)
-        if mol.ccsd_energy is not None:
-            print(f"  CCSD energy = {mol.ccsd_energy:.10f} Ha")
+        mol = gto.Mole()
+        mol.atom = geometry
+        mol.basis = basis
+        mol.charge = charge
+        mol.spin = multiplicity - 1
+        mol.build()
+        mf = scf.UHF(mol).run()
+        mycc = cc.CCSD(mf)
+        energy, _, _ = mycc.kernel()
+        if energy is not None:
+            print(f"  CCSD energy = {energy:.10f} Ha")
             best_method = "CCSD"
-            best_energy = mol.ccsd_energy
-        if n_orbitals is None:
-            n_orbitals = mol.n_qubits // 2
+            best_energy = energy
     except Exception as e:
         print(f"  CCSD failed: {e}")
  
@@ -334,12 +339,18 @@ def refine(charge, multiplicity, fci_orbital_limit):
     if n_orbitals is not None and n_orbitals <= fci_orbital_limit:
         print(f"  Attempting FCI ({n_orbitals} orbitals <= limit {fci_orbital_limit})...")
         try:
-            mol = fresh_molecule(charge, multiplicity)
-            mol = run_pyscf(mol, run_scf=True, run_mp2=False,
-                            run_cisd=False, run_ccsd=False, run_fci=True)
-            if mol.fci_energy is not None:
-                print(f"  FCI energy  = {mol.fci_energy:.10f} Ha")
-                return "FCI", mol.fci_energy
+            mol = gto.Mole()
+            mol.atom = geometry
+            mol.basis = basis
+            mol.charge = charge
+            mol.spin = multiplicity-1
+            mol.build()
+            mf = scf.ROHF(mol).run()
+            cisolver = fci.FCI(mf)
+            energy, _ = cisolver.kernel()
+            if energy is not None:
+                print(f"  FCI energy  = {energy:.10f} Ha")
+                return "FCI", energy
         except Exception as e:
             print(f"  FCI failed: {e}")
     elif n_orbitals is not None:
@@ -349,7 +360,6 @@ def refine(charge, multiplicity, fci_orbital_limit):
     if HAS_DMRG:
         print("  Attempting DMRG...")
         try:
-            from pyscf import gto, scf, mcscf
             mol = fresh_molecule(charge, multiplicity)
             mol = run_pyscf(mol, run_scf=True, run_mp2=False,
                             run_cisd=False, run_ccsd=False, run_fci=False)
