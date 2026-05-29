@@ -328,10 +328,10 @@ def refine(charge, multiplicity, fci_orbital_limit):
         mf = scf.UHF(mol).run()
         mycc = cc.CCSD(mf)
         energy, _, _ = mycc.kernel()
-        if energy is not None:
-            print(f"  CCSD energy = {energy:.10f} Ha")
+        if mycc.e_tot is not None:
+            print(f"  CCSD energy = {mycc.e_tot:.10f} Ha")
             best_method = "CCSD"
-            best_energy = energy
+            best_energy = mycc.e_tot
     except Exception as e:
         print(f"  CCSD failed: {e}")
  
