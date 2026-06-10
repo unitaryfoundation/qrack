@@ -27,25 +27,27 @@ void QInterface::U(bitLenInt target, real1_f theta, real1_f phi, real1_f lambda)
 
 /// Controlled general unitary gate
 void QInterface::CU(
-    const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi, real1_f lambda)
+    const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi, real1_f lambda, real1_f gamma)
 {
+    const complex eig = complex((real1)cos(gamma), (real1)sin(gamma));
     const real1 cos0 = (real1)cos(theta / 2);
     const real1 sin0 = (real1)sin(theta / 2);
-    const complex uGate[4]{ complex(cos0, ZERO_R1), sin0 * complex((real1)(-cos(lambda)), (real1)(-sin(lambda))),
-        sin0 * complex((real1)cos(phi), (real1)sin(phi)),
-        cos0 * complex((real1)cos(phi + lambda), (real1)sin(phi + lambda)) };
+    const complex uGate[4]{ cos0 * eig, sin0 * eig * complex((real1)(-cos(lambda)), (real1)(-sin(lambda))),
+        sin0 * eig * complex((real1)cos(phi), (real1)sin(phi)),
+        cos0 * eig * complex((real1)cos(phi + lambda), (real1)sin(phi + lambda)) };
     MCMtrx(controls, uGate, target);
 }
 
 /// (Anti-)Controlled general unitary gate
 void QInterface::AntiCU(
-    const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi, real1_f lambda)
+    const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi, real1_f lambda, real1_f gamma)
 {
+    const complex eig = complex((real1)cos(gamma), (real1)sin(gamma));
     const real1 cos0 = (real1)cos(theta / 2);
     const real1 sin0 = (real1)sin(theta / 2);
-    const complex uGate[4]{ complex(cos0, ZERO_R1), sin0 * complex((real1)(-cos(lambda)), (real1)(-sin(lambda))),
-        sin0 * complex((real1)cos(phi), (real1)sin(phi)),
-        cos0 * complex((real1)cos(phi + lambda), (real1)sin(phi + lambda)) };
+    const complex uGate[4]{ cos0 * eig, sin0 * eig * complex((real1)(-cos(lambda)), (real1)(-sin(lambda))),
+        sin0 * eig * complex((real1)cos(phi), (real1)sin(phi)),
+        cos0 * eig * complex((real1)cos(phi + lambda), (real1)sin(phi + lambda)) };
     MACMtrx(controls, uGate, target);
 }
 

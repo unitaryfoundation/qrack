@@ -1886,11 +1886,12 @@ MICROSOFT_QUANTUM_DECL void MCAdjT(_In_ uintq sid, _In_ uintq n, _In_reads_(n) u
  * (External API) Controlled 3-parameter unitary gate
  */
 MICROSOFT_QUANTUM_DECL void MCU(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q, _In_ double theta,
-    _In_ double phi, _In_ double lambda)
+    _In_ double phi, _In_ double lambda, _In_ double gamma)
 {
     MAP_CONTROLS_AND_LOCK(sid, n)
     try {
-        simulator->CU(ctrlsArray, GetSimShardId(simulator, q), (real1_f)theta, (real1_f)phi, (real1_f)lambda);
+        simulator->CU(
+            ctrlsArray, GetSimShardId(simulator, q), (real1_f)theta, (real1_f)phi, (real1_f)lambda, (real1_f)gamma);
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;
@@ -2034,11 +2035,11 @@ MICROSOFT_QUANTUM_DECL void MACAdjT(_In_ uintq sid, _In_ uintq n, _In_reads_(n) 
  * (External API) Controlled 3-parameter unitary gate
  */
 MICROSOFT_QUANTUM_DECL void MACU(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* c, _In_ uintq q, _In_ double theta,
-    _In_ double phi, _In_ double lambda)
+    _In_ double phi, _In_ double lambda, _In_ double gamma)
 {
     MAP_CONTROLS_AND_LOCK(sid, n)
     try {
-        simulator->AntiCU(ctrlsArray, GetSimShardId(simulator, q), (real1_f)theta, (real1_f)phi, (real1_f)lambda);
+        simulator->AntiCU(ctrlsArray, GetSimShardId(simulator, q), (real1_f)theta, (real1_f)phi, (real1_f)lambda, (real1_f)gamma);
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;

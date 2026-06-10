@@ -910,8 +910,8 @@ public:
      * single bit unitary gates, (up to a global phase factor which has no effect on Hermitian operator expectation
      * values).
      */
-    virtual void CU(
-        const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi, real1_f lambda);
+    virtual void CU(const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi,
+        real1_f lambda, real1_f gamma = ZERO_R1_F);
 
     /**
      * (Anti-)Controlled general unitary gate
@@ -920,8 +920,8 @@ public:
      * possible single bit unitary gates, (up to a global phase factor which has no effect on Hermitian operator
      * expectation values).
      */
-    virtual void AntiCU(
-        const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi, real1_f lambda);
+    virtual void AntiCU(const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi,
+        real1_f lambda, real1_f gamma = ZERO_R1_F);
 
     /**
      * Hadamard gate
