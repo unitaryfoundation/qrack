@@ -137,8 +137,8 @@ QInterfacePtr QTensorNetwork::Clone()
         doNormalize, randGlobalPhase, useHostRam, devID, !!hardware_rand_generator, isSparse, (real1_f)amplitudeFloor,
         deviceIDs, qbThreshold);
 
-    clone->circuit = circuit->Clone();
-    clone->layerStack = layerStack->Clone();
+    clone->circuit = circuit ? circuit->Clone() : nullptr;
+    clone->layerStack = layerStack ? layerStack->Clone() : nullptr;
     clone->SetSdrp(separabilityThreshold);
     clone->SetNcrp(ncrp);
     clone->SetReactiveSeparate(isReactiveSeparate);
