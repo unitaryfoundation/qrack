@@ -970,7 +970,7 @@ MICROSOFT_QUANTUM_DECL uintq init_clone(_In_ uintq sid)
     bool isSuccess = true;
     QInterfacePtr simulator;
     try {
-        simulator = oSimulator->Clone();
+        simulator = oSimulator ? oSimulator->Clone() : nullptr;
     } catch (const std::exception& ex) {
         std::cout << ex.what() << std::endl;
         isSuccess = false;
