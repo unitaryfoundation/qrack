@@ -719,14 +719,12 @@ MICROSOFT_QUANTUM_DECL uintq init_count_type(_In_ uintq q, _In_ bool tn, _In_ bo
 
     bool isSuccess = true;
     QInterfacePtr simulator{ nullptr };
-    if (q) {
-        try {
-            simulator = CreateQuantumInterface(
-                simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
-        } catch (const std::exception& ex) {
-            std::cout << ex.what() << std::endl;
-            isSuccess = false;
-        }
+    try {
+        simulator = CreateQuantumInterface(
+            simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
+    } catch (const std::exception& ex) {
+        std::cout << ex.what() << std::endl;
+        isSuccess = false;
     }
 
     if (sid == simulators.size()) {
@@ -775,14 +773,12 @@ MICROSOFT_QUANTUM_DECL uintq init_count(_In_ uintq q, _In_ bool hp, _In_ bool sp
 
     bool isSuccess = true;
     QInterfacePtr simulator{ nullptr };
-    if (q) {
-        try {
-            simulator = CreateQuantumInterface(
-                simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
-        } catch (const std::exception& ex) {
-            std::cout << ex.what() << std::endl;
-            isSuccess = false;
-        }
+    try {
+        simulator = CreateQuantumInterface(
+            simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp);
+    } catch (const std::exception& ex) {
+        std::cout << ex.what() << std::endl;
+        isSuccess = false;
     }
 
     if (sid == simulators.size()) {
@@ -848,14 +844,12 @@ MICROSOFT_QUANTUM_DECL uintq init_count_pager(_In_ uintq q, _In_ bool hp, _In_ b
 
     bool isSuccess = true;
     QInterfacePtr simulator{ nullptr };
-    if (q) {
-        try {
-            simulator = CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true,
-                hp, -1, true, sp, REAL1_EPSILON, deviceList, 0, FP_NORM_EPSILON_F);
-        } catch (const std::exception& ex) {
-            std::cout << ex.what() << std::endl;
-            isSuccess = false;
-        }
+    try {
+        simulator = CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true,
+            hp, -1, true, sp, REAL1_EPSILON, deviceList, 0, FP_NORM_EPSILON_F);
+    } catch (const std::exception& ex) {
+        std::cout << ex.what() << std::endl;
+        isSuccess = false;
     }
 
     if (sid == simulators.size()) {
@@ -904,14 +898,12 @@ MICROSOFT_QUANTUM_DECL uintq init_count_stabilizer(_In_ uintq q)
 
     bool isSuccess = true;
     QInterfacePtr simulator{ nullptr };
-    if (q) {
-        try {
-            simulator =
-                CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, false);
-        } catch (const std::exception& ex) {
-            std::cout << ex.what() << std::endl;
-            isSuccess = false;
-        }
+    try {
+        simulator =
+            CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, false);
+    } catch (const std::exception& ex) {
+        std::cout << ex.what() << std::endl;
+        isSuccess = false;
     }
 
     if (sid == simulators.size()) {
@@ -970,7 +962,7 @@ MICROSOFT_QUANTUM_DECL uintq init_clone(_In_ uintq sid)
     bool isSuccess = true;
     QInterfacePtr simulator;
     try {
-        simulator = oSimulator ? oSimulator->Clone() : nullptr;
+        simulator = oSimulator->Clone();
     } catch (const std::exception& ex) {
         std::cout << ex.what() << std::endl;
         isSuccess = false;
