@@ -53,8 +53,8 @@ QStabilizer::QStabilizer(bitLenInt n, const bitCapInt& perm, qrack_rand_gen_ptr 
     , r(2U, BoolVector((n << 1U) + 1U))
     , x((n << 1U) + 1U, BoolVector(n))
     , z((n << 1U) + 1U, BoolVector(n))
-    , bBuffer(n, ZERO_R1_F)
-    , pBuffer(n, ZERO_R1_F)
+    , bBuffer(n, ZERO_R1)
+    , pBuffer(n, ZERO_R1)
     , bPhase(n, false)
     , pPhase(n, false)
 {
@@ -134,8 +134,8 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
     std::fill(r[1U].begin(), r[1U].end(), false);
 #endif
 
-    std::fill(bBuffer.begin(), bBuffer.end(), ZERO_R1_F);
-    std::fill(pBuffer.begin(), pBuffer.end(), ZERO_R1_F);
+    std::fill(bBuffer.begin(), bBuffer.end(), ZERO_R1);
+    std::fill(pBuffer.begin(), pBuffer.end(), ZERO_R1);
     std::fill(bPhase.begin(), bPhase.end(), false);
     std::fill(pPhase.begin(), pPhase.end(), false);
 
@@ -1834,7 +1834,7 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
             angle = FixAnglePeriod(angle + HALF_PI_R1);
         }
     }
-    pBuffer[t].real(pPhase[t] ? -angle : angle);
+    pBuffer[t].real((real1)(pPhase[t] ? -angle : angle));
 
     // Stochastically, reverse the applied quadrant with 50% probability
     if (isStochastic && ((2 * RandFloat()) < ONE_R1)) {

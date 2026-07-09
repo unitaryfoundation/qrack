@@ -1040,7 +1040,7 @@ real1_f QUnit::ProbBase(bitLenInt qubit)
     return clampProb(norm(shard.amp1));
 }
 
-void QUnit::PhaseParity(real1 radians, const bitCapInt& mask)
+void QUnit::PhaseParity(real1_f radians, const bitCapInt& mask)
 {
     if (mask >= maxQPower) {
         throw std::invalid_argument("QUnit::PhaseParity mask out-of-bounds!");

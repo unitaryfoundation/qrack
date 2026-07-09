@@ -342,7 +342,7 @@ public:
     virtual void IS(bitLenInt target);
 
     virtual void ZMask(const bitCapInt& mask) { PhaseParity(PI_R1, mask); }
-    virtual void PhaseParity(real1 radians, const bitCapInt& mask);
+    virtual void PhaseParity(real1_f radians, const bitCapInt& mask);
 
     virtual void Phase(const complex& topLeft, const complex& bottomRight, bitLenInt qubitIndex);
     virtual void Invert(const complex& topRight, const complex& bottomLeft, bitLenInt qubitIndex);

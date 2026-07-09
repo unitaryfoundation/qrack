@@ -5078,7 +5078,7 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_qneuron", "[sd_xfail]")
     const bitLenInt ControlCount = 4;
     const bitCapInt ControlPower = 1U << ControlCount;
     const real1 eta = ONE_R1 / (real1)2.0f;
-    std::unique_ptr<real1_s[]> angles(new real1_s[pow2Ocl(ControlCount)]());
+    std::unique_ptr<real1[]> angles(new real1[pow2Ocl(ControlCount)]());
 
     qftReg->Dispose(0, qftReg->GetQubitCount() - (ControlCount + 1U));
 

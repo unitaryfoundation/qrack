@@ -87,7 +87,7 @@ protected:
 
     complex FixAnglePeriod(complex angle)
     {
-        return complex(FixAnglePeriod((real1_f)real(angle)), FixAnglePeriod((real1_f)imag(angle)));
+        return complex((real1)FixAnglePeriod((real1_f)real(angle)), (real1)FixAnglePeriod((real1_f)imag(angle)));
     }
 
     real1_f FixAnglePeriod(real1_f angle)
@@ -248,7 +248,7 @@ public:
             ISBase(t);
             angle = FixAnglePeriod(angle + HALF_PI_R1);
         }
-        pBuffer[t].real(pPhase[t] ? -angle : angle);
+        pBuffer[t].real((real1)(pPhase[t] ? -angle : angle));
     }
 
     void SetPermutation(const bitCapInt& perm, const complex& phaseFac = CMPLX_DEFAULT_ARG);
