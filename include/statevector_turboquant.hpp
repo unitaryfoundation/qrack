@@ -56,10 +56,10 @@ namespace Qrack {
 static inline std::vector<real1> _tq_make_rotation(const size_t d, const uint64_t seed)
 {
     std::mt19937_64 rng(seed);
-    std::normal_distribution<real1> normal(ZERO_R1, ONE_R1);
+    std::normal_distribution<real1_f> normal(ZERO_R1_F, ONE_R1_F);
     std::vector<real1> R(d * d);
     for (auto& v : R) {
-        v = normal(rng);
+        v = (real1)normal(rng);
     }
     for (size_t j = 0U; j < d; ++j) {
         real1 nrm = ZERO_R1;
