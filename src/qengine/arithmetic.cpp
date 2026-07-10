@@ -1005,6 +1005,8 @@ bitCapInt QEngineCPU::IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bi
     StateVectorPtr nStateVec = AllocStateVec(maxQPowerOcl);
     nStateVec->clear();
 
+    uint16_t* inputIntPtr16;
+    uint32_t* inputIntPtr32;
     if (stateVec->is_sparse()) {
         const bitCapInt inputMask = bitRegMask(indexStart, indexLength);
         const bitCapInt skipPower = pow2(valueStart);
@@ -1015,15 +1017,15 @@ bitCapInt QEngineCPU::IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bi
                     lcv | (values[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart), stateVec->read(lcv));
             };
         } else if (valueBytes == 2) {
-            uint16_t* inputIntPtr = (uint16_t*)values;
+            inputIntPtr16 = (uint16_t*)values;
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
-                nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
+                nStateVec->write(lcv | (inputIntPtr16[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
                     stateVec->read(lcv));
             };
         } else if (valueBytes == 4) {
-            uint32_t* inputIntPtr = (uint32_t*)values;
+            inputIntPtr32 = (uint32_t*)values;
             fn = [&](const bitCapInt& lcv, const unsigned& cpu) {
-                nStateVec->write(lcv | (inputIntPtr[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
+                nStateVec->write(lcv | (inputIntPtr32[(uint64_t)((lcv & inputMask) >> indexStart)] << valueStart),
                     stateVec->read(lcv));
             };
         } else {
@@ -1048,15 +1050,15 @@ bitCapInt QEngineCPU::IndexedLDA(bitLenInt indexStart, bitLenInt indexLength, bi
                     lcv | ((bitCapIntOcl)values[(lcv & inputMask) >> indexStart] << valueStart), stateVec->read(lcv));
             };
         } else if (valueBytes == 2) {
-            uint16_t* inputIntPtr = (uint16_t*)values;
+            inputIntPtr16 = (uint16_t*)values;
             fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-                nStateVec->write(lcv | ((bitCapIntOcl)inputIntPtr[(lcv & inputMask) >> indexStart] << valueStart),
+                nStateVec->write(lcv | ((bitCapIntOcl)inputIntPtr16[(lcv & inputMask) >> indexStart] << valueStart),
                     stateVec->read(lcv));
             };
         } else if (valueBytes == 4) {
-            uint32_t* inputIntPtr = (uint32_t*)values;
+            inputIntPtr32 = (uint32_t*)values;
             fn = [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
-                nStateVec->write(lcv | ((bitCapIntOcl)inputIntPtr[(lcv & inputMask) >> indexStart] << valueStart),
+                nStateVec->write(lcv | ((bitCapIntOcl)inputIntPtr32[(lcv & inputMask) >> indexStart] << valueStart),
                     stateVec->read(lcv));
             };
         } else {
