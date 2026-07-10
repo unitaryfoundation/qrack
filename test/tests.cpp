@@ -4049,11 +4049,11 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_incc")
     REQUIRE_FLOAT(ONE_R1_F / 2, (real1_f)qftReg->ProbAll(256));
     REQUIRE_FLOAT(ONE_R1_F / 2, (real1_f)qftReg->ProbAll(128));
 
-    qftReg->SetPermutation(255);
-    qftReg->H(7);
+    qftReg->SetPermutation(256);
+    qftReg->H(0);
     QALU(qftReg)->INCC(255, 0, 8, 8);
-    REQUIRE_FLOAT(ONE_R1_F / 2, (real1_f)qftReg->ProbAll(510));
-    REQUIRE_FLOAT(ONE_R1_F / 2, (real1_f)qftReg->ProbAll(382));
+    REQUIRE_FLOAT(ONE_R1_F / 2, (real1_f)qftReg->ProbAll(0));
+    REQUIRE_FLOAT(ONE_R1_F / 2, (real1_f)qftReg->ProbAll(1));
 }
 
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_incsc")
