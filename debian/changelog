@@ -1,3 +1,9 @@
+libqrack (10.10.4) resolute; urgency=medium
+
+  * Security fixes (Resolute 1/5)
+
+ -- Dan Strano <stranoj@gmail.com>  Fri, 10 Jul 2026 10:40:59 -0400
+
 libqrack (10.6.5) bionic; urgency=medium
 
   * TurboQuant-based lossy state vector save/load
