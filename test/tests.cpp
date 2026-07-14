@@ -2821,6 +2821,186 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_expzdyad_reg")
 #endif
 #endif
 
+// The logic-gate tests above ("test_and"/"test_or"/"test_xor") live inside
+// #if ENABLE_REG_GATES and exercise only the register-width overloads, e.g.
+// AND(inputStart1, inputStart2, outputStart, length). ENABLE_REG_GATES is OFF
+// by default, so none of them are even compiled in a default build.
+//
+// The single-bit overloads in src/qinterface/logic.cpp -- AND(inputBit1,
+// inputBit2, outputBit) and friends -- are NOT behind that guard: they are
+// always compiled and always part of the public QInterface API. They had no
+// caller anywhere in the suite, so the whole file measured 0% coverage.
+//
+// These tests are therefore deliberately placed OUTSIDE #if ENABLE_REG_GATES.
+// They walk each gate's full truth table, both degenerate aliased-argument
+// paths, and the std::invalid_argument guards.
+
+TEST_CASE_METHOD(QInterfaceTestFixture, "test_and_single_bit")
+{
+    for (bitCapIntOcl i = 0U; i < 4U; ++i) {
+        const bool a = (bool)(i & 1U);
+        const bool b = (bool)((i >> 1U) & 1U);
+
+        qftReg->SetPermutation(i);
+        qftReg->AND(0, 1, 2); // distinct inputs -> CCNOT
+        REQUIRE_THAT(qftReg, HasProbability(i | ((a && b) ? 4U : 0U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->NAND(0, 1, 2);
+        REQUIRE_THAT(qftReg, HasProbability(i | ((a && b) ? 0U : 4U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->AND(0, 0, 2); // same input twice -> CNOT, since (a & a) == a
+        REQUIRE_THAT(qftReg, HasProbability(i | (a ? 4U : 0U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->NAND(0, 0, 2);
+        REQUIRE_THAT(qftReg, HasProbability(i | (a ? 0U : 4U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->AND(0, 0, 0); // all one bit -> no action necessary
+        REQUIRE_THAT(qftReg, HasProbability(i));
+
+        qftReg->SetPermutation(i);
+        qftReg->NAND(0, 0, 0); // no-op AND, then X
+        REQUIRE_THAT(qftReg, HasProbability(i ^ 1U));
+    }
+}
+
+TEST_CASE_METHOD(QInterfaceTestFixture, "test_or_single_bit")
+{
+    for (bitCapIntOcl i = 0U; i < 4U; ++i) {
+        const bool a = (bool)(i & 1U);
+        const bool b = (bool)((i >> 1U) & 1U);
+
+        qftReg->SetPermutation(i);
+        qftReg->OR(0, 1, 2); // distinct inputs -> X + AntiCCNOT
+        REQUIRE_THAT(qftReg, HasProbability(i | ((a || b) ? 4U : 0U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->NOR(0, 1, 2);
+        REQUIRE_THAT(qftReg, HasProbability(i | ((a || b) ? 0U : 4U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->OR(0, 0, 2); // same input twice -> X + AntiCNOT, since (a | a) == a
+        REQUIRE_THAT(qftReg, HasProbability(i | (a ? 4U : 0U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->NOR(0, 0, 2);
+        REQUIRE_THAT(qftReg, HasProbability(i | (a ? 0U : 4U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->OR(0, 0, 0); // all one bit -> no action necessary
+        REQUIRE_THAT(qftReg, HasProbability(i));
+
+        qftReg->SetPermutation(i);
+        qftReg->NOR(0, 0, 0); // no-op OR, then X
+        REQUIRE_THAT(qftReg, HasProbability(i ^ 1U));
+    }
+}
+
+TEST_CASE_METHOD(QInterfaceTestFixture, "test_xor_single_bit")
+{
+    for (bitCapIntOcl i = 0U; i < 4U; ++i) {
+        const bool a = (bool)(i & 1U);
+        const bool b = (bool)((i >> 1U) & 1U);
+        const bool aXb = (a != b);
+
+        qftReg->SetPermutation(i);
+        qftReg->XOR(0, 1, 2); // distinct output -> CNOT, CNOT
+        REQUIRE_THAT(qftReg, HasProbability(i | (aXb ? 4U : 0U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->XNOR(0, 1, 2);
+        REQUIRE_THAT(qftReg, HasProbability(i | (aXb ? 0U : 4U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->XOR(0, 1, 0); // inputBit1 aliases output -> CNOT(inputBit2, out)
+        REQUIRE_THAT(qftReg, HasProbability((aXb ? 1U : 0U) | (b ? 2U : 0U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->XOR(0, 1, 1); // inputBit2 aliases output -> CNOT(inputBit1, out)
+        REQUIRE_THAT(qftReg, HasProbability((a ? 1U : 0U) | (aXb ? 2U : 0U)));
+
+        qftReg->SetPermutation(i);
+        qftReg->XOR(0, 0, 2); // (a ^ a) == 0
+        REQUIRE_THAT(qftReg, HasProbability(i));
+
+        qftReg->SetPermutation(i);
+        qftReg->XOR(0, 0, 0); // all one bit -> SetBit(output, false)
+        REQUIRE_THAT(qftReg, HasProbability(i & 2U));
+
+        qftReg->SetPermutation(i);
+        qftReg->XNOR(0, 0, 0); // zeroed, then X
+        REQUIRE_THAT(qftReg, HasProbability((i & 2U) | 1U));
+    }
+}
+
+TEST_CASE_METHOD(QInterfaceTestFixture, "test_cl_logic_single_bit")
+{
+    for (bitCapIntOcl i = 0U; i < 2U; ++i) {
+        const bool a = (bool)(i & 1U);
+
+        for (int c = 0; c < 2; ++c) {
+            const bool cl = (bool)c;
+
+            qftReg->SetPermutation(i);
+            qftReg->CLAND(0, cl, 2);
+            REQUIRE_THAT(qftReg, HasProbability(i | ((a && cl) ? 4U : 0U)));
+
+            qftReg->SetPermutation(i);
+            qftReg->CLNAND(0, cl, 2);
+            REQUIRE_THAT(qftReg, HasProbability(i | ((a && cl) ? 0U : 4U)));
+
+            qftReg->SetPermutation(i);
+            qftReg->CLOR(0, cl, 2);
+            REQUIRE_THAT(qftReg, HasProbability(i | ((a || cl) ? 4U : 0U)));
+
+            qftReg->SetPermutation(i);
+            qftReg->CLNOR(0, cl, 2);
+            REQUIRE_THAT(qftReg, HasProbability(i | ((a || cl) ? 0U : 4U)));
+
+            qftReg->SetPermutation(i);
+            qftReg->CLXOR(0, cl, 2);
+            REQUIRE_THAT(qftReg, HasProbability(i | ((a != cl) ? 4U : 0U)));
+
+            qftReg->SetPermutation(i);
+            qftReg->CLXNOR(0, cl, 2);
+            REQUIRE_THAT(qftReg, HasProbability(i | ((a != cl) ? 0U : 4U)));
+
+            // Aliased: the qubit input is also the output.
+            qftReg->SetPermutation(i);
+            qftReg->CLAND(0, cl, 0); // no action necessary
+            REQUIRE_THAT(qftReg, HasProbability(i));
+
+            qftReg->SetPermutation(i);
+            qftReg->CLOR(0, cl, 0); // X only when the classical bit is set
+            REQUIRE_THAT(qftReg, HasProbability(cl ? (i ^ 1U) : i));
+
+            qftReg->SetPermutation(i);
+            qftReg->CLXOR(0, cl, 0);
+            REQUIRE_THAT(qftReg, HasProbability(cl ? (i ^ 1U) : i));
+        }
+    }
+}
+
+TEST_CASE_METHOD(QInterfaceTestFixture, "test_logic_single_bit_invalid_args")
+{
+    // AND/OR (and so NAND/NOR) reject an output that aliases an input, because
+    // the mapping would not be reversible. These throws had no coverage.
+    qftReg->SetPermutation(0x03);
+
+    REQUIRE_THROWS_AS(qftReg->AND(0, 1, 0), std::invalid_argument);
+    REQUIRE_THROWS_AS(qftReg->AND(0, 1, 1), std::invalid_argument);
+    REQUIRE_THROWS_AS(qftReg->NAND(0, 1, 0), std::invalid_argument);
+    REQUIRE_THROWS_AS(qftReg->NAND(0, 1, 1), std::invalid_argument);
+
+    REQUIRE_THROWS_AS(qftReg->OR(0, 1, 0), std::invalid_argument);
+    REQUIRE_THROWS_AS(qftReg->OR(0, 1, 1), std::invalid_argument);
+    REQUIRE_THROWS_AS(qftReg->NOR(0, 1, 0), std::invalid_argument);
+    REQUIRE_THROWS_AS(qftReg->NOR(0, 1, 1), std::invalid_argument);
+}
+
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_rol")
 {
     qftReg->SetPermutation(129);
