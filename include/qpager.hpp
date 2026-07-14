@@ -428,7 +428,6 @@ public:
 
     real1_f Prob(bitLenInt qubitIndex);
     real1_f ProbMask(const bitCapInt& mask, const bitCapInt& permutation);
-    // TODO: QPager not yet used in Q#, but this would need a real implementation:
     real1_f ProbParity(const bitCapInt& mask)
     {
         if (bi_compare_0(mask) == 0) {
@@ -441,7 +440,7 @@ public:
     bool ForceMParity(const bitCapInt& mask, bool result, bool doForce = true)
     {
         if (bi_compare_0(mask) == 0) {
-            return ZERO_R1_F;
+            return false;
         }
 
         CombineEngines();
