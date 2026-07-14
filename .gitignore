@@ -13,6 +13,7 @@ CMakeCache.txt
 CMakeFiles/
 Makefile
 include/OpenCL/
+build
 _build/
 _cuda_build/
 _wasm_build/

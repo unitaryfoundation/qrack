@@ -1080,6 +1080,20 @@ public:
     }
 
     /**
+     * Inverse "PhaseRootN" gate
+     *
+     * Applies a 2 * PI_R1 / (2^N) phase rotation to the qubit at "qubit."
+     */
+    virtual void IPhaseRootN(bitLenInt n, bitLenInt qubit)
+    {
+        if (n == 0) {
+            return;
+        }
+
+        Phase(ONE_CMPLX, pow(-ONE_CMPLX, (real1)(-ONE_R1 / pow2Ocl(n - 1U))), qubit);
+    }
+
+    /**
      * Masked PhaseRootN gate
      *
      * Applies a -2 * PI_R1 / (2^N) phase rotation to each qubit in the mask.

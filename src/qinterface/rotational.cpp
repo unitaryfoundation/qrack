@@ -271,8 +271,8 @@ void QInterface::ExpZ(real1_f radians, bitLenInt qubit)
 /// Controlled "phase shift gate" - if control bit is true, rotates target bit as e^(-i*\theta/2) around |1> state
 void QInterface::CRT(real1_f radians, bitLenInt control, bitLenInt target)
 {
-    const bitLenInt controls[1]{ control };
-    MCPhase(controls, 1, ONE_CMPLX, complex((real1)cos(radians / 2), (real1)sin(radians / 2)), target);
+    MCPhase(std::vector<bitLenInt>{ control }, ONE_CMPLX, complex((real1)cos(radians / 2), (real1)sin(radians / 2)),
+        target);
 }
 
 /// Controlled x axis rotation - if control bit is true, rotates as e^(-i*\theta/2) around Pauli x axis
@@ -282,8 +282,7 @@ void QInterface::CRX(real1_f radians, bitLenInt control, bitLenInt target)
     const real1 sine = (real1)sin(radians / 2);
     const complex pauliRX[4]{ complex(cosine, ZERO_R1), complex(ZERO_R1, sine), complex(ZERO_R1, sine),
         complex(cosine, ZERO_R1) };
-    const bitLenInt controls[1]{ control };
-    MCMtrx(controls, 1, pauliRX, target);
+    MCMtrx(std::vector<bitLenInt>{ control }, pauliRX, target);
 }
 #endif
 } // namespace Qrack
