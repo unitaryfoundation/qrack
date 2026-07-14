@@ -845,8 +845,8 @@ MICROSOFT_QUANTUM_DECL uintq init_count_pager(_In_ uintq q, _In_ bool hp, _In_ b
     bool isSuccess = true;
     QInterfacePtr simulator{ nullptr };
     try {
-        simulator = CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true,
-            hp, -1, true, sp, REAL1_EPSILON, deviceList, 0, FP_NORM_EPSILON_F);
+        simulator = CreateQuantumInterface(simulatorType, q, ZERO_BCI, randNumGen, CMPLX_DEFAULT_ARG, false, true, hp,
+            -1, true, sp, REAL1_EPSILON, deviceList, 0, FP_NORM_EPSILON_F);
     } catch (const std::exception& ex) {
         std::cout << ex.what() << std::endl;
         isSuccess = false;
@@ -2031,7 +2031,8 @@ MICROSOFT_QUANTUM_DECL void MACU(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uin
 {
     MAP_CONTROLS_AND_LOCK(sid, n)
     try {
-        simulator->AntiCU(ctrlsArray, GetSimShardId(simulator, q), (real1_f)theta, (real1_f)phi, (real1_f)lambda, (real1_f)gamma);
+        simulator->AntiCU(
+            ctrlsArray, GetSimShardId(simulator, q), (real1_f)theta, (real1_f)phi, (real1_f)lambda, (real1_f)gamma);
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;

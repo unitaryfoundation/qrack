@@ -26,7 +26,11 @@ typedef std::shared_ptr<QTensorNetwork> QTensorNetworkPtr;
 // typedef std::shared_ptr<TensorNetworkMeta> TensorNetworkMetaPtr;
 // #endif
 
+#if ENABLE_ALU
 class QTensorNetwork : public QAlu, public QInterface {
+#else
+class QTensorNetwork : public QInterface {
+#endif
 protected:
     bool useHostRam;
     bool isSparse;
@@ -499,7 +503,7 @@ public:
     {
         RunAsAmplitudes([&](QInterfacePtr ls) { std::dynamic_pointer_cast<QAlu>(ls)->DECBCD(toAdd, start, length); });
     }
-    void INCDECBCDC(const bitCapInt& toSub, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
+    void INCDECBCDC(const bitCapInt& toAdd, bitLenInt start, bitLenInt length, bitLenInt carryIndex)
     {
         RunAsAmplitudes([&](QInterfacePtr ls) {
             std::dynamic_pointer_cast<QAlu>(ls)->INCDECBCDC(toAdd, start, length, carryIndex);

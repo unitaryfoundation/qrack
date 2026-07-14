@@ -2480,14 +2480,16 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_anticcy_reg")
 
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_anticcz_reg")
 {
-    bitLenInt controls[2]{ 0, 1 };
+    std::vector<bitLenInt> controls{ 0, 1 };
 
     qftReg->SetPermutation(0x00);
     qftReg->H(0, 3);
     qftReg->AntiCCZ(0, 1, 2);
-    qftReg->MACPhase(controls, 2, I_CMPLX, -I_CMPLX, 2);
+    qftReg->MACPhase(controls, I_CMPLX, -I_CMPLX, 2);
+    qftReg->MACPhase(controls, I_CMPLX, -I_CMPLX, 3);
     qftReg->H(2);
-    qftReg->MACPhase(controls, 2, ONE_CMPLX, -ONE_CMPLX, 2);
+    qftReg->MACPhase(controls, ONE_CMPLX, -ONE_CMPLX, 2);
+    qftReg->MACPhase(controls, ONE_CMPLX, -ONE_CMPLX, 3);
     qftReg->H(0, 2);
     REQUIRE_THAT(qftReg, HasProbability(0x00));
 }
@@ -2585,27 +2587,27 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_swap_shunts")
     REQUIRE_FLOAT(qftReg->Prob(0), 0.5);
     REQUIRE_FLOAT(qftReg->Prob(1), 0);
 
-    qftReg->CSwap(nullptr, 0, 0, 0);
+    qftReg->CSwap(std::vector<bitLenInt>(), 0, 0);
     REQUIRE_FLOAT(qftReg->Prob(0), 0.5);
     REQUIRE_FLOAT(qftReg->Prob(1), 0);
 
-    qftReg->CSqrtSwap(nullptr, 0, 0, 0);
+    qftReg->CSqrtSwap(std::vector<bitLenInt>(), 0, 0);
     REQUIRE_FLOAT(qftReg->Prob(0), 0.5);
     REQUIRE_FLOAT(qftReg->Prob(1), 0);
 
-    qftReg->CISqrtSwap(nullptr, 0, 0, 0);
+    qftReg->CISqrtSwap(std::vector<bitLenInt>(), 0, 0);
     REQUIRE_FLOAT(qftReg->Prob(0), 0.5);
     REQUIRE_FLOAT(qftReg->Prob(1), 0);
 
-    qftReg->AntiCSwap(nullptr, 0, 0, 0);
+    qftReg->AntiCSwap(std::vector<bitLenInt>(), 0, 0);
     REQUIRE_FLOAT(qftReg->Prob(0), 0.5);
     REQUIRE_FLOAT(qftReg->Prob(1), 0);
 
-    qftReg->AntiCSqrtSwap(nullptr, 0, 0, 0);
+    qftReg->AntiCSqrtSwap(std::vector<bitLenInt>(), 0, 0);
     REQUIRE_FLOAT(qftReg->Prob(0), 0.5);
     REQUIRE_FLOAT(qftReg->Prob(1), 0);
 
-    qftReg->AntiCISqrtSwap(nullptr, 0, 0, 0);
+    qftReg->AntiCISqrtSwap(std::vector<bitLenInt>(), 0, 0);
     REQUIRE_FLOAT(qftReg->Prob(0), 0.5);
     REQUIRE_FLOAT(qftReg->Prob(1), 0);
 }
