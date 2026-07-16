@@ -2934,7 +2934,10 @@ public:
     /**
      *  Check if two vectors of qubit indices are factorized, in internal representation
      */
-    virtual bool AreFactorized(std::vector<bitLenInt> a, std::vector<bitLenInt> b) { return false; }
+    virtual bool AreFactorized(std::vector<bitLenInt> a, std::vector<bitLenInt> b, bool flushCache = false)
+    {
+        return false;
+    }
     /**
      * When "Schmidt-decomposition rounding parameter" ("SDRP") is being used, starting from initial 1.0 fidelity, we
      * compound the "unitary fidelity" by successive multiplication by one minus two times the true unitary probability

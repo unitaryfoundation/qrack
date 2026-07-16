@@ -287,7 +287,7 @@ MICROSOFT_QUANTUM_DECL bool TrySeparate2Qb(_In_ uintq sid, _In_ uintq qi1, _In_ 
 MICROSOFT_QUANTUM_DECL bool TrySeparateTol(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q, _In_ double tol);
 MICROSOFT_QUANTUM_DECL void Separate(_In_ uintq sid, _In_ uintq n, _In_reads_(n) uintq* q);
 MICROSOFT_QUANTUM_DECL bool AreFactorized(
-    _In_ uintq sid, _In_ uintq n1, _In_reads_(n1) uintq* a, _In_ uintq n2, _In_reads_(n2) uintq* b);
+    _In_ uintq sid, _In_ uintq n1, _In_reads_(n1) uintq* a, _In_ uintq n2, _In_reads_(n2) uintq* b, _In_ bool fc);
 MICROSOFT_QUANTUM_DECL double GetUnitaryFidelity(_In_ uintq sid);
 MICROSOFT_QUANTUM_DECL void ResetUnitaryFidelity(_In_ uintq sid);
 MICROSOFT_QUANTUM_DECL void SetSdrp(_In_ uintq sid, _In_ double sdrp);

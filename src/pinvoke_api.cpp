@@ -3646,7 +3646,7 @@ MICROSOFT_QUANTUM_DECL void Separate(_In_ uintq sid, _In_ uintq n, _In_reads_(n)
 }
 
 MICROSOFT_QUANTUM_DECL bool AreFactorized(
-    _In_ uintq sid, _In_ uintq n1, _In_reads_(n1) uintq* a, _In_ uintq n2, _In_reads_(n2) uintq* b)
+    _In_ uintq sid, _In_ uintq n1, _In_reads_(n1) uintq* a, _In_ uintq n2, _In_reads_(n2) uintq* b, _In_ bool fc)
 {
     SIMULATOR_LOCK_GUARD_BOOL(sid)
 
@@ -3660,7 +3660,7 @@ MICROSOFT_QUANTUM_DECL bool AreFactorized(
     }
 
     try {
-        return simulator->AreFactorized(bitArrayA, bitArrayB);
+        return simulator->AreFactorized(bitArrayA, bitArrayB, fc);
     } catch (const std::exception& ex) {
         simulatorErrors[sid] = 1;
         std::cout << ex.what() << std::endl;

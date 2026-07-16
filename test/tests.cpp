@@ -463,7 +463,7 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_are_factorized")
         qftReg->H(0);
         REQUIRE(qftReg->AreFactorized({ 0 }, { 1 }));
         qftReg->CNOT(0, 1);
-        REQUIRE(!qftReg->AreFactorized({ 0 }, { 1 }));
+        REQUIRE(!qftReg->AreFactorized({ 0 }, { 1 }, true));
     } else {
         REQUIRE(!qftReg->AreFactorized({ 0 }, { 1 }));
     }

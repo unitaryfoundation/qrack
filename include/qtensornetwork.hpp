@@ -99,10 +99,10 @@ public:
     {
     }
 
-    bool AreFactorized(std::vector<bitLenInt> a, std::vector<bitLenInt> b)
+    bool AreFactorized(std::vector<bitLenInt> a, std::vector<bitLenInt> b, bool flushCache = false)
     {
         bool toRet;
-        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->AreFactorized(a, b); });
+        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->AreFactorized(a, b, flushCache); });
 
         return toRet;
     }

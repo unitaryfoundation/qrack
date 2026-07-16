@@ -250,11 +250,13 @@ public:
         return prob;
     }
 
-    virtual bool AreFactorized(std::vector<bitLenInt> a, std::vector<bitLenInt> b)
+    virtual bool AreFactorized(std::vector<bitLenInt> a, std::vector<bitLenInt> b, bool flushCache = false)
     {
         std::set<QInterfacePtr> aUnits;
         for (auto i : a) {
-            ToPermBasis(i);
+            if (flushCache) {
+                ToPermBasis(i);
+            }
             QInterfacePtr u = shards[i].unit;
             if (!u) {
                 continue;
@@ -263,7 +265,9 @@ public:
         }
         std::set<QInterfacePtr> bUnits;
         for (auto i : b) {
-            ToPermBasis(i);
+            if (flushCache) {
+                ToPermBasis(i);
+            }
             QInterfacePtr u = shards[i].unit;
             if (!u) {
                 continue;
