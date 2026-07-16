@@ -271,6 +271,7 @@ public:
             bUnits.insert(u);
         }
 
+        // Comparison written with assistance from Google search LLM
         auto it1 = aUnits.begin();
         auto it2 = bUnits.begin();
 
