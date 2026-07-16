@@ -254,6 +254,7 @@ public:
     {
         std::set<QInterfacePtr> aUnits;
         for (auto i : a) {
+            ToPermBasis(i);
             QInterfacePtr u = shards[i].unit;
             if (!u) {
                 continue;
@@ -262,11 +263,12 @@ public:
         }
         std::set<QInterfacePtr> bUnits;
         for (auto i : b) {
+            ToPermBasis(i);
             QInterfacePtr u = shards[i].unit;
             if (!u) {
                 continue;
             }
-            aUnits.insert(u);
+            bUnits.insert(u);
         }
 
         auto it1 = aUnits.begin();

@@ -460,7 +460,10 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_are_factorized")
 {
     if (testEngineType == QINTERFACE_TENSOR_NETWORK || testEngineType == QINTERFACE_QUNIT_MULTI ||
         testEngineType == QINTERFACE_QUNIT) {
+        qftReg->H(0);
         REQUIRE(qftReg->AreFactorized({ 0 }, { 1 }));
+        qftReg->CNOT(0, 1);
+        REQUIRE(!qftReg->AreFactorized({ 0 }, { 1 }));
     } else {
         REQUIRE(!qftReg->AreFactorized({ 0 }, { 1 }));
     }
