@@ -101,8 +101,11 @@ public:
 
     bool AreFactorized(std::vector<bitLenInt> a, std::vector<bitLenInt> b, bool flushCache = false)
     {
+        std::set<bitLenInt> q(a.begin(), a.end());
+        q.insert(b.begin(), b.end());
+
         bool toRet;
-        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->AreFactorized(a, b, flushCache); });
+        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->AreFactorized(a, b, flushCache); }, q);
 
         return toRet;
     }
