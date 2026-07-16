@@ -250,6 +250,43 @@ public:
         return prob;
     }
 
+    virtual bool AreFactorized(std::vector<bitLenInt> a, std::vector<bitLenInt> b)
+    {
+        std::set<QInterfacePtr> aUnits;
+        for (auto i : a) {
+            QInterfacePtr u = shards[i].unit;
+            if (!u) {
+                continue;
+            }
+            aUnits.insert(u);
+        }
+        std::set<QInterfacePtr> bUnits;
+        for (auto i : b) {
+            QInterfacePtr u = shards[i].unit;
+            if (!u) {
+                continue;
+            }
+            aUnits.insert(u);
+        }
+
+        auto it1 = aUnits.begin();
+        auto it2 = bUnits.begin();
+
+        while (it1 != aUnits.end() && it2 != bUnits.end()) {
+            if (*it1 < *it2) {
+                ++it1;
+            } else if (*it2 < *it1) {
+                ++it2;
+            } else {
+                // Match found, sets have a common element!
+                return false;
+            }
+        }
+
+        // Match not found, sets have no common element!
+        return true;
+    }
+
     virtual void LossySaveStateVector(std::string f, int p = 6, int b = 4);
     virtual void LossyLoadStateVector(std::string f);
     virtual void SetQuantumState(const complex* inputState);

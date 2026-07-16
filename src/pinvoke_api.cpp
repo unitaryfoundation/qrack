@@ -3645,6 +3645,30 @@ MICROSOFT_QUANTUM_DECL void Separate(_In_ uintq sid, _In_ uintq n, _In_reads_(n)
     }
 }
 
+MICROSOFT_QUANTUM_DECL bool AreFactorized(
+    _In_ uintq sid, _In_ uintq n1, _In_reads_(n1) uintq* a, _In_ uintq n2, _In_reads_(n2) uintq* b)
+{
+    SIMULATOR_LOCK_GUARD_BOOL(sid)
+
+    std::vector<bitLenInt> bitArrayA(n1);
+    for (uintq i = 0U; i < n1; ++i) {
+        bitArrayA[i] = GetSimShardId(simulator, a[i]);
+    }
+    std::vector<bitLenInt> bitArrayB(n2);
+    for (uintq i = 0U; i < n2; ++i) {
+        bitArrayB[i] = GetSimShardId(simulator, b[i]);
+    }
+
+    try {
+        return simulator->AreFactorized(bitArrayA, bitArrayB);
+    } catch (const std::exception& ex) {
+        simulatorErrors[sid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+
+    return false;
+}
+
 MICROSOFT_QUANTUM_DECL double GetUnitaryFidelity(_In_ uintq sid)
 {
     SIMULATOR_LOCK_GUARD_DOUBLE(sid)

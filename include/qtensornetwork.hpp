@@ -99,6 +99,14 @@ public:
     {
     }
 
+    bool AreFactorized(std::vector<bitLenInt> a, std::vector<bitLenInt> b)
+    {
+        bool toRet;
+        RunAsAmplitudes([&](QInterfacePtr ls) { toRet = ls->AreFactorized(a, b); });
+
+        return toRet;
+    }
+
     void SetSdrp(real1_f sdrp)
     {
         separabilityThreshold = sdrp;

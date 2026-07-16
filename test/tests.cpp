@@ -456,6 +456,16 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_global_phase")
     REQUIRE_FLOAT(-ONE_R1_F, (real1_f)imag(qftReg->GetAmplitude(0x01)));
 }
 
+TEST_CASE_METHOD(QInterfaceTestFixture, "test_are_factorized")
+{
+    if (testEngineType == QINTERFACE_TENSOR_NETWORK || testEngineType == QINTERFACE_QUNIT_MULTI ||
+        testEngineType == QINTERFACE_QUNIT) {
+        REQUIRE(qftReg->AreFactorized({ 0 }, { 1 }));
+    } else {
+        REQUIRE(!qftReg->AreFactorized({ 0 }, { 1 }));
+    }
+}
+
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_cnot")
 {
     qftReg->SetPermutation(0x01);
