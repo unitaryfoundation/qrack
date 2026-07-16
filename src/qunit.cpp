@@ -2766,7 +2766,7 @@ void QUnit::ApplyEitherControlled(std::vector<bitLenInt> controlVec, const std::
         const real1_f infidelityFactor = ONE_R1_F / pow2Ocl(interControlCount);
 
         // Act the classical shadow of the gate payload.
-        if ((2 * p) > ONE_R1_F) {
+        if ((p > HALF_R1_F) || ((p == HALF_R1_F) && (Rand() < HALF_R1_F))) {
             QEngineShard& shard = shards[t];
             shard.isPhaseDirty = true;
             shard.isProbDirty |= (shard.pauliBasis != PauliZ) || !isPhase;
@@ -4008,7 +4008,9 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         bool ptHi = pt > pc;
         real1_f pHi = ptHi ? pt : pc;
         real1_f pLo = ptHi ? pc : pt;
-        bool pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
+        real1_f absHi = abs(pHi - HALF_R1);
+        real1_f absLo = abs(pLo - HALF_R1);
+        bool pState = (absHi > absLo) || ((absHi == absLo) && (Rand() < HALF_R1_F));
         const real1_f bottomInfidelity = PhaseInfidelity(polarBottom);
         const real1_f probInfidelity = ONE_R1_F - (pState ? pHi : (ONE_R1_F - pLo));
 
@@ -4029,7 +4031,9 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         ptHi = pt > pc;
         pHi = ptHi ? pt : pc;
         pLo = ptHi ? pc : pt;
-        pState = abs(pHi - HALF_R1) >= abs(pLo - HALF_R1);
+        absHi = abs(pHi - HALF_R1);
+        absLo = abs(pLo - HALF_R1);
+        pState = (absHi > absLo) || ((absHi == absLo) && (Rand() < HALF_R1_F));
         const real1_f topInfidelity = PhaseInfidelity(polarTop);
 
         if (!pState) {
