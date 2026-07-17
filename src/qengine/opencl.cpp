@@ -3158,7 +3158,7 @@ void QEngineOCL::GetQuantumState(complex* outputState)
 
     if (!stateBuffer) {
         return par_for(
-            0, maxQPowerOcl, [&](const bitCapIntOcl& lcv, const unsigned& cpu) { outputState[lcv] = ZERO_R1; });
+            0, maxQPowerOcl, [&](const bitCapIntOcl& lcv, const unsigned& cpu) { outputState[lcv] = ZERO_CMPLX; });
     }
 
     EventVecPtr waitVec = ResetWaitEvents();

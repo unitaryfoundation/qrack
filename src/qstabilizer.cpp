@@ -53,8 +53,8 @@ QStabilizer::QStabilizer(bitLenInt n, const bitCapInt& perm, qrack_rand_gen_ptr 
     , r(2U, BoolVector((n << 1U) + 1U))
     , x((n << 1U) + 1U, BoolVector(n))
     , z((n << 1U) + 1U, BoolVector(n))
-    , bBuffer(n, ZERO_R1)
-    , pBuffer(n, ZERO_R1)
+    , bBuffer(n, ZERO_CMPLX)
+    , pBuffer(n, ZERO_CMPLX)
     , bPhase(n, false)
     , pPhase(n, false)
 {
@@ -134,8 +134,8 @@ void QStabilizer::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
     std::fill(r[1U].begin(), r[1U].end(), false);
 #endif
 
-    std::fill(bBuffer.begin(), bBuffer.end(), ZERO_R1);
-    std::fill(pBuffer.begin(), pBuffer.end(), ZERO_R1);
+    std::fill(bBuffer.begin(), bBuffer.end(), ZERO_CMPLX);
+    std::fill(pBuffer.begin(), pBuffer.end(), ZERO_CMPLX);
     std::fill(bPhase.begin(), bPhase.end(), false);
     std::fill(pPhase.begin(), pPhase.end(), false);
 
