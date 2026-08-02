@@ -659,8 +659,6 @@ TEST_CASE("test_quantum_triviality", "[supreme]")
 
                 std::set<bitLenInt> unusedBits;
                 for (bitLenInt i = 0; i < n; i++) {
-                    // In the past, "qReg->TrySeparate(i)" was also used, here, to attempt optimization. Be aware that
-                    // the method can give performance advantages, under opportune conditions, but it does not, here.
                     unusedBits.insert(unusedBits.end(), i);
                 }
 
@@ -721,8 +719,6 @@ TEST_CASE("test_stabilizer", "[supreme]")
 
                 std::set<bitLenInt> unusedBits;
                 for (bitLenInt i = 0; i < n; i++) {
-                    // In the past, "qReg->TrySeparate(i)" was also used, here, to attempt optimization. Be aware that
-                    // the method can give performance advantages, under opportune conditions, but it does not, here.
                     unusedBits.insert(unusedBits.end(), i);
                 }
 
@@ -818,8 +814,6 @@ TEST_CASE("test_stabilizer_t", "[supreme]")
 
             std::set<bitLenInt> unusedBits;
             for (bitLenInt i = 0; i < n; i++) {
-                // In the past, "qReg->TrySeparate(i)" was also used, here, to attempt optimization. Be aware that
-                // the method can give performance advantages, under opportune conditions, but it does not, here.
                 unusedBits.insert(unusedBits.end(), i);
             }
 
@@ -3321,8 +3315,6 @@ TEST_CASE("test_universal_circuit_continuous", "[supreme]")
 
                 std::set<bitLenInt> unusedBits;
                 for (i = 0; i < n; i++) {
-                    // In the past, "qReg->TrySeparate(i)" was also used, here, to attempt optimization. Be aware that
-                    // the method can give performance advantages, under opportune conditions, but it does not, here.
                     unusedBits.insert(unusedBits.end(), i);
                 }
 
@@ -3374,8 +3366,6 @@ TEST_CASE("test_universal_circuit_discrete", "[supreme]")
 
                 std::set<bitLenInt> unusedBits;
                 for (i = 0; i < n; i++) {
-                    // In the past, "qReg->TrySeparate(i)" was also used, here, to attempt optimization. Be aware that
-                    // the method can give performance advantages, under opportune conditions, but it does not, here.
                     unusedBits.insert(unusedBits.end(), i);
                 }
 
@@ -3445,8 +3435,6 @@ TEST_CASE("test_universal_circuit_digital", "[supreme]")
 
                 std::set<bitLenInt> unusedBits;
                 for (i = 0; i < n; i++) {
-                    // In the past, "qReg->TrySeparate(i)" was also used, here, to attempt optimization. Be aware that
-                    // the method can give performance advantages, under opportune conditions, but it does not, here.
                     unusedBits.insert(unusedBits.end(), i);
                 }
 
@@ -3661,10 +3649,6 @@ TEST_CASE("test_quantum_supremacy", "[supreme]")
                         lastSingleBitGates[i] = 2;
                     }
                 }
-
-                // This is a QUnit specific optimization attempt method that can "compress" (or "Schmidt decompose")
-                // the representation without changing the logical state of the QUnit, up to float error:
-                // qReg->TrySeparate(i);
             }
 
             gate = gateSequence.front();
@@ -3700,9 +3684,7 @@ TEST_CASE("test_quantum_supremacy", "[supreme]")
                     // std::cout << "qReg->FSim((3 * PI_R1) / 2, PI_R1 / 6, " << (int)b1 << ", " << (int)b2 << ");" <<
                     // std::endl;
 
-                    qReg->TrySeparate(b1, b2);
                     qReg->FSim((3 * PI_R1) / 2, PI_R1 / 6, b1, b2);
-                    qReg->TrySeparate(b1, b2);
                 }
             }
             // std::cout<<"Depth++"<<std::endl;
@@ -3820,10 +3802,6 @@ TEST_CASE("test_quantum_supremacy_patch", "[supreme]")
                         lastSingleBitGates[i] = 2;
                     }
                 }
-
-                // This is a QUnit specific optimization attempt method that can "compress" (or "Schmidt decompose")
-                // the representation without changing the logical state of the QUnit, up to float error:
-                // qReg->TrySeparate(i);
             }
 
             gate = gateSequence.front();
@@ -3982,10 +3960,6 @@ TEST_CASE("test_quantum_supremacy_elided", "[supreme]")
                         lastSingleBitGates[i] = 2;
                     }
                 }
-
-                // This is a QUnit specific optimization attempt method that can "compress" (or "Schmidt decompose")
-                // the representation without changing the logical state of the QUnit, up to float error:
-                // qReg->TrySeparate(i);
             }
 
             gate = gateSequence.front();
@@ -4518,8 +4492,6 @@ TEST_CASE("test_universal_circuit_digital_cross_entropy", "[supreme]")
 
         std::set<bitLenInt> unusedBits;
         for (i = 0; i < n; i++) {
-            // In the past, "goldStandard->TrySeparate(i)" was also used, here, to attempt optimization. Be aware that
-            // the method can give performance advantages, under opportune conditions, but it does not, here.
             unusedBits.insert(unusedBits.end(), i);
         }
 
@@ -7771,9 +7743,7 @@ TEST_CASE("test_noisy_sycamore", "[supreme]")
                 continue;
             }
 
-            goldStandard->TrySeparate(b1, b2);
             goldStandard->FSim((3 * PI_R1) / 2, PI_R1 / 6, b1, b2);
-            goldStandard->TrySeparate(b1, b2);
         }
     }
 
@@ -7846,9 +7816,7 @@ TEST_CASE("test_noisy_sycamore", "[supreme]")
                     continue;
                 }
 
-                testCase->TrySeparate(b1, b2);
                 testCase->FSim((3 * PI_R1) / 2, PI_R1 / 6, b1, b2);
-                testCase->TrySeparate(b1, b2);
             }
         }
 
@@ -8059,9 +8027,7 @@ TEST_CASE("test_noisy_sycamore_estimate", "[supreme_estimate]")
                     continue;
                 }
 
-                testCase->TrySeparate(b1, b2);
                 testCase->FSim((3 * PI_R1) / 2, PI_R1 / 6, b1, b2);
-                testCase->TrySeparate(b1, b2);
             }
         }
 
@@ -8280,9 +8246,7 @@ TEST_CASE("test_noisy_sycamore_validation", "[supreme]")
                     continue;
                 }
 
-                testCase->TrySeparate(b1, b2);
                 testCase->FSim((3 * PI_R1) / 2, PI_R1 / 6, b1, b2);
-                testCase->TrySeparate(b1, b2);
             }
         }
 
@@ -8816,7 +8780,6 @@ TEST_CASE("test_noisy_qft_cosmology_estimate", "[supreme_estimate]")
                 const bitLenInt c = hBit;
                 const bitLenInt t = hBit + 1U + j;
                 testCase->CPhaseRootN(j + 2U, c, t);
-                testCase->TrySeparate(c, t);
             }
             testCase->H(hBit);
         }
