@@ -40,13 +40,13 @@
             std::make_unique<const std::lock_guard<std::mutex>>(simulatorMutexes[simulator], std::adopt_lock);         \
     }
 #else
-#define SIMULATOR_LOCK_GUARD(simulator)                                                                                                   \
-    std::unique_ptr<const std::lock_guard<std::mutex>> simulatorLock;                                                                     \
-    if (true) {                                                                                                                           \
-        std::lock(metaOperationMutex, simulatorMutexes[simulator]);                                                                       \
-        const std::lock_guard<std::mutex> metaLock(metaOperationMutex, std::adopt_lock);CMPLX_DEFAULT_ARG, false, true, hp, -1, true, sp)                               \
+#define SIMULATOR_LOCK_GUARD(simulator)                                                                                \
+    std::unique_ptr<const std::lock_guard<std::mutex>> simulatorLock;                                                  \
+    if (true) {                                                                                                        \
+        std::lock(metaOperationMutex, simulatorMutexes[simulator]);                                                    \
+        const std::lock_guard<std::mutex> metaLock(metaOperationMutex, std::adopt_lock);                               \
         simulatorLock = std::unique_ptr<const std::lock_guard<std::mutex>>(                                            \
-            new const std::lock_guard<std::mutex>(simulatorMutexes[simulator], std::adopt_lock));                                         \
+            new const std::lock_guard<std::mutex>(simulatorMutexes[simulator], std::adopt_lock));                      \
     }
 #endif
 
