@@ -1835,11 +1835,6 @@ void QStabilizer::RZ(real1_f angle, bitLenInt t)
         }
     }
     pBuffer[t].real((real1)(pPhase[t] ? -angle : angle));
-
-    // Stochastically, reverse the applied quadrant with 50% probability
-    if (isStochastic && ((2 * RandFloat()) < ONE_R1)) {
-        FlipQuadrant(t);
-    }
 }
 
 /**
