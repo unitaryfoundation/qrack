@@ -2306,7 +2306,7 @@ MICROSOFT_QUANTUM_DECL void MAllLong(_In_ uintq sid, uintq* r)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)
     try {
-#if QBCCAPOW <= UINTPOW
+#if QBCAPOW <= UINTPOW
         r[0U] = (bitCapIntOcl)(simulator->MAll());
 #else
         bitCapInt _r = simulator->MAll();
@@ -2705,7 +2705,7 @@ MICROSOFT_QUANTUM_DECL void HighestProbAll(_In_ uintq sid, uintq* r)
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)
     try {
-#if QBCCAPOW <= UINTPOW
+#if QBCAPOW <= UINTPOW
         r[0U] = (bitCapIntOcl)(simulator->HighestProbAll());
 #else
         bitCapInt _r = simulator->HighestProbAll();
@@ -2730,7 +2730,7 @@ MICROSOFT_QUANTUM_DECL void HighestProbAllN(_In_ uintq sid, _In_ uintq n, uintq*
 {
     SIMULATOR_LOCK_GUARD_VOID(sid)
     try {
-#if QBCCAPOW <= UINTPOW
+#if QBCAPOW <= UINTPOW
         const std::vector<bitCapInt> _r = simulator->HighestProbAll(n);
         for (size_t i = 0U; i < n; ++i) {
             r[i] = (bitCapIntOcl)(_r[i]);
