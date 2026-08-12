@@ -510,6 +510,7 @@ public:
     void SetRandGlobalPhase(bool isRand) { randGlobalPhase = isRand; }
 
     /// Apply a CNOT gate with control and target
+    void CNOTRaw(bitLenInt control, bitLenInt target);
     void CNOT(bitLenInt control, bitLenInt target);
     /// Apply a CY gate with control and target
     void CY(bitLenInt control, bitLenInt target);

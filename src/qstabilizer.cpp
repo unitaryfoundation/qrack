@@ -942,12 +942,13 @@ real1_f QStabilizer::ProbMask(const bitCapInt& mask, const bitCapInt& perm)
 }
 
 /// Apply a CNOT gate with control and target
-void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
+void QStabilizer::CNOTRaw(bitLenInt c, bitLenInt t)
 {
     if (!randGlobalPhase) {
         H(t);
         CZ(c, t);
-        return H(t);
+        H(t);
+        return;
     }
 
     isGaussianCached = false;
@@ -984,7 +985,11 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
+}
 
+void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
+{
+    CNOTRaw(c, t);
     FlushNearClifford(c);
     FlushNearClifford(t);
 }
@@ -1929,15 +1934,38 @@ void QStabilizer::TGadget(bitLenInt t, bool isInverse)
         const real1 savedPhaseOffset = phaseOffset;
 
         H(a);
-        CNOT(a, t);
+        // CNOTRaw, not CNOT: the public CNOT() flushes any pending
+        // buffer on both qubits as a side effect (needed in general, so
+        // an entangling gate never has to approximate combining two
+        // pending residuals -- see the shear-removal work this builds
+        // on). That flush is exactly what this gadget must NOT let
+        // happen here: it would stochastically resolve t's buffer via
+        // its own separate random decision, before this check's own
+        // phase-kickback logic below ever gets to observe or steer it.
+        // Confirmed directly: using the public CNOT here broke even the
+        // single-isolated-T-gate case, which had worked correctly
+        // before the shear-removal change introduced this interaction.
+        CNOTRaw(a, t);
         RZRaw(fwdAngle, t);
-        CNOT(a, t);
+        CNOTRaw(a, t);
         H(a);
 
         const real1_f p1 = Prob(a);
         if ((ONE_R1_F - p1) > (FP_NORM_EPSILON_F)) {
-            // forceable: steer to the error-free branch
+            // forceable: steer to the error-free branch. This
+            // definitively resolves whether a kick occurred on t -- the
+            // buffer RZRaw set before this forcing happened no longer
+            // reflects reality (it recorded the natural, pre-forcing
+            // outcome, not what was actually just steered to), so it
+            // must be reset to exactly zero here. Without this, a
+            // second T/Tdg on the same qubit sees a stale, nonzero
+            // buffer and silently falls back to unprotected RZRaw,
+            // combining with a history that never actually happened
+            // (confirmed directly: T;T back to back measured P(1)~0.38,
+            // not the ~0.0 two gadget-protected calls should give).
             ForceM(a, false);
+            pBuffer[t] = ZERO_CMPLX;
+            pPhase[t] = false;
             return;
         }
 
@@ -1955,13 +1983,14 @@ void QStabilizer::TGadget(bitLenInt t, bool isInverse)
     }
 
     // retry cap exhausted: accept via a genuine, unsteered measurement
-    // rather than silently forcing something that isn't true. Verified
-    // directly, not just in Python: across three independent runs of the
-    // real 468-T-gate circuit this derives from, this retry cap was never
-    // hit once (confirmed via a temporary diagnostic during development,
-    // since removed) -- but the fallback is kept, since that was one
-    // circuit, not a proof this cap can never be reached in general.
+    // rather than silently forcing something that isn't true. A genuine
+    // measurement is just as definitive as a forced one -- it fully
+    // resolves whether a kick occurred, leaving nothing pending -- so
+    // the buffer is zeroed here too, for the same history-consistency
+    // reason as the success path above.
     ForceM(a, false, false);
+    pBuffer[t] = ZERO_CMPLX;
+    pPhase[t] = false;
 }
 
 /**
