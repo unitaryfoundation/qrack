@@ -985,7 +985,8 @@ void QStabilizer::CNOT(bitLenInt c, bitLenInt t)
         { c, t });
 #endif
 
-    CNotNearClifford(c, t);
+    FlushNearClifford(c);
+    FlushNearClifford(t);
 }
 
 /// Apply an (anti-)CNOT gate with control and target
@@ -1030,7 +1031,8 @@ void QStabilizer::AntiCNOT(bitLenInt c, bitLenInt t)
 #endif
 
     X(c);
-    CNotNearClifford(c, t);
+    FlushNearClifford(c);
+    FlushNearClifford(t);
     X(c);
 }
 
@@ -1082,8 +1084,8 @@ void QStabilizer::CY(bitLenInt c, bitLenInt t)
         },
         { c, t });
 #endif
-    CZNearClifford(c, t);
-    CNotNearClifford(c, t);
+    FlushNearClifford(c);
+    FlushNearClifford(t);
 }
 
 /// Apply an (anti-)CY gate with control and target
@@ -1136,8 +1138,8 @@ void QStabilizer::AntiCY(bitLenInt c, bitLenInt t)
 #endif
 
     X(c);
-    CZNearClifford(c, t);
-    CNotNearClifford(c, t);
+    FlushNearClifford(c);
+    FlushNearClifford(t);
     X(c);
 }
 
@@ -1194,7 +1196,8 @@ void QStabilizer::CZ(bitLenInt c, bitLenInt t)
         SetPhaseOffset(phaseOffset + std::arg(ampEntry.amplitude) - std::arg(GetAmplitude(ampEntry.permutation)));
     }
 
-    CZNearClifford(c, t);
+    FlushNearClifford(c);
+    FlushNearClifford(t);
 }
 
 /// Apply an (anti-)CZ gate with control and target
@@ -1250,7 +1253,8 @@ void QStabilizer::AntiCZ(bitLenInt c, bitLenInt t)
     }
 
     X(c);
-    CZNearClifford(c, t);
+    FlushNearClifford(c);
+    FlushNearClifford(t);
     X(c);
 }
 
@@ -1351,7 +1355,8 @@ void QStabilizer::ISwap(bitLenInt c, bitLenInt t)
 #endif
 
     SwapNearClifford(c, t);
-    CZNearClifford(c, t);
+    FlushNearClifford(c);
+    FlushNearClifford(t);
 }
 
 void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
@@ -1416,7 +1421,8 @@ void QStabilizer::IISwap(bitLenInt c, bitLenInt t)
         { c, t });
 #endif
 
-    CZNearClifford(c, t);
+    FlushNearClifford(c);
+    FlushNearClifford(t);
     SwapNearClifford(c, t);
 }
 
@@ -1707,6 +1713,16 @@ void QStabilizer::ISBase(bitLenInt t)
 
 void QStabilizer::FlushNearClifford(bitLenInt t)
 {
+    // Resolves pBuffer[t] and bBuffer[t] (both real and imaginary
+    // components -- a buffer's residual can be rotated into the
+    // imaginary axis by other Clifford gates, e.g. S multiplying by i,
+    // so both must be handled) fully to zero, applying the same
+    // probability-weighted stochastic rounding RZRaw uses for its own
+    // final decision. This replaces the previous behavior, which only
+    // deterministically reduced each component to within [-pi/4, pi/4]
+    // via the while-loops below, without ever actually resolving the
+    // remainder -- meaning this function previously left a buffer
+    // "reduced" but not flushed, despite its name.
     real1 p = pPhase[t] ? -std::real(pBuffer[t]) : std::real(pBuffer[t]);
     while ((2 * p) > HALF_PI_R1) {
         SBase(t);
@@ -1716,7 +1732,15 @@ void QStabilizer::FlushNearClifford(bitLenInt t)
         ISBase(t);
         p += HALF_PI_R1;
     }
-    pBuffer[t].real(pPhase[t] ? -p : p);
+    if ((isStochastic && ((RandFloat() * HALF_PI_R1) < std::abs(p))) ||
+        (!isStochastic && !isMajorQuadrant && (std::abs(p) > (FP_NORM_EPSILON * HALF_PI_R1)))) {
+        if (p > ZERO_R1) {
+            SBase(t);
+        } else {
+            ISBase(t);
+        }
+    }
+    pBuffer[t].real(ZERO_R1);
 
     p = pPhase[t] ? -std::imag(pBuffer[t]) : std::imag(pBuffer[t]);
     HBase(t);
@@ -1730,10 +1754,19 @@ void QStabilizer::FlushNearClifford(bitLenInt t)
         ISBase(t);
         p += HALF_PI_R1;
     }
+    if ((isStochastic && ((RandFloat() * HALF_PI_R1) < std::abs(p))) ||
+        (!isStochastic && !isMajorQuadrant && (std::abs(p) > (FP_NORM_EPSILON * HALF_PI_R1)))) {
+        if (p > ZERO_R1) {
+            SBase(t);
+        } else {
+            ISBase(t);
+        }
+    }
     HBase(t);
     SBase(t);
     HBase(t);
-    pBuffer[t].imag(pPhase[t] ? -p : p);
+    pBuffer[t].imag(ZERO_R1);
+    pPhase[t] = false;
 
     p = bPhase[t] ? -std::real(bBuffer[t]) : std::real(bBuffer[t]);
     HBase(t);
@@ -1745,8 +1778,16 @@ void QStabilizer::FlushNearClifford(bitLenInt t)
         ISBase(t);
         p += HALF_PI_R1;
     }
+    if ((isStochastic && ((RandFloat() * HALF_PI_R1) < std::abs(p))) ||
+        (!isStochastic && !isMajorQuadrant && (std::abs(p) > (FP_NORM_EPSILON * HALF_PI_R1)))) {
+        if (p > ZERO_R1) {
+            SBase(t);
+        } else {
+            ISBase(t);
+        }
+    }
     HBase(t);
-    bBuffer[t].real(bPhase[t] ? -p : p);
+    bBuffer[t].real(ZERO_R1);
 
     p = bPhase[t] ? -std::imag(bBuffer[t]) : std::imag(bBuffer[t]);
     ISBase(t);
@@ -1759,41 +1800,18 @@ void QStabilizer::FlushNearClifford(bitLenInt t)
         ISBase(t);
         p += HALF_PI_R1;
     }
+    if ((isStochastic && ((RandFloat() * HALF_PI_R1) < std::abs(p))) ||
+        (!isStochastic && !isMajorQuadrant && (std::abs(p) > (FP_NORM_EPSILON * HALF_PI_R1)))) {
+        if (p > ZERO_R1) {
+            SBase(t);
+        } else {
+            ISBase(t);
+        }
+    }
     HBase(t);
     SBase(t);
-    bBuffer[t].imag(bPhase[t] ? -p : p);
-}
-
-void QStabilizer::CZNearClifford(bitLenInt c, bitLenInt t)
-{
-    if (norm(bBuffer[t]) > norm(pBuffer[c])) {
-        pPhase[c] = !pPhase[c];
-    }
-    if (norm(bBuffer[c]) > norm(pBuffer[t])) {
-        pPhase[t] = !pPhase[t];
-    }
-    pBuffer[c] = FixAnglePeriod(pBuffer[c] - bBuffer[t]);
-    pBuffer[t] = FixAnglePeriod(pBuffer[t] - bBuffer[c]);
-    bBuffer[c] = -bBuffer[c];
-    bBuffer[t] = -bBuffer[t];
-    bPhase[c] = !bPhase[c];
-    bPhase[t] = !bPhase[t];
-}
-
-void QStabilizer::CNotNearClifford(bitLenInt c, bitLenInt t)
-{
-    if (norm(pBuffer[t]) > norm(pBuffer[c])) {
-        pPhase[c] = !pPhase[c];
-    }
-    if (norm(bBuffer[c]) > norm(bBuffer[t])) {
-        bPhase[t] = !bPhase[t];
-    }
-    pBuffer[c] = FixAnglePeriod(pBuffer[c] - pBuffer[t]);
-    bBuffer[t] = FixAnglePeriod(bBuffer[t] - bBuffer[c]);
-    bBuffer[c] = -bBuffer[c];
-    pBuffer[t] = -pBuffer[t];
-    bPhase[c] = !bPhase[c];
-    pPhase[t] = !pPhase[t];
+    bBuffer[t].imag(ZERO_R1);
+    bPhase[t] = false;
 }
 
 /// Approximate an arbitrary phase angle
