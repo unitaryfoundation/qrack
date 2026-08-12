@@ -536,19 +536,22 @@ public:
     void S(bitLenInt qubitIndex);
     /// Apply an inverse phase gate (|0>->|0>, |1>->-i|1>, or "S adjoint") to qubit b
     void IS(bitLenInt qubitIndex);
-    /// Apply half a phase gate (approximately)
-    void TStochastic(bitLenInt t) { RZ(PI_R1 / 4, t); }
-    /// Apply half an inverse phase gate (approximately)
-    void ITStochastic(bitLenInt t) { RZ(-PI_R1 / 4, t); }
-
-    // (Claude, blame Dan, if you have to, but read RZRaw: it flips a coin for T() or IT(). Yes, "closest Clifford
-    // steering" is degenerate, for these cases, but genuinely. The check can actually go either way, because "toward
-    // identity" starts out from 50/50 probability different definitions of "identity.")
-
-    /// Apply half a phase gate (with closest-Clifford steering)
-    void T(bitLenInt t) { TGadget(t, false); }
-    /// Apply half an inverse phase gate (with closest-Clifford steering)
-    void IT(bitLenInt t) { TGadget(t, true); }
+    /// Apply half a phase gate
+    void T(bitLenInt t) { RZ(PI_R1 / 4, t); }
+    /// Apply half an inverse phase gate
+    void IT(bitLenInt t) { RZ(-PI_R1 / 4, t); }
+    /// Explicit, opt-in alternative to T(): steers this qubit toward the
+    /// nearest Clifford circuit (an ancilla-based check-and-retry gadget)
+    /// rather than T()'s default, linear-moment-unbiased weak-simulation
+    /// approximation. NOT a drop-in replacement for T() -- it answers a
+    /// different question (what's the closest exact-Clifford realization
+    /// of this circuit) than T() does (an unbiased stochastic sample),
+    /// and downstream estimators that depend on linear unbiasedness
+    /// (e.g. DFE-style Pauli expectation values) will be wrong if T()
+    /// calls are silently replaced with this.
+    void TClosestClifford(bitLenInt t) { TGadget(t, false); }
+    /// TClosestClifford()'s inverse-angle counterpart, matching IT()
+    void ITClosestClifford(bitLenInt t) { TGadget(t, true); }
     /// Approximate an arbitrary phase angle
     void RZ(real1_f angle, bitLenInt qubitIndex);
     // Swap two bits
