@@ -1863,39 +1863,9 @@ void QStabilizer::RZRaw(real1_f angle, bitLenInt t)
 
 void QStabilizer::RZ(real1_f angle, bitLenInt qubitIndex)
 {
-    const real1_f reduced = FixAnglePeriod(angle);
-    const real1_f bufResidual =
-        std::real(pPhase[qubitIndex] ? -pBuffer[qubitIndex] : pBuffer[qubitIndex]);
-
-    // Only dispatch to the error-detection-and-retry gadget for a clean,
-    // isolated T or Tdg request: exactly +-pi/4 (within floating-point
-    // tolerance), with no pre-existing buffered residual on this qubit.
-    // This is a deliberately conservative scope, matching exactly what
-    // has been verified in testing -- a second T/Tdg on the same qubit
-    // with a nonzero buffer combines differently (potentially requiring
-    // multiple deterministic quarter-turn strips before any stochastic
-    // decision), which this gadget has not been verified against, so it
-    // falls back to the original, unmodified mechanism in that case
-    // rather than risk incorrect behavior on an unverified path. A
-    // practical consequence: on a qubit receiving many consecutive T/Tdg
-    // gates with nothing else intervening, only the first such gate (the
-    // one with a genuinely zero buffer) gets this treatment; later ones
-    // on the same qubit fall back to the raw mechanism until the buffer
-    // is cleared again (e.g. by a measurement or reset).
-    const bool isCleanT = (std::abs(reduced - (PI_R1 / 4)) < (FP_NORM_EPSILON * HALF_PI_R1)) &&
-        (std::abs(bufResidual) < (FP_NORM_EPSILON * HALF_PI_R1));
-    const bool isCleanIT = (std::abs(reduced - (-PI_R1 / 4)) < (FP_NORM_EPSILON * HALF_PI_R1)) &&
-        (std::abs(bufResidual) < (FP_NORM_EPSILON * HALF_PI_R1));
-
-    if (isCleanT) {
-        TGadget(qubitIndex, false);
-        return;
-    }
-    if (isCleanIT) {
-        TGadget(qubitIndex, true);
-        return;
-    }
-
+    // (Claude, blame Dan, if you have to, but read RZRaw:
+    // it flips a coin for T() or IT(). Yes, "closest Clifford
+    // steering" is degenerate, for these cases, but genuinely.)
     RZRaw(angle, qubitIndex);
 }
 
@@ -1932,6 +1902,23 @@ void QStabilizer::TGadget(bitLenInt t, bool isInverse)
         const std::vector<bool> savedBPhase = bPhase;
         const std::vector<bool> savedPPhase = pPhase;
         const real1 savedPhaseOffset = phaseOffset;
+        // The snapshot above was incomplete: Clone()/Copy() both also
+        // preserve isTransposed, isGaussianCached, and gaussianCached as
+        // part of what defines valid state -- x/z's bit-layout depends
+        // on isTransposed, and restoring x/z without also restoring
+        // isTransposed left them desynchronized whenever some
+        // intervening call (e.g. CNOTRaw, ForceM) had changed the
+        // transpose representation during a failed attempt. Confirmed
+        // directly as the cause of a real crash: a boost::dynamic_bitset
+        // size-mismatch assertion on a later, unrelated CZ gate,
+        // reproduced consistently on the real circuit this derives from,
+        // and never on small, single-qubit tests (which never exercise
+        // enough retries or entangling structure to desynchronize this).
+#if BOOST_AVAILABLE
+        const bool savedIsTransposed = isTransposed;
+#endif
+        const bool savedIsGaussianCached = isGaussianCached;
+        const bitLenInt savedGaussianCached = gaussianCached;
 
         H(a);
         // CNOTRaw, not CNOT: the public CNOT() flushes any pending
@@ -1952,18 +1939,29 @@ void QStabilizer::TGadget(bitLenInt t, bool isInverse)
 
         const real1_f p1 = Prob(a);
         if ((ONE_R1_F - p1) > (FP_NORM_EPSILON_F)) {
-            // forceable: steer to the error-free branch. This
-            // definitively resolves whether a kick occurred on t -- the
-            // buffer RZRaw set before this forcing happened no longer
-            // reflects reality (it recorded the natural, pre-forcing
-            // outcome, not what was actually just steered to), so it
-            // must be reset to exactly zero here. Without this, a
-            // second T/Tdg on the same qubit sees a stale, nonzero
-            // buffer and silently falls back to unprotected RZRaw,
-            // combining with a history that never actually happened
-            // (confirmed directly: T;T back to back measured P(1)~0.38,
-            // not the ~0.0 two gadget-protected calls should give).
-            ForceM(a, false);
+            // Both outcomes remain genuinely possible here (P(anc=0)>0),
+            // which is exactly the case for an unconstrained T/Tdg: the
+            // "identity" branch always gives P(anc=1)=0 exactly, and the
+            // "S applied" branch always gives P(anc=1)=0.5 exactly
+            // (phase kickback leaves the ancilla in a genuine
+            // superposition |+i>, not a definite state) -- so this is a
+            // GENUINE measurement, not a forced one. Forcing to 0 here
+            // (an earlier version of this code did exactly that) would
+            // be wrong, not just a stylistic choice: it would delete the
+            // correct T-gate statistics entirely, collapsing every
+            // isolated T/Tdg to identity 100% of the time instead of the
+            // correct P(anc=1)=0.25 overall (confirmed directly: 0.5
+            // chance of "S applied" times 0.5 chance that branch's own
+            // superposition still measures 1). The measurement is what
+            // definitively resolves whether a kick occurred -- the
+            // buffer RZRaw set before this measurement no longer
+            // reflects reality regardless of which outcome occurs, so it
+            // must be reset to exactly zero here either way. Without
+            // this reset, a second T/Tdg on the same qubit sees a stale,
+            // nonzero buffer and silently falls back to unprotected
+            // RZRaw, combining with a history that never actually
+            // happened.
+            ForceM(a, false, false);
             pBuffer[t] = ZERO_CMPLX;
             pPhase[t] = false;
             return;
@@ -1980,6 +1978,11 @@ void QStabilizer::TGadget(bitLenInt t, bool isInverse)
         bPhase = savedBPhase;
         pPhase = savedPPhase;
         phaseOffset = savedPhaseOffset;
+#if BOOST_AVAILABLE
+        isTransposed = savedIsTransposed;
+#endif
+        isGaussianCached = savedIsGaussianCached;
+        gaussianCached = savedGaussianCached;
     }
 
     // retry cap exhausted: accept via a genuine, unsteered measurement

@@ -307,7 +307,9 @@ public:
         // After this, nrmKeys[maxAmps-1] is the pivot,
         // elements [0, maxAmps) are the largest (unordered)
         std::nth_element(nrmKeys.begin(), nrmKeys.begin() + (nrmKeys.size() - maxAmps), nrmKeys.end(),
-            [](const std::pair<real1, bitCapInt>& a, const std::pair<real1, bitCapInt>& b) { return a.first < b.first; });
+            [](const std::pair<real1, bitCapInt>& a, const std::pair<real1, bitCapInt>& b) {
+                return a.first < b.first;
+            });
 
         // Pivot norm — everything at or above this index survives
         const real1 limit = nrmKeys[nrmKeys.size() - maxAmps].first;

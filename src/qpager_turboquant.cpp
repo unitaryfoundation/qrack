@@ -184,8 +184,8 @@ void QPager::LossyLoadStateVector(std::string f)
 
     const size_t saved_qubits = _read_sz(is);
     _read_int(is); // p_saved (unused directly -- each page records its own
-                    // is_compressed flag, and StateVectorTurboQuant::load
-                    // reads its own parameters from its own stream)
+                   // is_compressed flag, and StateVectorTurboQuant::load
+                   // reads its own parameters from its own stream)
     _read_int(is); // b_saved (unused, same reason)
     const size_t num_pages = _read_sz(is);
     const size_t saved_qubits_per_page = _read_sz(is);
@@ -198,20 +198,18 @@ void QPager::LossyLoadStateVector(std::string f)
     // SCOPE NOTE (see file header): require exact qubit-count match rather
     // than attempt an unverified Allocate()/Dispose() resize path.
     if ((size_t)qubitCount != saved_qubits) {
-        throw std::runtime_error(
-            "QPager::LossyLoadStateVector: qubit count mismatch (this QPager has " + std::to_string(qubitCount) +
-            ", file has " + std::to_string(saved_qubits) +
+        throw std::runtime_error("QPager::LossyLoadStateVector: qubit count mismatch (this QPager has " +
+            std::to_string(qubitCount) + ", file has " + std::to_string(saved_qubits) +
             "). Resizing on load is not implemented in this version -- "
             "construct a QPager with the correct qubitCount before loading.");
     }
 
     if (num_pages != qPages.size()) {
-        throw std::runtime_error(
-            "QPager::LossyLoadStateVector: page count mismatch (this QPager has " + std::to_string(qPages.size()) +
-            " pages, file has " + std::to_string(num_pages) +
+        throw std::runtime_error("QPager::LossyLoadStateVector: page count mismatch (this QPager has " +
+            std::to_string(qPages.size()) + " pages, file has " + std::to_string(num_pages) +
             "). This can happen if CombineEngines()/SeparateEngines() was called at a different threshold "
-            "than when the file was saved -- call SeparateEngines() to match saved_qubits_per_page="
-            + std::to_string(saved_qubits_per_page) + " before loading.");
+            "than when the file was saved -- call SeparateEngines() to match saved_qubits_per_page=" +
+            std::to_string(saved_qubits_per_page) + " before loading.");
     }
 
     // Restore device placement BEFORE reconstructing page contents, so any

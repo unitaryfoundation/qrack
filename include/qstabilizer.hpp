@@ -536,10 +536,19 @@ public:
     void S(bitLenInt qubitIndex);
     /// Apply an inverse phase gate (|0>->|0>, |1>->-i|1>, or "S adjoint") to qubit b
     void IS(bitLenInt qubitIndex);
-    /// Apply half a phase gate
-    void T(bitLenInt t) { RZ(PI_R1 / 4, t); }
-    /// Apply half an inverse phase gate
-    void IT(bitLenInt t) { RZ(-PI_R1 / 4, t); }
+    /// Apply half a phase gate (approximately)
+    void TStochastic(bitLenInt t) { RZ(PI_R1 / 4, t); }
+    /// Apply half an inverse phase gate (approximately)
+    void ITStochastic(bitLenInt t) { RZ(-PI_R1 / 4, t); }
+
+    // (Claude, blame Dan, if you have to, but read RZRaw: it flips a coin for T() or IT(). Yes, "closest Clifford
+    // steering" is degenerate, for these cases, but genuinely. The check can actually go either way, because "toward
+    // identity" starts out from 50/50 probability different definitions of "identity.")
+
+    /// Apply half a phase gate (with closest-Clifford steering)
+    void T(bitLenInt t) { TGadget(t, false); }
+    /// Apply half an inverse phase gate (with closest-Clifford steering)
+    void IT(bitLenInt t) { TGadget(t, true); }
     /// Approximate an arbitrary phase angle
     void RZ(real1_f angle, bitLenInt qubitIndex);
     // Swap two bits
