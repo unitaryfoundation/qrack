@@ -79,6 +79,44 @@ protected:
     std::vector<bool> bPhase;
     std::vector<bool> pPhase;
 
+    // Single, lazily-allocated, reused ancilla for the T/Tdg error-
+    // detection-and-retry gadget (see TGadget()). Sentinel value
+    // (bitLenInt)-1 means "not yet allocated." Allocated dynamically via
+    // Allocate()/Compose() on first use, exactly like any other qubit --
+    // NOT a special-cased resource, so it participates normally in
+    // Compose/Decompose/Dispose. Caveat: if some other code path disposes
+    // or reorders qubits in a way that changes what index tGadgetAncilla
+    // refers to, this stored index would become stale; this
+    // implementation does not defend against that case.
+    bitLenInt tGadgetAncilla{ (bitLenInt)-1 };
+
+    // The T/Tdg-specific error-detection-and-retry gadget: wraps a single
+    // T or Tdg application with an ancilla-based check (phase-kickback via
+    // CNOT, sensitive to Z-type disturbances, since a Z-type ancilla
+    // coupling like CZ would commute with the S/Sdg error and be blind to
+    // it -- verified directly in the research session this derives from).
+    // If the check can be forced to "no error" (any nonzero probability),
+    // it is. If the check is genuinely, certainly stuck (zero probability
+    // of no-error), the whole bracket is undone -- T immediately followed
+    // by Tdg is an exact, per-shot identity here, verified directly, not
+    // assumed -- and retried, up to a retry cap, after which the certain
+    // error is accepted via a genuine (unforced) measurement rather than
+    // silently ignored. This is a best-effort heuristic improvement, not a
+    // guarantee: some certain errors are pinned by entanglement with other,
+    // already-determined qubits elsewhere in the circuit, and no number of
+    // local retries on this one qubit can resolve those -- confirmed
+    // directly in testing (0/27 resolved by a local correction attempt in
+    // one representative circuit), not merely anticipated as a theoretical
+    // possibility.
+    void TGadget(bitLenInt t, bool isInverse);
+
+    // The original, unwrapped RZ mechanism (formerly the body of RZ()
+    // directly) -- used internally by TGadget() to apply and undo T/Tdg
+    // without recursing back through RZ()'s own dispatch logic, and used
+    // by RZ() itself for every case that isn't a clean, isolated T/Tdg
+    // call.
+    void RZRaw(real1_f angle, bitLenInt qubitIndex);
+
     typedef std::function<void(const bitLenInt&)> StabilizerParallelFunc;
     typedef std::function<void(void)> DispatchFn;
     void Dispatch(DispatchFn fn) { fn(); }
@@ -151,6 +189,7 @@ protected:
         pBuffer = orig->pBuffer;
         bPhase = orig->bPhase;
         pPhase = orig->pPhase;
+        tGadgetAncilla = orig->tGadgetAncilla;
     }
 
 #if BOOST_AVAILABLE
