@@ -3980,29 +3980,21 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
         const real1_f pt = Prob(target);
         real1_f pc = isAnti ? ONE_R1_F - Prob(control) : Prob(control);
 
-        // We're "gaming" order of gate application, but not in a malicious or biased way.
-        bool didNegate = false;
         if (phaseShard->isInvert) {
-            H(target);
-
-            const real1_f xpt = Prob(target);
-            // If the CNOT control (when acted second) is the most polarized,
-            // act a phase correction on the less-polarized target state.
-            // Otherwise, act the CNOT first if its control is more polarized.
-            QRACK_CONST real1_f oneHalf = ONE_R1_F / 2;
-            const real1_f pcHi = (pc > oneHalf) ? pc : (ONE_R1_F - pc);
-            const real1_f ptHi = (pt > oneHalf) ? pt : (ONE_R1_F - pt);
-            const real1_f xptHi = (xpt > oneHalf) ? xpt : (ONE_R1_F - xpt);
-            didNegate = ((pcHi > ptHi) && (pcHi > xptHi)) ? (ptHi >= xptHi) : (xptHi >= ptHi);
-
+            bool didNegate = false;
+            if (std::abs(pc - HALF_R1_F) <= FP_NORM_EPSILON_F) {
+                if ((2 * Rand()) < ONE_R1_F) {
+                    didNegate = true;
+                }
+            } else if (pc > 0.5) {
+                didNegate = true;
+            }
             if (didNegate) {
                 // Commuting CNOT to the other side of phase reverses these.
                 std::swap(polarTop, polarBottom);
-                // Act CNOT shadow.
-                ElideCz(isAnti, control, target, xpt, pc);
+                X(target);
+                logFidelity += (double)log(pc);
             }
-
-            H(target);
         }
 
         bool ptHi = pt > pc;
@@ -4048,13 +4040,6 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
 
         logFidelity += (double)(log(ONE_R1_F - probInfidelity * topInfidelity / 2));
         CheckFidelity();
-
-        if (phaseShard->isInvert && !didNegate) {
-            // Act CNOT shadow (if necessary and we didn't handle it earlier).
-            H(target);
-            ElideCz(isAnti, control, target, Prob(target), ONE_R1_F - pc);
-            H(target);
-        }
     }
     freezeBasis2Qb = false;
 }
