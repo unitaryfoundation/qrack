@@ -3990,8 +3990,6 @@ void QUnit::ApplyBuffer(PhaseShardPtr phaseShard, bitLenInt control, bitLenInt t
                 didNegate = true;
             }
             if (didNegate) {
-                // Commuting CNOT to the other side of phase reverses these.
-                std::swap(polarTop, polarBottom);
                 X(target);
                 logFidelity += (double)log(pc);
             }
