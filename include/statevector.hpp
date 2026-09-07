@@ -140,7 +140,7 @@ public:
 
     complex* get_raw() { return amplitudes.get(); }
 
-    complex read(const bitCapInt& i) { return read((size_t)i); }
+    complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
 #if ENABLE_COMPLEX_X2
     complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
     {
@@ -485,7 +485,7 @@ public:
 
     void shuffle(StateVectorSparsePtr svp)
     {
-        const size_t halfCap = (size_t)(capacity >> 1U);
+        const size_t halfCap = capacity >> 1U;
         std::lock_guard<std::mutex> lock(mtx);
         for (size_t i = 0U; i < halfCap; ++i) {
             complex amp = svp->read(i);
