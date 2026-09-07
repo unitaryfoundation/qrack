@@ -489,7 +489,7 @@ public:
 
     void save(std::ostream& os) const
     {
-        _tq_write_size(os, (size_t)capacity);
+        _tq_write_size(os, capacity);
         _tq_write_size(os, BLOCK);
         _tq_write_size(os, num_blocks);
         for (size_t i = 0U; i < num_blocks; ++i) {
@@ -538,7 +538,7 @@ public:
 
     // --- StateVector interface ----------------------------------------------
 
-    complex read(const bitCapInt& i) { return read((size_t)i); }
+    complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
     complex read(const size_t& i)
     {
         std::vector<complex> amps(BLOCK);
@@ -547,11 +547,14 @@ public:
     }
 
 #if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { return read2((size_t)i1, (size_t)i2); }
+    complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
+    {
+        return read2((size_t)(uint64_t)i1, (size_t)(uint64_t)i2);
+    }
     complex2 read2(const size_t& i1, const size_t& i2) { return complex2(read(i1), read(i2)); }
 #endif
 
-    void write(const bitCapInt& i, const complex& c) { write((size_t)i, c); }
+    void write(const bitCapInt& i, const complex& c) { write((size_t)(uint64_t)i, c); }
     void write(const size_t& i, const complex& c)
     {
         with_block(block_of(i), [&](complex* amps, size_t) { amps[offset_in(i)] = c; });
@@ -559,7 +562,7 @@ public:
 
     void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
     {
-        write2((size_t)i1, c1, (size_t)i2, c2);
+        write2((size_t)(uint64_t)i1, c1, (size_t)(uint64_t)i2, c2);
     }
 
     void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
@@ -597,7 +600,7 @@ public:
         par_for(0U, num_blocks, [&](const size_t& b, const unsigned&) {
             std::vector<complex> amps(BLOCK, ZERO_CMPLX);
             if (copyIn) {
-                const size_t len = std::min(BLOCK, (size_t)(capacity - b * BLOCK));
+                const size_t len = std::min(BLOCK, capacity - b * BLOCK);
                 std::copy(copyIn + b * BLOCK, copyIn + b * BLOCK + len, amps.data());
             }
             blocks[b].compress(amps.data());
@@ -615,7 +618,7 @@ public:
                 const size_t base = b * BLOCK;
                 for (size_t j = 0U; j < BLOCK; ++j) {
                     const size_t g = base + j;
-                    if (g >= (size_t)offset && g < (size_t)(offset + length))
+                    if (g >= offset && g < (offset + length))
                         amps[j] = copyIn ? copyIn[g - offset] : ZERO_CMPLX;
                 }
             });
@@ -636,7 +639,7 @@ public:
         par_for(0U, num_blocks, [&](const size_t& b, const unsigned&) {
             std::vector<complex> amps(BLOCK);
             blocks[b].decompress(amps.data());
-            const size_t len = std::min(BLOCK, (size_t)(capacity - b * BLOCK));
+            const size_t len = std::min(BLOCK, capacity - b * BLOCK);
             std::copy(amps.data(), amps.data() + len, out + b * BLOCK);
         });
     }
@@ -668,7 +671,7 @@ public:
         // For capacity that is a power of 2, the upper half starts at capacity/2
         auto other = std::dynamic_pointer_cast<StateVectorTurboQuant>(svp);
         const size_t half = capacity >> 1U;
-        const size_t hb = (size_t)(half / BLOCK);
+        const size_t hb = half / BLOCK;
         if (other && (half % BLOCK == 0U)) {
             // Block-aligned shuffle: swap block pointers (swap the TurboBlock objects)
             par_for(0U, hb, [&](const size_t& b, const unsigned&) { std::swap(blocks[b + hb], other->blocks[b]); });
@@ -689,7 +692,7 @@ public:
         par_for(0U, num_blocks, [&](const size_t& b, const unsigned&) {
             std::vector<complex> amps(BLOCK);
             blocks[b].decompress(amps.data());
-            const size_t len = std::min(BLOCK, (size_t)(capacity - b * BLOCK));
+            const size_t len = std::min(BLOCK, capacity - b * BLOCK);
             for (size_t j = 0U; j < len; ++j)
                 outArray[b * BLOCK + j] = norm(amps[j]);
         });
