@@ -57,9 +57,9 @@ QEngineCPU::QEngineCPU(bitLenInt qBitCount, const bitCapInt& initState, qrack_ra
     stateVec->clear();
 
     if (phaseFac == CMPLX_DEFAULT_ARG) {
-        stateVec->write((size_t)initState, GetNonunitaryPhase());
+        stateVec->write((size_t)(uint64_t)initState, GetNonunitaryPhase());
     } else {
-        stateVec->write((size_t)initState, phaseFac);
+        stateVec->write((size_t)(uint64_t)initState, phaseFac);
     }
 }
 
@@ -197,7 +197,7 @@ complex QEngineCPU::GetAmplitude(const bitCapInt& perm)
         return ZERO_CMPLX;
     }
 
-    return stateVec->read((size_t)perm);
+    return stateVec->read((size_t)(uint64_t)perm);
 }
 
 void QEngineCPU::SetAmplitude(const bitCapInt& perm, const complex& amp)
@@ -214,7 +214,7 @@ void QEngineCPU::SetAmplitude(const bitCapInt& perm, const complex& amp)
     }
 
     if (runningNorm != REAL1_DEFAULT_ARG) {
-        runningNorm += norm(amp) - norm(stateVec->read((size_t)perm));
+        runningNorm += norm(amp) - norm(stateVec->read((size_t)(uint64_t)perm));
     }
 
     if (!stateVec) {
@@ -222,7 +222,7 @@ void QEngineCPU::SetAmplitude(const bitCapInt& perm, const complex& amp)
         stateVec->clear();
     }
 
-    stateVec->write((size_t)perm, amp);
+    stateVec->write((size_t)(uint64_t)perm, amp);
 }
 
 void QEngineCPU::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
@@ -243,10 +243,10 @@ void QEngineCPU::SetPermutation(const bitCapInt& perm, const complex& phaseFac)
         } else {
             phase = ONE_CMPLX;
         }
-        stateVec->write((size_t)perm, phase);
+        stateVec->write((size_t)(uint64_t)perm, phase);
     } else {
         real1 nrm = abs(phaseFac);
-        stateVec->write((size_t)perm, phaseFac / nrm);
+        stateVec->write((size_t)(uint64_t)perm, phaseFac / nrm);
     }
 
     runningNorm = ONE_R1;
@@ -981,7 +981,7 @@ void QEngineCPU::XMask(const bitCapInt& mask)
     }
 
     Dispatch(maxQPowerOcl, [this, mask] {
-        const size_t maskOcl = (size_t)mask;
+        const size_t maskOcl = (size_t)(uint64_t)mask;
         const size_t otherMask = (maxQPowerOcl - 1U) ^ maskOcl;
         ParallelFunc fn = [&](const size_t& lcv, const unsigned& cpu) {
             const size_t otherRes = lcv & otherMask;
@@ -1032,7 +1032,7 @@ void QEngineCPU::PhaseParity(real1_f radians, const bitCapInt& mask)
         const real1 sine = (real1)sin(angle);
         const complex phaseFac(cosine, sine);
         const complex phaseFacAdj(cosine, -sine);
-        const size_t maskOcl = (size_t)mask;
+        const size_t maskOcl = (size_t)(uint64_t)mask;
         const size_t otherMask = (maxQPowerOcl - 1U) ^ maskOcl;
         par_for(0U, maxQPowerOcl, [&](const size_t& lcv, const unsigned& cpu) {
             const size_t otherRes = lcv & otherMask;
@@ -1078,7 +1078,7 @@ void QEngineCPU::PhaseRootNMask(bitLenInt n, const bitCapInt& mask)
     }
 
     Dispatch(maxQPowerOcl, [this, n, mask, radians] {
-        const size_t maskOcl = (size_t)mask;
+        const size_t maskOcl = (size_t)(uint64_t)mask;
         const size_t nPhases = pow2Ocl(n);
         par_for(0U, maxQPowerOcl, [&](const size_t& lcv, const unsigned& cpu) {
             const size_t nPhaseSteps = popCountOcl(lcv & maskOcl) % nPhases;
@@ -1096,7 +1096,7 @@ void QEngineCPU::UniformlyControlledSingleBit(const std::vector<bitLenInt>& cont
 
     // If there are no controls, the base case should be the non-controlled single bit gate.
     if (controls.empty()) {
-        return Mtrx(mtrxs + ((size_t)mtrxSkipValueMask * 4U), qubitIndex);
+        return Mtrx(mtrxs + ((size_t)(uint64_t)mtrxSkipValueMask * 4U), qubitIndex);
     }
 
     if (qubitIndex >= qubitCount) {
@@ -1112,9 +1112,9 @@ void QEngineCPU::UniformlyControlledSingleBit(const std::vector<bitLenInt>& cont
 
     std::vector<size_t> mtrxSkipPowersOcl(mtrxSkipPowers.size());
     std::transform(mtrxSkipPowers.begin(), mtrxSkipPowers.end(), mtrxSkipPowersOcl.begin(),
-        [](const bitCapInt& i) { return (size_t)i; });
+        [](const bitCapInt& i) { return (size_t)(uint64_t)i; });
 
-    const size_t mtrxSkipValueMaskOcl = (size_t)mtrxSkipValueMask;
+    const size_t mtrxSkipValueMaskOcl = (size_t)(uint64_t)mtrxSkipValueMask;
 
     const real1 nrm = (runningNorm > ZERO_R1) ? ONE_R1 / (real1)sqrt(runningNorm) : ONE_R1;
 
@@ -1215,8 +1215,8 @@ void QEngineCPU::UniformParityRZ(const bitCapInt& mask, real1_f angle)
             par_for_set(CastStateVecSparse()->iterable(), fn);
         } else {
             ParallelFunc fn = [&](const size_t& lcv, const unsigned& cpu) {
-                stateVec->write(
-                    lcv, stateVec->read(lcv) * ((popCountOcl(lcv & (size_t)mask) & 1U) ? phaseFac : phaseFacAdj));
+                stateVec->write(lcv,
+                    stateVec->read(lcv) * ((popCountOcl(lcv & (size_t)(uint64_t)mask) & 1U) ? phaseFac : phaseFacAdj));
             };
             par_for(0U, maxQPowerOcl, fn);
         }
@@ -1255,7 +1255,8 @@ void QEngineCPU::CUniformParityRZ(const std::vector<bitLenInt>& cControls, const
 
         par_for_mask(0U, maxQPowerOcl, controlPowers, [&](const size_t& lcv, const unsigned& cpu) {
             stateVec->write(controlMask | lcv,
-                stateVec->read(controlMask | lcv) * ((popCountOcl(lcv & (size_t)mask) & 1U) ? phaseFac : phaseFacAdj));
+                stateVec->read(controlMask | lcv) *
+                    ((popCountOcl(lcv & (size_t)(uint64_t)mask) & 1U) ? phaseFac : phaseFacAdj));
         });
     });
 }
@@ -1483,7 +1484,7 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
             src->NormalizeState();
         }
         src->Finish();
-        mask[i] = (src->maxQPowerOcl - 1U) << (size_t)nQubitCount;
+        mask[i] = (src->maxQPowerOcl - 1U) << nQubitCount;
         offset[i] = nQubitCount;
         ret[toCopy[i]] = nQubitCount;
         nQubitCount += src->GetQubitCount();
@@ -1718,10 +1719,10 @@ void QEngineCPU::Dispose(bitLenInt start, bitLenInt length, const bitCapInt& dis
         return SetQubitCount(nLength);
     }
 
-    const size_t disposedPermOcl = (size_t)disposedPerm;
+    const size_t disposedPermOcl = (size_t)(uint64_t)disposedPerm;
     const size_t remainderPower = pow2Ocl(nLength);
     const size_t skipMask = pow2Ocl(start) - 1U;
-    const size_t disposedRes = disposedPermOcl << (size_t)start;
+    const size_t disposedRes = disposedPermOcl << start;
 
     if (doNormalize) {
         NormalizeState();
@@ -1732,7 +1733,7 @@ void QEngineCPU::Dispose(bitLenInt start, bitLenInt length, const bitCapInt& dis
 
     par_for(0U, remainderPower, [&](const size_t& iHigh, const unsigned& cpu) {
         const size_t iLow = iHigh & skipMask;
-        nStateVec->write(iHigh, stateVec->read(iLow | ((iHigh ^ iLow) << (size_t)length) | disposedRes));
+        nStateVec->write(iHigh, stateVec->read(iLow | ((iHigh ^ iLow) << length) | disposedRes));
     });
 
     if (!nLength) {
@@ -1877,7 +1878,7 @@ real1_f QEngineCPU::ProbReg(bitLenInt start, bitLenInt length, const bitCapInt& 
         return ZERO_R1_F;
     }
 
-    const size_t perm = (size_t)permutation << ((size_t)start);
+    const size_t perm = ((size_t)(uint64_t)permutation) << start;
     const unsigned num_threads = GetConcurrencyLevel();
     std::unique_ptr<real1[]> probs(new real1[num_threads]());
 
@@ -1919,7 +1920,7 @@ real1_f QEngineCPU::ProbMask(const bitCapInt& mask, const bitCapInt& permutation
         return ZERO_R1_F;
     }
 
-    size_t v = (size_t)mask; // count the number of bits set in v
+    size_t v = (size_t)(uint64_t)mask; // count the number of bits set in v
     std::vector<size_t> skipPowersVec;
     while (v) {
         size_t oldV = v;
@@ -1927,7 +1928,7 @@ real1_f QEngineCPU::ProbMask(const bitCapInt& mask, const bitCapInt& permutation
         skipPowersVec.push_back((v ^ oldV) & oldV);
     }
 
-    const size_t permutationOcl = (size_t)permutation;
+    const size_t permutationOcl = (size_t)(uint64_t)permutation;
     const unsigned num_threads = GetConcurrencyLevel();
     std::unique_ptr<real1[]> probs(new real1[num_threads]());
 
@@ -1971,7 +1972,7 @@ real1_f QEngineCPU::ProbParity(const bitCapInt& mask)
         };
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
-        const size_t maskOcl = (size_t)mask;
+        const size_t maskOcl = (size_t)(uint64_t)mask;
         ParallelFunc fn = [&](const size_t& lcv, const unsigned& cpu) {
             if (popCountOcl(lcv & maskOcl) & 1U) {
                 oddChanceBuff[cpu] += norm(stateVec->read(lcv));
@@ -2062,7 +2063,7 @@ bool QEngineCPU::ForceMParity(const bitCapInt& mask, bool result, bool doForce)
     real1 oddChance = ZERO_R1;
 
     const unsigned numCores = GetConcurrencyLevel();
-    const size_t maskOcl = (size_t)mask;
+    const size_t maskOcl = (size_t)(uint64_t)mask;
     std::unique_ptr<real1[]> oddChanceBuff(new real1[numCores]());
 
     stateVec->isReadLocked = false;
@@ -2175,8 +2176,8 @@ void QEngineCPU::ApplyM(const bitCapInt& regMask, const bitCapInt& result, const
             };
             par_for_set(CastStateVecSparse()->iterable(), fn);
         } else {
-            const size_t regMaskOcl = (size_t)regMask;
-            const size_t resultOcl = (size_t)result;
+            const size_t regMaskOcl = (size_t)(uint64_t)regMask;
+            const size_t resultOcl = (size_t)(uint64_t)result;
             ParallelFunc fn = [&](const size_t& i, const unsigned& cpu) {
                 if ((i & regMaskOcl) == resultOcl) {
                     stateVec->write(i, nrm * stateVec->read(i));
