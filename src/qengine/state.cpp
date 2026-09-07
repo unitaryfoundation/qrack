@@ -728,7 +728,7 @@ void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex ma
     std::shared_ptr<complex> mtrxS(new complex[4U], std::default_delete<complex[]>());
     std::copy(matrix, matrix + 4U, mtrxS.get());
 
-    std::vector<bitLenInt> qPowersSorted(bitCount);
+    std::vector<size_t> qPowersSorted(bitCount);
     std::transform(
         qPowsSorted, qPowsSorted + bitCount, qPowersSorted, [](const bitCapInt& x) { return (size_t)(uint64_t)x; });
 
@@ -845,7 +845,7 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
     std::shared_ptr<complex> mtrxS(new complex[4U], std::default_delete<complex[]>());
     std::copy(matrix, matrix + 4U, mtrxS.get());
 
-    std::vector<bitLenInt> qPowersSorted(bitCount);
+    std::vector<size_t> qPowersSorted(bitCount);
     std::transform(
         qPowsSorted, qPowsSorted + bitCount, qPowersSorted, [](const bitCapInt& x) { return (size_t)(uint64_t)x; });
 
