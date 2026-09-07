@@ -729,8 +729,8 @@ void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex ma
     std::copy(matrix, matrix + 4U, mtrxS.get());
 
     std::vector<size_t> qPowersSorted(bitCount);
-    std::transform(
-        qPowsSorted, qPowsSorted + bitCount, qPowersSorted, [](const bitCapInt& x) { return (size_t)(uint64_t)x; });
+    std::transform(qPowsSorted, qPowsSorted + bitCount, qPowersSorted.begin(),
+        [](const bitCapInt& x) { return (size_t)(uint64_t)x; });
 
     const bool doApplyNorm = doNormalize && (bitCount == 1U) && (runningNorm > ZERO_R1);
     doCalcNorm &= doApplyNorm || (runningNorm <= ZERO_R1);
@@ -846,8 +846,8 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
     std::copy(matrix, matrix + 4U, mtrxS.get());
 
     std::vector<size_t> qPowersSorted(bitCount);
-    std::transform(
-        qPowsSorted, qPowsSorted + bitCount, qPowersSorted, [](const bitCapInt& x) { return (size_t)(uint64_t)x; });
+    std::transform(qPowsSorted, qPowsSorted + bitCount, qPowersSorted.begin(),
+        [](const bitCapInt& x) { return (size_t)(uint64_t)x; });
 
     const bool doApplyNorm = doNormalize && (bitCount == 1U) && (runningNorm > ZERO_R1);
     doCalcNorm &= doApplyNorm || (runningNorm <= ZERO_R1);
