@@ -728,7 +728,9 @@ void QEngineCPU::Apply2x2(bitCapInt offset1, bitCapInt offset2, const complex ma
     std::shared_ptr<complex> mtrxS(new complex[4U], std::default_delete<complex[]>());
     std::copy(matrix, matrix + 4U, mtrxS.get());
 
-    const std::vector<size_t> qPowersSorted(qPowsSorted, qPowsSorted + bitCount);
+    std::vector<bitLenInt> qPowersSorted(bitCount);
+    std::transform(
+        qPowsSorted, qPowsSorted + bitCount, qPowersSorted, [](const bitCapInt& x) { return (size_t)(uint64_t)x; });
 
     const bool doApplyNorm = doNormalize && (bitCount == 1U) && (runningNorm > ZERO_R1);
     doCalcNorm &= doApplyNorm || (runningNorm <= ZERO_R1);
@@ -843,7 +845,9 @@ void QEngineCPU::Apply2x2Sparse(bitCapInt offset1, bitCapInt offset2, const comp
     std::shared_ptr<complex> mtrxS(new complex[4U], std::default_delete<complex[]>());
     std::copy(matrix, matrix + 4U, mtrxS.get());
 
-    const std::vector<size_t> qPowersSorted(qPowsSorted, qPowsSorted + bitCount);
+    std::vector<bitLenInt> qPowersSorted(bitCount);
+    std::transform(
+        qPowsSorted, qPowsSorted + bitCount, qPowersSorted, [](const bitCapInt& x) { return (size_t)(uint64_t)x; });
 
     const bool doApplyNorm = doNormalize && (bitCount == 1U) && (runningNorm > ZERO_R1);
     doCalcNorm &= doApplyNorm || (runningNorm <= ZERO_R1);
@@ -1067,7 +1071,7 @@ void QEngineCPU::PhaseRootNMask(bitLenInt n, const bitCapInt& mask)
         return ZMask(mask);
     }
 
-    const real1_f radians = -PI_R1 / pow2Ocl(n - 1U);
+    const real1_f radians = -PI_R1 / pow2Cpu(n - 1U);
 
     if (isPowerOfTwo(mask)) {
         return Phase(ONE_CMPLX, std::polar(ONE_R1, (real1)radians), log2(mask));
@@ -1079,7 +1083,7 @@ void QEngineCPU::PhaseRootNMask(bitLenInt n, const bitCapInt& mask)
 
     Dispatch(maxQPowerOcl, [this, n, mask, radians] {
         const size_t maskOcl = (size_t)(uint64_t)mask;
-        const size_t nPhases = pow2Ocl(n);
+        const size_t nPhases = pow2Cpu(n);
         par_for(0U, maxQPowerOcl, [&](const size_t& lcv, const unsigned& cpu) {
             const size_t nPhaseSteps = popCountOcl(lcv & maskOcl) % nPhases;
             if (nPhaseSteps != 0U) {
@@ -1105,10 +1109,10 @@ void QEngineCPU::UniformlyControlledSingleBit(const std::vector<bitLenInt>& cont
 
     ThrowIfQbIdArrayIsBad(controls, qubitCount, "QEngineCPU::UniformlyControlledSingleBit control is out-of-bounds!");
 
-    const size_t targetPower = pow2Ocl(qubitIndex);
+    const size_t targetPower = pow2Cpu(qubitIndex);
 
     std::vector<size_t> qPowers(controls.size());
-    std::transform(controls.begin(), controls.end(), qPowers.begin(), pow2Ocl);
+    std::transform(controls.begin(), controls.end(), qPowers.begin(), [](const bitLenInt& x) { return pow2Cpu(x); });
 
     std::vector<size_t> mtrxSkipPowersOcl(mtrxSkipPowers.size());
     std::transform(mtrxSkipPowers.begin(), mtrxSkipPowers.end(), mtrxSkipPowersOcl.begin(),
@@ -1124,7 +1128,7 @@ void QEngineCPU::UniformlyControlledSingleBit(const std::vector<bitLenInt>& cont
             size_t offset = 0U;
             for (size_t j = 0U; j < controls.size(); ++j) {
                 if (lcv & qPowers[j]) {
-                    offset |= pow2Ocl(j);
+                    offset |= pow2Cpu(j);
                 }
             }
 
@@ -1156,7 +1160,7 @@ void QEngineCPU::UniformlyControlledSingleBit(const std::vector<bitLenInt>& cont
             size_t offset = 0U;
             for (size_t j = 0U; j < controls.size(); ++j) {
                 if (lcv & qPowers[j]) {
-                    offset |= pow2Ocl(j);
+                    offset |= pow2Cpu(j);
                 }
             }
 
@@ -1244,7 +1248,7 @@ void QEngineCPU::CUniformParityRZ(const std::vector<bitLenInt>& cControls, const
         size_t controlMask = 0U;
         std::vector<size_t> controlPowers(controls.size());
         for (size_t i = 0U; i < controls.size(); ++i) {
-            controlPowers[i] = pow2Ocl(controls[i]);
+            controlPowers[i] = pow2Cpu(controls[i]);
             controlMask |= controlPowers[i];
         }
 
@@ -1306,7 +1310,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
         return result;
     }
 
-    const size_t nMaxQPower = pow2Ocl(nQubitCount);
+    const size_t nMaxQPower = pow2Cpu(nQubitCount);
     const size_t startMask = maxQPowerOcl - 1U;
     const size_t endMask = (toCopy->maxQPowerOcl - 1U) << qubitCount;
 
@@ -1395,7 +1399,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
     }
 
     const bitLenInt oQubitCount = toCopy->qubitCount;
-    const size_t nMaxQPower = pow2Ocl(nQubitCount);
+    const size_t nMaxQPower = pow2Cpu(nQubitCount);
     const size_t startMask = pow2MaskOcl(start);
     const size_t midMask = bitRegMaskOcl(start, oQubitCount);
     const size_t endMask = pow2MaskOcl(qubitCount + oQubitCount) & ~(startMask | midMask);
@@ -1490,7 +1494,7 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
         nQubitCount += src->GetQubitCount();
     }
 
-    const size_t nMaxQPower = pow2Ocl(nQubitCount);
+    const size_t nMaxQPower = pow2Cpu(nQubitCount);
 
     StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
 
@@ -1581,8 +1585,8 @@ void QEngineCPU::DecomposeDispose(bitLenInt start, bitLenInt length, QEngineCPUP
         destination->SetPermutation(ZERO_BCI);
     }
 
-    const size_t partPower = pow2Ocl(length);
-    const size_t remainderPower = pow2Ocl(nLength);
+    const size_t partPower = pow2Cpu(length);
+    const size_t remainderPower = pow2Cpu(nLength);
 
     // Note that the extra parentheses mean to init as 0:
     std::unique_ptr<real1[]> remainderStateProb(new real1[remainderPower]());
@@ -1720,8 +1724,8 @@ void QEngineCPU::Dispose(bitLenInt start, bitLenInt length, const bitCapInt& dis
     }
 
     const size_t disposedPermOcl = (size_t)(uint64_t)disposedPerm;
-    const size_t remainderPower = pow2Ocl(nLength);
-    const size_t skipMask = pow2Ocl(start) - 1U;
+    const size_t remainderPower = pow2Cpu(nLength);
+    const size_t skipMask = pow2Cpu(start) - 1U;
     const size_t disposedRes = disposedPermOcl << start;
 
     if (doNormalize) {
@@ -1765,7 +1769,7 @@ real1_f QEngineCPU::Prob(bitLenInt qubit)
         return norm(stateVec->read(ONE_BCI));
     }
 
-    const size_t qPower = pow2Ocl(qubit);
+    const size_t qPower = pow2Cpu(qubit);
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> oneChanceBuff(new real1[numCores]());
 
@@ -1833,9 +1837,9 @@ real1_f QEngineCPU::CtrlOrAntiProb(bool controlState, bitLenInt control, bitLenI
             "QEngineCPU::CtrlOrAntiProb target index parameter must be within allocated qubit bounds!");
     }
 
-    const size_t qControlPower = pow2Ocl(control);
+    const size_t qControlPower = pow2Cpu(control);
     const size_t qControlMask = controlState ? qControlPower : 0U;
-    const size_t qPower = pow2Ocl(target);
+    const size_t qPower = pow2Cpu(target);
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> oneChanceBuff(new real1[numCores]());
 
@@ -1892,7 +1896,7 @@ real1_f QEngineCPU::ProbReg(bitLenInt start, bitLenInt length, const bitCapInt& 
         ParallelFunc fn = [&](const size_t& lcv, const unsigned& cpu) {
             probs[cpu] += norm(stateVec->read(lcv | perm));
         };
-        par_for_skip(0U, maxQPowerOcl, pow2Ocl(start), length, fn);
+        par_for_skip(0U, maxQPowerOcl, pow2Cpu(start), length, fn);
     }
     stateVec->isReadLocked = true;
 

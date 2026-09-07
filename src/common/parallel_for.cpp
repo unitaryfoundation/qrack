@@ -31,10 +31,10 @@ namespace Qrack {
 
 ParallelFor::ParallelFor()
 #if ENABLE_ENV_VARS
-    : pStride(getenv("QRACK_PSTRIDEPOW") ? pow2Ocl((bitLenInt)std::stoi(std::string(getenv("QRACK_PSTRIDEPOW"))))
-                                         : pow2Ocl((bitLenInt)PSTRIDEPOW))
+    : pStride(getenv("QRACK_PSTRIDEPOW") ? pow2Cpu((bitLenInt)std::stoi(std::string(getenv("QRACK_PSTRIDEPOW"))))
+                                         : pow2Cpu((bitLenInt)PSTRIDEPOW))
 #else
-    : pStride(pow2Ocl((bitLenInt)PSTRIDEPOW))
+    : pStride(pow2Cpu((bitLenInt)PSTRIDEPOW))
 #endif
 #if ENABLE_PTHREAD
     , numCores(std::thread::hardware_concurrency())
@@ -43,7 +43,7 @@ ParallelFor::ParallelFor()
 #endif
 {
     const bitLenInt pStridePow = log2Ocl(pStride);
-    const bitLenInt minStridePow = (numCores > 1U) ? (bitLenInt)pow2Ocl(log2Ocl(numCores - 1U)) : 0U;
+    const bitLenInt minStridePow = (numCores > 1U) ? (bitLenInt)pow2Cpu(log2Ocl(numCores - 1U)) : 0U;
     dispatchThreshold = (pStridePow > minStridePow) ? (pStridePow - minStridePow) : 0U;
 }
 

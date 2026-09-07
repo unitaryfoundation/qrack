@@ -155,6 +155,7 @@ inline bitLenInt log2(bitCapInt n) { return (bitLenInt)bi_log2(n); }
 
 inline bitCapInt pow2(const bitLenInt& p) { return ONE_BCI << p; }
 inline bitCapIntOcl pow2Ocl(const bitLenInt& p) { return (bitCapIntOcl)1U << p; }
+inline size_t pow2Cpu(const bitLenInt& p) { return (size_t)1U << p; }
 inline bitCapInt pow2Mask(const bitLenInt& p)
 {
     bitCapInt toRet = ONE_BCI << p;

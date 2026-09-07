@@ -142,7 +142,7 @@ bitCapInt QEngine::ForceM(const std::vector<bitLenInt>& bits, const std::vector<
         size_t result = 0U;
         for (size_t j = 0U; j < values.size(); ++j) {
             if (values[j]) {
-                result |= pow2Ocl(bits[j]);
+                result |= pow2Cpu(bits[j]);
             }
         }
         real1_f nrmlzr = ProbMask(regMask, result);
@@ -159,7 +159,7 @@ bitCapInt QEngine::ForceM(const std::vector<bitLenInt>& bits, const std::vector<
         NormalizeState();
     }
 
-    const size_t lengthPower = pow2Ocl(bits.size());
+    const size_t lengthPower = pow2Cpu(bits.size());
     real1_f prob = Rand();
     std::unique_ptr<real1[]> probArray(new real1[lengthPower]);
 
@@ -192,7 +192,7 @@ bitCapInt QEngine::ForceM(const std::vector<bitLenInt>& bits, const std::vector<
 
     size_t i = 0U;
     for (size_t p = 0U; p < bits.size(); ++p) {
-        if (result & pow2Ocl(p)) {
+        if (result & pow2Cpu(p)) {
             i |= (size_t)(uint64_t)qPowers[p];
         }
     }
@@ -256,8 +256,8 @@ void QEngine::AntiCSwap(const std::vector<bitLenInt>& controls, bitLenInt qubit1
     for (size_t i = 0U; i < controls.size(); ++i) {
         qPowersSorted[i] = pow2(controls[i]);
     }
-    qPowersSorted[controls.size()] = pow2Ocl(qubit1);
-    qPowersSorted[controls.size() + 1U] = pow2Ocl(qubit2);
+    qPowersSorted[controls.size()] = pow2(qubit1);
+    qPowersSorted[controls.size() + 1U] = pow2(qubit2);
     std::sort(qPowersSorted.get(), qPowersSorted.get() + controls.size() + 2U);
     Apply2x2(pow2(qubit1), pow2(qubit2), pauliX, controls.size() + 2U, qPowersSorted.get(), false);
 }
@@ -306,10 +306,10 @@ void QEngine::AntiCSqrtSwap(const std::vector<bitLenInt>& controls, bitLenInt qu
     QRACK_CONST complex sqrtX[4]{ HALF_I_HALF_CMPLX, HALF_NEG_I_HALF_CMPLX, HALF_NEG_I_HALF_CMPLX, HALF_I_HALF_CMPLX };
     std::unique_ptr<bitCapInt[]> qPowersSorted(new bitCapInt[controls.size() + 2U]);
     for (size_t i = 0U; i < controls.size(); ++i) {
-        qPowersSorted[i] = pow2Ocl(controls[i]);
+        qPowersSorted[i] = pow2(controls[i]);
     }
-    qPowersSorted[controls.size()] = pow2Ocl(qubit1);
-    qPowersSorted[controls.size() + 1U] = pow2Ocl(qubit2);
+    qPowersSorted[controls.size()] = pow2(qubit1);
+    qPowersSorted[controls.size() + 1U] = pow2(qubit2);
     std::sort(qPowersSorted.get(), qPowersSorted.get() + controls.size() + 2U);
     Apply2x2(pow2(qubit1), pow2(qubit2), sqrtX, controls.size() + 2U, qPowersSorted.get(), false);
 }
@@ -371,7 +371,7 @@ void QEngine::AntiCISqrtSwap(const std::vector<bitLenInt>& controls, bitLenInt q
 void QEngine::ApplyControlled2x2(const std::vector<bitLenInt>& controls, bitLenInt target, const complex mtrx[4U])
 {
     std::unique_ptr<bitCapInt[]> qPowersSorted(new bitCapInt[controls.size() + 1U]);
-    const bitCapInt targetMask = pow2Ocl(target);
+    const bitCapInt targetMask = pow2(target);
     bitCapInt fullMask = 0U;
     for (size_t i = 0U; i < controls.size(); ++i) {
         qPowersSorted[i] = pow2(controls[i]);
@@ -477,7 +477,7 @@ real1_f QEngine::CtrlOrAntiProb(bool controlState, bitLenInt control, bitLenInt 
 
 void QEngine::ProbRegAll(bitLenInt start, bitLenInt length, real1* probsArray)
 {
-    const size_t lengthMask = pow2Ocl(length) - 1U;
+    const size_t lengthMask = pow2Cpu(length) - 1U;
     std::fill(probsArray, probsArray + lengthMask + 1U, ZERO_R1);
     for (size_t i = 0U; i < maxQPowerOcl; ++i) {
         size_t reg = (i >> start) & lengthMask;
@@ -497,7 +497,7 @@ bitCapInt QEngine::ForceMReg(bitLenInt start, bitLenInt length, const bitCapInt&
         return ForceM(start, bi_and_1(_result), doForce, doApply) ? ONE_BCI : ZERO_BCI;
     }
 
-    const size_t lengthPower = pow2Ocl(length);
+    const size_t lengthPower = pow2Cpu(length);
     const size_t regMask = (lengthPower - 1U) << start;
     real1 nrmlzr = ONE_R1;
 
@@ -551,7 +551,7 @@ std::map<bitCapInt, int> QEngine::MultiShotMeasureMask(const std::vector<bitCapI
     ThrowIfQbIdArrayIsBad(bitMap, qubitCount,
         "QInterface::MultiShotMeasureMask parameter qPowers array values must be within allocated qubit bounds!");
 
-    const size_t maskMaxQPower = (size_t)(uint64_t)pow2Ocl(qPowers.size());
+    const size_t maskMaxQPower = pow2Cpu(qPowers.size());
     std::vector<real1> maskProbsVec(maskMaxQPower);
     ProbBitsAll(bitMap, &(maskProbsVec[0]));
     std::discrete_distribution<size_t> dist(maskProbsVec.begin(), maskProbsVec.end());
@@ -591,7 +591,7 @@ void QEngine::MultiShotMeasureMask(
     ThrowIfQbIdArrayIsBad(bitMap, qubitCount,
         "QInterface::MultiShotMeasureMask parameter qPowers array values must be within allocated qubit bounds!");
 
-    const size_t maskMaxQPower = (size_t)(uint64_t)pow2Ocl(qPowers.size());
+    const size_t maskMaxQPower = pow2Cpu(qPowers.size());
     std::vector<real1> maskProbsVec(maskMaxQPower);
     ProbBitsAll(bitMap, &(maskProbsVec[0]));
     std::discrete_distribution<size_t> dist(maskProbsVec.begin(), maskProbsVec.end());
