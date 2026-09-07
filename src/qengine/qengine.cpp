@@ -193,7 +193,7 @@ bitCapInt QEngine::ForceM(const std::vector<bitLenInt>& bits, const std::vector<
     size_t i = 0U;
     for (size_t p = 0U; p < bits.size(); ++p) {
         if (result & pow2Ocl(p)) {
-            i |= (size_t)qPowers[p];
+            i |= (size_t)(uint64_t)qPowers[p];
         }
     }
     result = i;
@@ -498,7 +498,7 @@ bitCapInt QEngine::ForceMReg(bitLenInt start, bitLenInt length, const bitCapInt&
     }
 
     const size_t lengthPower = pow2Ocl(length);
-    const size_t regMask = (lengthPower - 1U) << (size_t)start;
+    const size_t regMask = (lengthPower - 1U) << start;
     real1 nrmlzr = ONE_R1;
 
     bitCapInt result = _result;
@@ -551,8 +551,8 @@ std::map<bitCapInt, int> QEngine::MultiShotMeasureMask(const std::vector<bitCapI
     ThrowIfQbIdArrayIsBad(bitMap, qubitCount,
         "QInterface::MultiShotMeasureMask parameter qPowers array values must be within allocated qubit bounds!");
 
-    const size_t maskMaxQPower = pow2Ocl(qPowers.size());
-    std::vector<real1> maskProbsVec((size_t)maskMaxQPower);
+    const size_t maskMaxQPower = (size_t)(uint64_t)pow2Ocl(qPowers.size());
+    std::vector<real1> maskProbsVec(maskMaxQPower);
     ProbBitsAll(bitMap, &(maskProbsVec[0]));
     std::discrete_distribution<size_t> dist(maskProbsVec.begin(), maskProbsVec.end());
 
@@ -591,8 +591,8 @@ void QEngine::MultiShotMeasureMask(
     ThrowIfQbIdArrayIsBad(bitMap, qubitCount,
         "QInterface::MultiShotMeasureMask parameter qPowers array values must be within allocated qubit bounds!");
 
-    const size_t maskMaxQPower = pow2Ocl(qPowers.size());
-    std::vector<real1> maskProbsVec((size_t)maskMaxQPower);
+    const size_t maskMaxQPower = (size_t)(uint64_t)pow2Ocl(qPowers.size());
+    std::vector<real1> maskProbsVec(maskMaxQPower);
     ProbBitsAll(bitMap, &(maskProbsVec[0]));
     std::discrete_distribution<size_t> dist(maskProbsVec.begin(), maskProbsVec.end());
 
