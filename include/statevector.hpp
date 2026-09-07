@@ -49,12 +49,12 @@ class StateVectorSparse;
 // This is a buffer struct that's capable of representing controlled single bit gates and arithmetic, when subclassed.
 class StateVector : public ParallelFor {
 protected:
-    bitCapIntOcl capacity;
+    size_t capacity;
 
 public:
     bool isReadLocked;
 
-    StateVector(bitCapIntOcl cap)
+    StateVector(size_t cap)
         : capacity(cap)
         , isReadLocked(true)
     {
@@ -64,25 +64,25 @@ public:
         // Intentionally left blank.
     }
 
-    virtual complex read(const bitCapIntOcl& i) = 0;
+    virtual complex read(const size_t& i) = 0;
     virtual complex read(const bitCapInt& i) = 0;
 #if ENABLE_COMPLEX_X2
-    virtual complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2) = 0;
+    virtual complex2 read2(const size_t& i1, const size_t& i2) = 0;
     virtual complex2 read2(const bitCapInt& i1, const bitCapInt& i2) = 0;
 #endif
-    virtual void write(const bitCapIntOcl& i, const complex& c) = 0;
+    virtual void write(const size_t& i, const complex& c) = 0;
     virtual void write(const bitCapInt& i, const complex& c) = 0;
     /// Optimized "write" that is only guaranteed to write if either amplitude is nonzero. (Useful for the result of 2x2
     /// tensor slicing.)
-    virtual void write2(const bitCapIntOcl& i1, const complex& c1, const bitCapIntOcl& i2, const complex& c2) = 0;
+    virtual void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2) = 0;
     virtual void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2) = 0;
     virtual void clear() = 0;
     virtual void copy_in(const complex* inArray) = 0;
-    virtual void copy_in(const complex* copyIn, const bitCapIntOcl offset, const bitCapIntOcl length) = 0;
-    virtual void copy_in(StateVectorPtr copyInSv, const bitCapIntOcl srcOffset, const bitCapIntOcl dstOffset,
-        const bitCapIntOcl length) = 0;
+    virtual void copy_in(const complex* copyIn, const size_t offset, const size_t length) = 0;
+    virtual void copy_in(
+        StateVectorPtr copyInSv, const size_t srcOffset, const size_t dstOffset, const size_t length) = 0;
     virtual void copy_out(complex* outArray) = 0;
-    virtual void copy_out(complex* copyIn, const bitCapIntOcl offset, const bitCapIntOcl length) = 0;
+    virtual void copy_out(complex* copyIn, const size_t offset, const size_t length) = 0;
     virtual void copy(StateVectorPtr toCopy) = 0;
     virtual void shuffle(StateVectorPtr svp) = 0;
     virtual void get_probs(real1* outArray) = 0;
@@ -95,7 +95,7 @@ public:
 
 protected:
 #if defined(__APPLE__)
-    static complex* _aligned_state_vec_alloc(bitCapIntOcl allocSize)
+    static complex* _aligned_state_vec_alloc(size_t allocSize)
     {
         void* toRet;
         posix_memalign(&toRet, QRACK_ALIGN_SIZE, allocSize);
@@ -103,7 +103,7 @@ protected:
     }
 #endif
 
-    static std::unique_ptr<complex[], void (*)(complex*)> Alloc(bitCapIntOcl elemCount)
+    static std::unique_ptr<complex[], void (*)(complex*)> Alloc(size_t elemCount)
     {
 #if defined(__ANDROID__)
         return std::unique_ptr<complex[], void (*)(complex*)>(new complex[elemCount], [](complex* c) { delete c; });
@@ -129,7 +129,7 @@ protected:
     virtual void Free() { amplitudes = nullptr; }
 
 public:
-    StateVectorArray(bitCapIntOcl cap)
+    StateVectorArray(size_t cap)
         : StateVector(cap)
         , amplitudes(Alloc(capacity))
     {
@@ -140,28 +140,25 @@ public:
 
     complex* get_raw() { return amplitudes.get(); }
 
-    complex read(const bitCapInt& i) { return read((bitCapIntOcl)i); }
+    complex read(const bitCapInt& i) { return read((size_t)i); }
 #if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { return read2((bitCapIntOcl)i1, (bitCapIntOcl)i2); }
+    complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { return read2((size_t)i1, (size_t)i2); }
 #endif
-    void write(const bitCapInt& i, const complex& c) { write((bitCapIntOcl)i, c); }
+    void write(const bitCapInt& i, const complex& c) { write((size_t)i, c); }
     void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
     {
-        write2((bitCapIntOcl)i1, c1, (bitCapIntOcl)i2, c2);
+        write2((size_t)i1, c1, (size_t)i2, c2);
     }
 
-    complex read(const bitCapIntOcl& i) { return amplitudes.get()[i]; };
+    complex read(const size_t& i) { return amplitudes.get()[i]; };
 
 #if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2)
-    {
-        return complex2(amplitudes.get()[i1], amplitudes.get()[i2]);
-    }
+    complex2 read2(const size_t& i1, const size_t& i2) { return complex2(amplitudes.get()[i1], amplitudes.get()[i2]); }
 #endif
 
-    void write(const bitCapIntOcl& i, const complex& c) { amplitudes.get()[i] = c; };
+    void write(const size_t& i, const complex& c) { amplitudes.get()[i] = c; };
 
-    void write2(const bitCapIntOcl& i1, const complex& c1, const bitCapIntOcl& i2, const complex& c2)
+    void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
     {
         amplitudes.get()[i1] = c1;
         amplitudes.get()[i2] = c2;
@@ -169,67 +166,63 @@ public:
 
     void clear()
     {
-        par_for(0, capacity, [&](const bitCapIntOcl& lcv, const unsigned& cpu) { amplitudes[lcv] = ZERO_CMPLX; });
+        par_for(0, capacity, [&](const size_t& lcv, const unsigned& cpu) { amplitudes[lcv] = ZERO_CMPLX; });
     }
 
     void copy_in(const complex* copyIn)
     {
         if (copyIn) {
-            par_for(0, capacity, [&](const bitCapIntOcl& lcv, const unsigned& cpu) { amplitudes[lcv] = copyIn[lcv]; });
+            par_for(0, capacity, [&](const size_t& lcv, const unsigned& cpu) { amplitudes[lcv] = copyIn[lcv]; });
         } else {
-            par_for(0, capacity, [&](const bitCapIntOcl& lcv, const unsigned& cpu) { amplitudes[lcv] = ZERO_CMPLX; });
+            par_for(0, capacity, [&](const size_t& lcv, const unsigned& cpu) { amplitudes[lcv] = ZERO_CMPLX; });
         }
     }
 
-    void copy_in(const complex* copyIn, const bitCapIntOcl offset, const bitCapIntOcl length)
+    void copy_in(const complex* copyIn, const size_t offset, const size_t length)
     {
         if (copyIn) {
-            par_for(0, length,
-                [&](const bitCapIntOcl& lcv, const unsigned& cpu) { amplitudes[lcv + offset] = copyIn[lcv]; });
+            par_for(0, length, [&](const size_t& lcv, const unsigned& cpu) { amplitudes[lcv + offset] = copyIn[lcv]; });
         } else {
-            par_for(0, length,
-                [&](const bitCapIntOcl& lcv, const unsigned& cpu) { amplitudes[lcv + offset] = ZERO_CMPLX; });
+            par_for(0, length, [&](const size_t& lcv, const unsigned& cpu) { amplitudes[lcv + offset] = ZERO_CMPLX; });
         }
     }
 
-    void copy_in(
-        StateVectorPtr copyInSv, const bitCapIntOcl srcOffset, const bitCapIntOcl dstOffset, const bitCapIntOcl length)
+    void copy_in(StateVectorPtr copyInSv, const size_t srcOffset, const size_t dstOffset, const size_t length)
     {
         if (copyInSv) {
             const complex* copyIn = std::dynamic_pointer_cast<StateVectorArray>(copyInSv)->amplitudes.get() + srcOffset;
-            par_for(0, length,
-                [&](const bitCapIntOcl& lcv, const unsigned& cpu) { amplitudes[lcv + dstOffset] = copyIn[lcv]; });
+            par_for(
+                0, length, [&](const size_t& lcv, const unsigned& cpu) { amplitudes[lcv + dstOffset] = copyIn[lcv]; });
         } else {
-            par_for(0, length,
-                [&](const bitCapIntOcl& lcv, const unsigned& cpu) { amplitudes[lcv + dstOffset] = ZERO_CMPLX; });
+            par_for(
+                0, length, [&](const size_t& lcv, const unsigned& cpu) { amplitudes[lcv + dstOffset] = ZERO_CMPLX; });
         }
     }
 
     void copy_out(complex* copyOut)
     {
-        par_for(0, capacity, [&](const bitCapIntOcl& lcv, const unsigned& cpu) { copyOut[lcv] = amplitudes[lcv]; });
+        par_for(0, capacity, [&](const size_t& lcv, const unsigned& cpu) { copyOut[lcv] = amplitudes[lcv]; });
     }
 
-    void copy_out(complex* copyOut, const bitCapIntOcl offset, const bitCapIntOcl length)
+    void copy_out(complex* copyOut, const size_t offset, const size_t length)
     {
-        par_for(
-            0, length, [&](const bitCapIntOcl& lcv, const unsigned& cpu) { copyOut[lcv] = amplitudes[lcv + offset]; });
+        par_for(0, length, [&](const size_t& lcv, const unsigned& cpu) { copyOut[lcv] = amplitudes[lcv + offset]; });
     }
 
     void copy(StateVectorPtr toCopy) { copy(std::dynamic_pointer_cast<StateVectorArray>(toCopy)); }
 
     void copy(StateVectorArrayPtr toCopy)
     {
-        par_for(0, capacity,
-            [&](const bitCapIntOcl& lcv, const unsigned& cpu) { amplitudes[lcv] = toCopy->amplitudes[lcv]; });
+        par_for(
+            0, capacity, [&](const size_t& lcv, const unsigned& cpu) { amplitudes[lcv] = toCopy->amplitudes[lcv]; });
     }
 
     void shuffle(StateVectorPtr svp) { shuffle(std::dynamic_pointer_cast<StateVectorArray>(svp)); }
 
     void shuffle(StateVectorArrayPtr svp)
     {
-        const bitCapIntOcl offset = capacity >> 1U;
-        par_for(0, offset, [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+        const size_t offset = capacity >> 1U;
+        par_for(0, offset, [&](const size_t& lcv, const unsigned& cpu) {
             const complex tmp = amplitudes[lcv + offset];
             amplitudes[lcv + offset] = svp->amplitudes[lcv];
             svp->amplitudes[lcv] = tmp;
@@ -238,8 +231,7 @@ public:
 
     void get_probs(real1* outArray)
     {
-        par_for(
-            0, capacity, [&](const bitCapIntOcl& lcv, const unsigned& cpu) { outArray[lcv] = norm(amplitudes[lcv]); });
+        par_for(0, capacity, [&](const size_t& lcv, const unsigned& cpu) { outArray[lcv] = norm(amplitudes[lcv]); });
     }
 
     bool is_sparse() { return false; }
@@ -263,18 +255,18 @@ protected:
     }
 
 public:
-    StateVectorSparse(bitCapIntOcl cap)
+    StateVectorSparse(size_t cap)
         : StateVector(cap)
         , amplitudes()
     {
     }
 
-    complex read(const bitCapIntOcl& i) { return read((bitCapInt)i); }
+    complex read(const size_t& i) { return read((bitCapInt)i); }
 #if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
+    complex2 read2(const size_t& i1, const size_t& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
 #endif
-    void write(const bitCapIntOcl& i, const complex& c) { write((bitCapInt)i, c); }
-    void write2(const bitCapIntOcl& i1, const complex& c1, const bitCapIntOcl& i2, const complex& c2)
+    void write(const size_t& i, const complex& c) { write((bitCapInt)i, c); }
+    void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
     {
         write2((bitCapInt)i1, c1, (bitCapInt)i2, c2);
     }
@@ -410,7 +402,7 @@ public:
         }
 
         std::lock_guard<std::mutex> lock(mtx);
-        for (bitCapIntOcl i = 0U; i < capacity; ++i) {
+        for (size_t i = 0U; i < capacity; ++i) {
             if (abs(copyIn[i]) <= REAL1_EPSILON) {
                 amplitudes.erase(i);
             } else {
@@ -419,11 +411,11 @@ public:
         }
     }
 
-    void copy_in(const complex* copyIn, const bitCapIntOcl offset, const bitCapIntOcl length)
+    void copy_in(const complex* copyIn, const size_t offset, const size_t length)
     {
         if (!copyIn) {
             std::lock_guard<std::mutex> lock(mtx);
-            for (bitCapIntOcl i = 0U; i < length; ++i) {
+            for (size_t i = 0U; i < length; ++i) {
                 amplitudes.erase(i);
             }
 
@@ -431,7 +423,7 @@ public:
         }
 
         std::lock_guard<std::mutex> lock(mtx);
-        for (bitCapIntOcl i = 0U; i < length; ++i) {
+        for (size_t i = 0U; i < length; ++i) {
             if (abs(copyIn[i]) <= REAL1_EPSILON) {
                 amplitudes.erase(i);
             } else {
@@ -440,14 +432,13 @@ public:
         }
     }
 
-    void copy_in(
-        StateVectorPtr copyInSv, const bitCapIntOcl srcOffset, const bitCapIntOcl dstOffset, const bitCapIntOcl length)
+    void copy_in(StateVectorPtr copyInSv, const size_t srcOffset, const size_t dstOffset, const size_t length)
     {
         StateVectorSparsePtr copyIn = std::dynamic_pointer_cast<StateVectorSparse>(copyInSv);
 
         if (!copyIn) {
             std::lock_guard<std::mutex> lock(mtx);
-            for (bitCapIntOcl i = 0U; i < length; ++i) {
+            for (size_t i = 0U; i < length; ++i) {
                 amplitudes.erase(i + srcOffset);
             }
 
@@ -455,7 +446,7 @@ public:
         }
 
         std::lock_guard<std::mutex> lock(mtx);
-        for (bitCapIntOcl i = 0U; i < length; ++i) {
+        for (size_t i = 0U; i < length; ++i) {
             complex amp = copyIn->read(i + srcOffset);
             if (abs(amp) <= REAL1_EPSILON) {
                 amplitudes.erase(i + srcOffset);
@@ -467,14 +458,14 @@ public:
 
     void copy_out(complex* copyOut)
     {
-        for (bitCapIntOcl i = 0U; i < capacity; ++i) {
+        for (size_t i = 0U; i < capacity; ++i) {
             copyOut[i] = read(i);
         }
     }
 
-    void copy_out(complex* copyOut, const bitCapIntOcl offset, const bitCapIntOcl length)
+    void copy_out(complex* copyOut, const size_t offset, const size_t length)
     {
-        for (bitCapIntOcl i = 0U; i < length; ++i) {
+        for (size_t i = 0U; i < length; ++i) {
             copyOut[i] = read(i + offset);
         }
     }
@@ -493,7 +484,7 @@ public:
     {
         const size_t halfCap = (size_t)(capacity >> 1U);
         std::lock_guard<std::mutex> lock(mtx);
-        for (bitCapIntOcl i = 0U; i < halfCap; ++i) {
+        for (size_t i = 0U; i < halfCap; ++i) {
             complex amp = svp->read(i);
             svp->write(i, read(i + halfCap));
             write(i + halfCap, amp);
@@ -502,7 +493,7 @@ public:
 
     void get_probs(real1* outArray)
     {
-        for (bitCapIntOcl i = 0U; i < capacity; ++i) {
+        for (size_t i = 0U; i < capacity; ++i) {
             outArray[i] = norm(read(i));
         }
     }
@@ -518,7 +509,7 @@ public:
         if (true) {
             std::lock_guard<std::mutex> lock(mtx);
 
-            par_for(0U, amplitudes.size(), [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+            par_for(0U, amplitudes.size(), [&](const size_t& lcv, const unsigned& cpu) {
                 auto it = amplitudes.begin();
                 std::advance(it, lcv);
                 toRet[cpu].push_back(it->first);
@@ -587,14 +578,14 @@ public:
             std::lock_guard<std::mutex> lock(mtx);
 
             if ((filterMask == ZERO_BCI) && (filterValues == ZERO_BCI)) {
-                par_for(0U, amplitudes.size(), [&](const bitCapIntOcl& lcv, const unsigned& cpu) {
+                par_for(0U, amplitudes.size(), [&](const size_t& lcv, const unsigned& cpu) {
                     auto it = amplitudes.begin();
                     std::advance(it, lcv);
                     toRet[cpu].insert(it->first & unsetMask);
                 });
             } else {
                 const bitCapInt unfilterMask = ~filterMask;
-                par_for(0U, amplitudes.size(), [&](const bitCapIntOcl lcv, const unsigned& cpu) {
+                par_for(0U, amplitudes.size(), [&](const size_t lcv, const unsigned& cpu) {
                     auto it = amplitudes.begin();
                     std::advance(it, lcv);
                     if ((it->first & filterMask) == filterValues) {

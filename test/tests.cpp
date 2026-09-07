@@ -245,7 +245,7 @@ TEST_CASE("test_qengine_cpu_par_for_mask")
     std::atomic_bool hit[NUM_ENTRIES];
     std::atomic_int calls;
 
-    const std::vector<bitCapIntOcl> skipArray{ 0x4, 0x100 }; // Skip bits 0b100000100
+    const std::vector<size_t> skipArray{ 0x4, 0x100 }; // Skip bits 0b100000100
     int NUM_SKIP = skipArray.size();
 
     calls.store(0);

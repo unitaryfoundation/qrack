@@ -453,8 +453,8 @@ protected:
     std::vector<TurboBlock> blocks;
     std::vector<std::mutex> block_mutexes;
 
-    size_t block_of(const bitCapIntOcl i) const { return (size_t)(i / BLOCK); }
-    size_t offset_in(const bitCapIntOcl i) const { return (size_t)(i % BLOCK); }
+    size_t block_of(const size_t i) const { return (size_t)(i / BLOCK); }
+    size_t offset_in(const size_t i) const { return (size_t)(i % BLOCK); }
 
     template <typename F> void with_block(const size_t b, F&& f)
     {
@@ -467,7 +467,7 @@ protected:
 
 public:
     // Construct from raw amplitudes (nullptr = |0⟩)
-    StateVectorTurboQuant(bitCapIntOcl cap, int p, int b, const complex* copyIn)
+    StateVectorTurboQuant(size_t cap, int p, int b, const complex* copyIn)
         : StateVector(cap)
         , BLOCK(1ULL << p)
         , num_blocks((cap + (1ULL << p) - 1U) / (1ULL << p))
@@ -477,7 +477,7 @@ public:
         copy_in(copyIn);
     }
 
-    bitCapIntOcl get_size() { return capacity; }
+    size_t get_size() { return capacity; }
 
     // --- Serialization ------------------------------------------------------
     //
@@ -499,7 +499,7 @@ public:
 
     static StateVectorTurboQuantPtr load(std::istream& is)
     {
-        const bitCapIntOcl cap = (bitCapIntOcl)_tq_read_size(is);
+        const size_t cap = (size_t)_tq_read_size(is);
         const size_t block_size = _tq_read_size(is);
         const size_t nblocks = _tq_read_size(is);
 
@@ -538,8 +538,8 @@ public:
 
     // --- StateVector interface ----------------------------------------------
 
-    complex read(const bitCapInt& i) { return read((bitCapIntOcl)i); }
-    complex read(const bitCapIntOcl& i)
+    complex read(const bitCapInt& i) { return read((size_t)i); }
+    complex read(const size_t& i)
     {
         std::vector<complex> amps(BLOCK);
         blocks[block_of(i)].decompress(amps.data());
@@ -547,22 +547,22 @@ public:
     }
 
 #if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { return read2((bitCapIntOcl)i1, (bitCapIntOcl)i2); }
-    complex2 read2(const bitCapIntOcl& i1, const bitCapIntOcl& i2) { return complex2(read(i1), read(i2)); }
+    complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { return read2((size_t)i1, (size_t)i2); }
+    complex2 read2(const size_t& i1, const size_t& i2) { return complex2(read(i1), read(i2)); }
 #endif
 
-    void write(const bitCapInt& i, const complex& c) { write((bitCapIntOcl)i, c); }
-    void write(const bitCapIntOcl& i, const complex& c)
+    void write(const bitCapInt& i, const complex& c) { write((size_t)i, c); }
+    void write(const size_t& i, const complex& c)
     {
         with_block(block_of(i), [&](complex* amps, size_t) { amps[offset_in(i)] = c; });
     }
 
     void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
     {
-        write2((bitCapIntOcl)i1, c1, (bitCapIntOcl)i2, c2);
+        write2((size_t)i1, c1, (size_t)i2, c2);
     }
 
-    void write2(const bitCapIntOcl& i1, const complex& c1, const bitCapIntOcl& i2, const complex& c2)
+    void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
     {
         const size_t b1 = block_of(i1), b2 = block_of(i2);
         if (b1 == b2) {
@@ -586,7 +586,7 @@ public:
 
     void clear()
     {
-        par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
+        par_for(0U, num_blocks, [&](const size_t& b, const unsigned&) {
             std::vector<complex> z(BLOCK, ZERO_CMPLX);
             blocks[b].compress(z.data());
         });
@@ -594,7 +594,7 @@ public:
 
     void copy_in(const complex* copyIn)
     {
-        par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
+        par_for(0U, num_blocks, [&](const size_t& b, const unsigned&) {
             std::vector<complex> amps(BLOCK, ZERO_CMPLX);
             if (copyIn) {
                 const size_t len = std::min(BLOCK, (size_t)(capacity - b * BLOCK));
@@ -604,7 +604,7 @@ public:
         });
     }
 
-    void copy_in(const complex* copyIn, const bitCapIntOcl offset, const bitCapIntOcl length)
+    void copy_in(const complex* copyIn, const size_t offset, const size_t length)
     {
         if (!length)
             return;
@@ -622,18 +622,18 @@ public:
         }
     }
 
-    void copy_in(StateVectorPtr sv, const bitCapIntOcl src, const bitCapIntOcl dst, const bitCapIntOcl len)
+    void copy_in(StateVectorPtr sv, const size_t src, const size_t dst, const size_t len)
     {
         std::vector<complex> tmp(len, ZERO_CMPLX);
         if (sv)
-            for (bitCapIntOcl i = 0U; i < len; ++i)
+            for (size_t i = 0U; i < len; ++i)
                 tmp[i] = sv->read(src + i);
         copy_in(sv ? tmp.data() : nullptr, dst, len);
     }
 
     void copy_out(complex* out)
     {
-        par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
+        par_for(0U, num_blocks, [&](const size_t& b, const unsigned&) {
             std::vector<complex> amps(BLOCK);
             blocks[b].decompress(amps.data());
             const size_t len = std::min(BLOCK, (size_t)(capacity - b * BLOCK));
@@ -641,9 +641,9 @@ public:
         });
     }
 
-    void copy_out(complex* out, const bitCapIntOcl offset, const bitCapIntOcl length)
+    void copy_out(complex* out, const size_t offset, const size_t length)
     {
-        for (bitCapIntOcl i = 0U; i < length; ++i)
+        for (size_t i = 0U; i < length; ++i)
             out[i] = read(offset + i);
     }
 
@@ -651,7 +651,7 @@ public:
     {
         auto src = std::dynamic_pointer_cast<StateVectorTurboQuant>(toCopy);
         if (src) {
-            par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
+            par_for(0U, num_blocks, [&](const size_t& b, const unsigned&) {
                 std::lock_guard<std::mutex> lk(block_mutexes[b]);
                 blocks[b] = src->blocks[b];
             });
@@ -667,15 +667,14 @@ public:
         // Swap upper and lower halves block-by-block.
         // For capacity that is a power of 2, the upper half starts at capacity/2
         auto other = std::dynamic_pointer_cast<StateVectorTurboQuant>(svp);
-        const bitCapIntOcl half = capacity >> 1U;
+        const size_t half = capacity >> 1U;
         const size_t hb = (size_t)(half / BLOCK);
         if (other && (half % BLOCK == 0U)) {
             // Block-aligned shuffle: swap block pointers (swap the TurboBlock objects)
-            par_for(
-                0U, hb, [&](const bitCapIntOcl& b, const unsigned&) { std::swap(blocks[b + hb], other->blocks[b]); });
+            par_for(0U, hb, [&](const size_t& b, const unsigned&) { std::swap(blocks[b + hb], other->blocks[b]); });
         } else {
             // Fallback: decompress, swap, recompress
-            par_for(0U, half, [&](const bitCapIntOcl& i, const unsigned&) {
+            par_for(0U, half, [&](const size_t& i, const unsigned&) {
                 complex amp = svp->read(i);
                 svp->write(i, read(i + half));
                 write(i + half, amp);
@@ -687,7 +686,7 @@ public:
     {
         // Decompress block by block — norm preservation only holds for total block norm,
         // not per-amplitude, so we must decompress to get per-amplitude probs.
-        par_for(0U, num_blocks, [&](const bitCapIntOcl& b, const unsigned&) {
+        par_for(0U, num_blocks, [&](const size_t& b, const unsigned&) {
             std::vector<complex> amps(BLOCK);
             blocks[b].decompress(amps.data());
             const size_t len = std::min(BLOCK, (size_t)(capacity - b * BLOCK));

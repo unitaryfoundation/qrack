@@ -19,14 +19,14 @@
 namespace Qrack {
 
 // Called once per value between begin and end.
-typedef std::function<void(const bitCapIntOcl&, const unsigned& cpu)> ParallelFunc;
+typedef std::function<void(const size_t&, const unsigned& cpu)> ParallelFunc;
 typedef std::function<void(const bitCapInt&, const unsigned& cpu)> ParallelFuncSparse;
-typedef std::function<bitCapIntOcl(const bitCapIntOcl&)> IncrementFunc;
-typedef std::function<bitCapInt(const bitCapIntOcl&)> IncrementFuncSparse;
+typedef std::function<size_t(const size_t&)> IncrementFunc;
+typedef std::function<bitCapInt(const size_t&)> IncrementFuncSparse;
 
 class ParallelFor {
 private:
-    const bitCapIntOcl pStride;
+    const size_t pStride;
     bitLenInt dispatchThreshold;
     unsigned numCores;
 
@@ -47,7 +47,7 @@ public:
         dispatchThreshold = (pStridePow > minStridePow) ? (pStridePow - minStridePow) : 0U;
     }
     unsigned GetConcurrencyLevel() { return numCores; }
-    bitCapIntOcl GetStride() { return pStride; }
+    size_t GetStride() { return pStride; }
     bitLenInt GetPreferredConcurrencyPower() { return dispatchThreshold; }
     /*
      * Parallelization routines for spreading work across multiple cores.
@@ -57,12 +57,11 @@ public:
      * Iterate through the permutations a maximum of end-begin times, allowing
      * the caller to control the incrementation offset through 'inc'.
      */
-    void par_for_inc(const bitCapIntOcl begin, const bitCapIntOcl itemCount, IncrementFunc, ParallelFunc fn);
-    void par_for_inc_sparse(
-        const bitCapIntOcl begin, const bitCapIntOcl itemCount, IncrementFuncSparse, ParallelFuncSparse fn);
+    void par_for_inc(const size_t begin, const size_t itemCount, IncrementFunc, ParallelFunc fn);
+    void par_for_inc_sparse(const size_t begin, const size_t itemCount, IncrementFuncSparse, ParallelFuncSparse fn);
 
     /** Call fn once for every numerical value between begin and end. */
-    void par_for(const bitCapIntOcl begin, const bitCapIntOcl end, ParallelFunc fn);
+    void par_for(const size_t begin, const size_t end, ParallelFunc fn);
 
     /**
      * Skip over the skipPower bits.
@@ -72,12 +71,11 @@ public:
      *     ^     ^     ^     ^     ^     ^     ^     ^ - The second bit is
      *                                                   untouched.
      */
-    void par_for_skip(const bitCapIntOcl begin, const bitCapIntOcl end, const bitCapIntOcl skipPower,
-        const bitLenInt skipBitCount, ParallelFunc fn);
+    void par_for_skip(
+        const size_t begin, const size_t end, const size_t skipPower, const bitLenInt skipBitCount, ParallelFunc fn);
 
     /** Skip over the bits listed in maskArray in the same fashion as par_for_skip. */
-    void par_for_mask(
-        const bitCapIntOcl, const bitCapIntOcl, const std::vector<bitCapIntOcl>& maskArray, ParallelFunc fn);
+    void par_for_mask(const size_t, const size_t, const std::vector<size_t>& maskArray, ParallelFunc fn);
 
     /** Iterate over a sparse state vector. */
     void par_for_set(const std::set<bitCapInt>& sparseSet, ParallelFuncSparse fn);
@@ -90,10 +88,10 @@ public:
         const bitLenInt& highStart, ParallelFuncSparse fn);
 
     /** Calculate the normal for the array, (with flooring). */
-    real1_f par_norm(const bitCapIntOcl maxQPower, const StateVectorPtr stateArray, real1_f norm_thresh = ZERO_R1_F);
+    real1_f par_norm(const size_t maxQPower, const StateVectorPtr stateArray, real1_f norm_thresh = ZERO_R1_F);
 
     /** Calculate the normal for the array, (without flooring.) */
-    real1_f par_norm_exact(const bitCapIntOcl maxQPower, const StateVectorPtr stateArray);
+    real1_f par_norm_exact(const size_t maxQPower, const StateVectorPtr stateArray);
 };
 
 } // namespace Qrack

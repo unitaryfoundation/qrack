@@ -21,7 +21,7 @@
 #include <atomic>
 #include <future>
 
-#define DECLARE_ATOMIC_BITCAPINT() std::atomic<bitCapIntOcl> idx;
+#define DECLARE_ATOMIC_BITCAPINT() std::atomic<size_t> idx;
 #define ATOMIC_ASYNC(...)                                                                                              \
     std::async(std::launch::async, [__VA_ARGS__]()
 #define ATOMIC_INC() i = idx++;
@@ -47,9 +47,9 @@ ParallelFor::ParallelFor()
     dispatchThreshold = (pStridePow > minStridePow) ? (pStridePow - minStridePow) : 0U;
 }
 
-void ParallelFor::par_for(const bitCapIntOcl begin, const bitCapIntOcl end, ParallelFunc fn)
+void ParallelFor::par_for(const size_t begin, const size_t end, ParallelFunc fn)
 {
-    par_for_inc(begin, end - begin, [](const bitCapIntOcl& i) { return i; }, fn);
+    par_for_inc(begin, end - begin, [](const size_t& i) { return i; }, fn);
 }
 
 void ParallelFor::par_for_set(const std::set<bitCapInt>& sparseSet, ParallelFuncSparse fn)
@@ -60,18 +60,18 @@ void ParallelFor::par_for_set(const std::set<bitCapInt>& sparseSet, ParallelFunc
 
 void ParallelFor::par_for_set(const std::vector<bitCapInt>& sparseSet, ParallelFuncSparse fn)
 {
-    par_for_inc_sparse(0U, sparseSet.size(), [&sparseSet](const bitCapIntOcl& i) { return sparseSet[i]; }, fn);
+    par_for_inc_sparse(0U, sparseSet.size(), [&sparseSet](const size_t& i) { return sparseSet[i]; }, fn);
 }
 
 void ParallelFor::par_for_sparse_compose(const std::vector<bitCapInt>& lowSet, const std::vector<bitCapInt>& highSet,
     const bitLenInt& highStart, ParallelFuncSparse fn)
 {
-    const bitCapIntOcl lowSize = lowSet.size();
+    const size_t lowSize = lowSet.size();
     par_for_inc_sparse(
         0U, lowSize * highSet.size(),
-        [&lowSize, &highStart, &lowSet, &highSet](const bitCapIntOcl& i) {
-            const bitCapIntOcl lowPerm = i % lowSize;
-            const bitCapIntOcl highPerm = (i - lowPerm) / lowSize;
+        [&lowSize, &highStart, &lowSet, &highSet](const size_t& i) {
+            const size_t lowPerm = i % lowSize;
+            const size_t highPerm = (i - lowPerm) / lowSize;
             auto it = lowSet.begin();
             std::advance(it, lowPerm);
             bitCapInt perm = *it;
@@ -83,8 +83,8 @@ void ParallelFor::par_for_sparse_compose(const std::vector<bitCapInt>& lowSet, c
         fn);
 }
 
-void ParallelFor::par_for_skip(const bitCapIntOcl begin, const bitCapIntOcl end, const bitCapIntOcl skipMask,
-    const bitLenInt maskWidth, ParallelFunc fn)
+void ParallelFor::par_for_skip(
+    const size_t begin, const size_t end, const size_t skipMask, const bitLenInt maskWidth, ParallelFunc fn)
 {
     /*
      * Add maskWidth bits by shifting the incrementor up that number of
@@ -100,27 +100,27 @@ void ParallelFor::par_for_skip(const bitCapIntOcl begin, const bitCapIntOcl end,
         return par_for(begin, skipMask, fn);
     }
 
-    const bitCapIntOcl lowMask = skipMask - 1U;
-    const bitCapIntOcl highMask = ~lowMask;
+    const size_t lowMask = skipMask - 1U;
+    const size_t highMask = ~lowMask;
 
     IncrementFunc incFn;
     if (!lowMask) {
         // If we're skipping leading bits, this is much cheaper:
-        incFn = [maskWidth](const bitCapIntOcl& i) { return (i << maskWidth); };
+        incFn = [maskWidth](const size_t& i) { return (i << maskWidth); };
     } else {
         incFn = [lowMask, highMask, maskWidth](
-                    const bitCapIntOcl& i) { return ((i & lowMask) | ((i & highMask) << maskWidth)); };
+                    const size_t& i) { return ((i & lowMask) | ((i & highMask) << maskWidth)); };
     }
 
     par_for_inc(begin, (end - begin) >> maskWidth, incFn, fn);
 }
 
 void ParallelFor::par_for_mask(
-    const bitCapIntOcl begin, const bitCapIntOcl end, const std::vector<bitCapIntOcl>& maskArray, ParallelFunc fn)
+    const size_t begin, const size_t end, const std::vector<size_t>& maskArray, ParallelFunc fn)
 {
     const bitLenInt maskLen = maskArray.size();
     /* Pre-calculate the masks to simplify the increment function later. */
-    std::unique_ptr<bitCapIntOcl[][2]> masks(new bitCapIntOcl[maskLen][2]);
+    std::unique_ptr<size_t[][2]> masks(new size_t[maskLen][2]);
 
     bool onlyLow = true;
     for (bitLenInt i = 0; i < maskLen; ++i) {
@@ -135,9 +135,9 @@ void ParallelFor::par_for_mask(
     if (onlyLow) {
         par_for(begin, end >> maskLen, fn);
     } else {
-        incFn = [&masks, maskLen](const bitCapIntOcl& iConst) {
+        incFn = [&masks, maskLen](const size_t& iConst) {
             /* Push i apart, one mask at a time. */
-            bitCapIntOcl i = iConst;
+            size_t i = iConst;
             for (bitLenInt m = 0U; m < maskLen; ++m) {
                 i = ((i << 1U) & masks[m][1U]) | (i & masks[m][0U]);
             }
@@ -153,18 +153,17 @@ void ParallelFor::par_for_mask(
  * Iterate through the permutations a maximum of end-begin times, allowing the
  * caller to control the incrementation offset through 'inc'.
  */
-void ParallelFor::par_for_inc(
-    const bitCapIntOcl begin, const bitCapIntOcl itemCount, IncrementFunc inc, ParallelFunc fn)
+void ParallelFor::par_for_inc(const size_t begin, const size_t itemCount, IncrementFunc inc, ParallelFunc fn)
 {
-    const bitCapIntOcl Stride = pStride;
+    const size_t Stride = pStride;
     unsigned threads = (unsigned)(itemCount / pStride);
     if (threads > numCores) {
         threads = numCores;
     }
 
     if (threads <= 1U) {
-        const bitCapIntOcl maxLcv = begin + itemCount;
-        for (bitCapIntOcl j = begin; j < maxLcv; ++j) {
+        const size_t maxLcv = begin + itemCount;
+        for (size_t j = begin; j < maxLcv; ++j) {
             fn(inc(j), 0U);
         }
 
@@ -178,14 +177,14 @@ void ParallelFor::par_for_inc(
     for (unsigned cpu = 0U; cpu != threads; ++cpu) {
         futures.emplace_back(ATOMIC_ASYNC(cpu, &idx, &begin, &itemCount, &Stride, inc, fn) {
             for (;;) {
-                bitCapIntOcl i;
+                size_t i;
                 ATOMIC_INC();
-                const bitCapIntOcl l = i * Stride;
+                const size_t l = i * Stride;
                 if (l >= itemCount) {
                     break;
                 }
-                const bitCapIntOcl maxJ = ((l + Stride) < itemCount) ? Stride : (itemCount - l);
-                for (bitCapIntOcl j = 0U; j < maxJ; ++j) {
+                const size_t maxJ = ((l + Stride) < itemCount) ? Stride : (itemCount - l);
+                for (size_t j = 0U; j < maxJ; ++j) {
                     fn(inc(begin + j + l), cpu);
                 }
             }
@@ -198,9 +197,9 @@ void ParallelFor::par_for_inc(
 }
 
 void ParallelFor::par_for_inc_sparse(
-    const bitCapIntOcl begin, const bitCapIntOcl itemCount, IncrementFuncSparse inc, ParallelFuncSparse fn)
+    const size_t begin, const size_t itemCount, IncrementFuncSparse inc, ParallelFuncSparse fn)
 {
-    const bitCapIntOcl Stride = pStride;
+    const size_t Stride = pStride;
     unsigned threads = (unsigned)(itemCount / pStride);
     if (threads > numCores) {
         threads = numCores;
@@ -208,7 +207,7 @@ void ParallelFor::par_for_inc_sparse(
 
     if (threads <= 1U) {
         const bitCapInt maxLcv = begin + itemCount;
-        for (bitCapIntOcl j = begin; j < maxLcv; ++j) {
+        for (size_t j = begin; j < maxLcv; ++j) {
             fn(inc(j), 0U);
         }
 
@@ -222,14 +221,14 @@ void ParallelFor::par_for_inc_sparse(
     for (unsigned cpu = 0U; cpu != threads; ++cpu) {
         futures.emplace_back(ATOMIC_ASYNC(cpu, &idx, &begin, &itemCount, &Stride, inc, fn) {
             for (;;) {
-                bitCapIntOcl i;
+                size_t i;
                 ATOMIC_INC();
-                const bitCapIntOcl l = i * Stride;
+                const size_t l = i * Stride;
                 if (l >= itemCount) {
                     break;
                 }
-                const bitCapIntOcl maxJ = ((l + Stride) < itemCount) ? Stride : (itemCount - l);
-                for (bitCapIntOcl j = 0U; j < maxJ; ++j) {
+                const size_t maxJ = ((l + Stride) < itemCount) ? Stride : (itemCount - l);
+                for (size_t j = 0U; j < maxJ; ++j) {
                     fn(inc(begin + j + l), cpu);
                 }
             }
@@ -241,13 +240,13 @@ void ParallelFor::par_for_inc_sparse(
     }
 }
 
-real1_f ParallelFor::par_norm(const bitCapIntOcl itemCount, const StateVectorPtr stateArray, real1_f norm_thresh)
+real1_f ParallelFor::par_norm(const size_t itemCount, const StateVectorPtr stateArray, real1_f norm_thresh)
 {
     if (norm_thresh <= ZERO_R1) {
         return par_norm_exact(itemCount, stateArray);
     }
 
-    const bitCapIntOcl Stride = pStride;
+    const size_t Stride = pStride;
     unsigned threads = (unsigned)(itemCount / pStride);
     if (threads > numCores) {
         threads = numCores;
@@ -255,7 +254,7 @@ real1_f ParallelFor::par_norm(const bitCapIntOcl itemCount, const StateVectorPtr
     if (threads <= 1U) {
         real1 nrmSqr = ZERO_R1;
         const real1 nrm_thresh = (real1)norm_thresh;
-        for (bitCapIntOcl j = 0U; j < itemCount; ++j) {
+        for (size_t j = 0U; j < itemCount; ++j) {
             const real1 nrm = norm(stateArray->read(j));
             if (nrm >= nrm_thresh) {
                 nrmSqr += nrm;
@@ -274,15 +273,15 @@ real1_f ParallelFor::par_norm(const bitCapIntOcl itemCount, const StateVectorPtr
             const real1 nrm_thresh = (real1)norm_thresh;
             real1 sqrNorm = ZERO_R1;
             for (;;) {
-                bitCapIntOcl i;
+                size_t i;
                 ATOMIC_INC();
-                const bitCapIntOcl l = i * Stride;
+                const size_t l = i * Stride;
                 if (l >= itemCount) {
                     break;
                 }
-                const bitCapIntOcl maxJ = ((l + Stride) < itemCount) ? Stride : (itemCount - l);
-                for (bitCapIntOcl j = 0U; j < maxJ; ++j) {
-                    bitCapIntOcl k = i * Stride + j;
+                const size_t maxJ = ((l + Stride) < itemCount) ? Stride : (itemCount - l);
+                for (size_t j = 0U; j < maxJ; ++j) {
+                    size_t k = i * Stride + j;
                     const real1 nrm = norm(stateArray->read(k));
                     if (nrm >= nrm_thresh) {
                         sqrNorm += nrm;
@@ -301,16 +300,16 @@ real1_f ParallelFor::par_norm(const bitCapIntOcl itemCount, const StateVectorPtr
     return nrmSqr;
 }
 
-real1_f ParallelFor::par_norm_exact(const bitCapIntOcl itemCount, const StateVectorPtr stateArray)
+real1_f ParallelFor::par_norm_exact(const size_t itemCount, const StateVectorPtr stateArray)
 {
-    const bitCapIntOcl Stride = pStride;
+    const size_t Stride = pStride;
     unsigned threads = (unsigned)(itemCount / pStride);
     if (threads > numCores) {
         threads = numCores;
     }
     if (threads <= 1U) {
         real1 nrmSqr = ZERO_R1;
-        for (bitCapIntOcl j = 0U; j < itemCount; ++j) {
+        for (size_t j = 0U; j < itemCount; ++j) {
             nrmSqr += norm(stateArray->read(j));
         }
 
@@ -325,14 +324,14 @@ real1_f ParallelFor::par_norm_exact(const bitCapIntOcl itemCount, const StateVec
         futures.emplace_back(ATOMIC_ASYNC(&idx, &itemCount, &Stride, stateArray) {
             real1 sqrNorm = ZERO_R1;
             for (;;) {
-                bitCapIntOcl i;
+                size_t i;
                 ATOMIC_INC();
-                const bitCapIntOcl l = i * Stride;
+                const size_t l = i * Stride;
                 if (l >= itemCount) {
                     break;
                 }
-                const bitCapIntOcl maxJ = ((l + Stride) < itemCount) ? Stride : (itemCount - l);
-                for (bitCapIntOcl j = 0U; j < maxJ; ++j) {
+                const size_t maxJ = ((l + Stride) < itemCount) ? Stride : (itemCount - l);
+                for (size_t j = 0U; j < maxJ; ++j) {
                     sqrNorm += norm(stateArray->read(i * Stride + j));
                 }
             }
@@ -352,32 +351,31 @@ real1_f ParallelFor::par_norm_exact(const bitCapIntOcl itemCount, const StateVec
  * Iterate through the permutations a maximum of end-begin times, allowing the
  * caller to control the incrementation offset through 'inc'.
  */
-void ParallelFor::par_for_inc(
-    const bitCapIntOcl begin, const bitCapIntOcl itemCount, IncrementFunc inc, ParallelFunc fn)
+void ParallelFor::par_for_inc(const size_t begin, const size_t itemCount, IncrementFunc inc, ParallelFunc fn)
 {
-    const bitCapIntOcl maxLcv = begin + itemCount;
-    for (bitCapIntOcl j = begin; j < maxLcv; ++j) {
+    const size_t maxLcv = begin + itemCount;
+    for (size_t j = begin; j < maxLcv; ++j) {
         fn(inc(j), 0U);
     }
 }
 
 void ParallelFor::par_for_inc_sparse(
-    const bitCapIntOcl begin, const bitCapIntOcl itemCount, IncrementFuncSparse inc, ParallelFuncSparse fn)
+    const size_t begin, const size_t itemCount, IncrementFuncSparse inc, ParallelFuncSparse fn)
 {
     const bitCapInt maxLcv = begin + itemCount;
-    for (bitCapIntOcl j = begin; j < maxLcv; ++j) {
+    for (size_t j = begin; j < maxLcv; ++j) {
         fn(inc(j), 0U);
     }
 }
 
-real1_f ParallelFor::par_norm(const bitCapIntOcl itemCount, const StateVectorPtr stateArray, real1_f norm_thresh)
+real1_f ParallelFor::par_norm(const size_t itemCount, const StateVectorPtr stateArray, real1_f norm_thresh)
 {
     if (norm_thresh <= ZERO_R1) {
         return par_norm_exact(itemCount, stateArray);
     }
 
     real1_f nrmSqr = ZERO_R1;
-    for (bitCapIntOcl j = 0U; j < itemCount; ++j) {
+    for (size_t j = 0U; j < itemCount; ++j) {
         const real1_f nrm = norm(stateArray->read(j));
         if (nrm >= norm_thresh) {
             nrmSqr += nrm;
@@ -387,10 +385,10 @@ real1_f ParallelFor::par_norm(const bitCapIntOcl itemCount, const StateVectorPtr
     return nrmSqr;
 }
 
-real1_f ParallelFor::par_norm_exact(const bitCapIntOcl itemCount, const StateVectorPtr stateArray)
+real1_f ParallelFor::par_norm_exact(const size_t itemCount, const StateVectorPtr stateArray)
 {
     real1_f nrmSqr = ZERO_R1;
-    for (bitCapIntOcl j = 0U; j < itemCount; ++j) {
+    for (size_t j = 0U; j < itemCount; ++j) {
         nrmSqr += norm(stateArray->read(j));
     }
 
