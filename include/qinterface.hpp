@@ -2230,19 +2230,31 @@ public:
 
     /** Multiplication modulo N by integer, (out of place) */
     virtual void MULModNOut(
-        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length);
+        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
+    {
+        throw std::logic_error("QInterface::MULModNOut not implemented!");
+    }
 
     /** Inverse of multiplication modulo N by integer, (out of place) */
     virtual void IMULModNOut(
-        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length);
+        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
+    {
+        throw std::logic_error("QInterface::IMULModNOut not implemented!");
+    }
 
     /** Controlled multiplication modulo N by integer, (out of place) */
     virtual void CMULModNOut(const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
-        bitLenInt length, const std::vector<bitLenInt>& controls);
+        bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        throw std::logic_error("QInterface::CMULModNOut not implemented!");
+    }
 
     /** Inverse of controlled multiplication modulo N by integer, (out of place) */
     virtual void CIMULModNOut(const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
-        bitLenInt length, const std::vector<bitLenInt>& controls);
+        bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        throw std::logic_error("QInterface::CIMULModNOut not implemented!");
+    }
 
     /**
      * Quantum analog of classical "Full Adder" gate

@@ -506,26 +506,6 @@ public:
     {
         QInterface::INCDECC(toAdd, start, length, carryIndex);
     }
-    void MULModNOut(
-        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
-    {
-        QInterface::MULModNOut(toMul, modN, inStart, outStart, length);
-    }
-    void IMULModNOut(
-        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
-    {
-        QInterface::IMULModNOut(toMul, modN, inStart, outStart, length);
-    }
-    void CMULModNOut(const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
-        bitLenInt length, const std::vector<bitLenInt>& controls)
-    {
-        QInterface::CMULModNOut(toMul, modN, inStart, outStart, length, controls);
-    }
-    void CIMULModNOut(const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
-        bitLenInt length, const std::vector<bitLenInt>& controls)
-    {
-        QInterface::CIMULModNOut(toMul, modN, inStart, outStart, length, controls);
-    }
     void PhaseFlipIfLess(const bitCapInt& greaterPerm, bitLenInt start, bitLenInt length)
     {
         ExecuteAsStateVector(
@@ -548,6 +528,32 @@ public:
     {
         ExecuteAsStateVector(
             [&](QInterfacePtr eng) { QINTERFACE_TO_QALU(eng)->INCDECSC(toAdd, start, length, carryIndex); });
+    }
+    void MULModNOut(
+        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
+    {
+        ExecuteAsStateVector(
+            [&](QInterfacePtr eng) { QINTERFACE_TO_QALU(eng)->MULModNOut(toMul, modN, inStart, outStart, length); });
+    }
+    void IMULModNOut(
+        const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
+    {
+        ExecuteAsStateVector(
+            [&](QInterfacePtr eng) { QINTERFACE_TO_QALU(eng)->IMULModNOut(toMul, modN, inStart, outStart, length); });
+    }
+    void CMULModNOut(const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
+        bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        ExecuteAsStateVector([&](QInterfacePtr eng) {
+            QINTERFACE_TO_QALU(eng)->CMULModNOut(toMul, modN, inStart, outStart, length, controls);
+        });
+    }
+    void CIMULModNOut(const bitCapInt& toMul, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
+        bitLenInt length, const std::vector<bitLenInt>& controls)
+    {
+        ExecuteAsStateVector([&](QInterfacePtr eng) {
+            QINTERFACE_TO_QALU(eng)->CIMULModNOut(toMul, modN, inStart, outStart, length, controls);
+        });
     }
 #if ENABLE_BCD
     void INCBCD(const bitCapInt& toAdd, bitLenInt start, bitLenInt length)

@@ -3215,6 +3215,107 @@ void QUnit::INCDECSC(const bitCapInt& toMod, bitLenInt start, bitLenInt length, 
     INCx(&QAlu::INCSC, toMod, start, length, carryIndex);
 }
 
+void QUnit::MULModNOut(
+    const bitCapInt& toMod, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
+{
+    if (isBadBitRange(inStart, length, qubitCount)) {
+        throw std::invalid_argument("QUnit::MUL inStart range is out-of-bounds!");
+    }
+
+    if (isBadBitRange(outStart, length, qubitCount)) {
+        throw std::invalid_argument("QUnit::MUL outStart range is out-of-bounds!");
+    }
+
+    if (bi_compare_1(toMod) == 0) {
+        return SetReg(outStart, length, ZERO_BCI);
+    }
+
+    // Keep the bits separate, if cheap to do so:
+    if (CheckBitsPermutation(inStart, length)) {
+        bitCapInt res;
+        bi_div_mod(toMod * GetCachedPermutation(inStart, length), modN, nullptr, &res);
+        return SetReg(outStart, length, res);
+    }
+
+    SetReg(outStart, length, ZERO_BCI);
+
+    // Otherwise, form the potentially entangled representation:
+    std::dynamic_pointer_cast<QAlu>(EntangleRange(inStart, length, outStart, length))
+        ->MULModNOut(toMod, modN, shards[inStart].mapped, shards[outStart].mapped, length);
+    DirtyShardRangePhase(inStart, length);
+    DirtyShardRange(outStart, length);
+}
+
+void QUnit::IMULModNOut(
+    const bitCapInt& toMod, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart, bitLenInt length)
+{
+    if (isBadBitRange(inStart, length, qubitCount)) {
+        throw std::invalid_argument("QUnit::MUL inStart range is out-of-bounds!");
+    }
+
+    if (isBadBitRange(outStart, length, qubitCount)) {
+        throw std::invalid_argument("QUnit::MUL outStart range is out-of-bounds!");
+    }
+
+    // Otherwise, form the potentially entangled representation:
+    std::dynamic_pointer_cast<QAlu>(EntangleRange(inStart, length, outStart, length))
+        ->IMULModNOut(toMod, modN, shards[inStart].mapped, shards[outStart].mapped, length);
+    DirtyShardRangePhase(inStart, length);
+    DirtyShardRange(outStart, length);
+}
+
+void QUnit::CMULModNOut(const bitCapInt& toMod, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
+    bitLenInt length, const std::vector<bitLenInt>& controls)
+{
+    if (controls.empty()) {
+        return MULModNOut(toMod, modN, inStart, outStart, length);
+    }
+
+    SetReg(outStart, length, ZERO_BCI);
+
+    if (isBadBitRange(inStart, length, qubitCount)) {
+        throw std::invalid_argument("QUnit::CMULModNOut inStart range is out-of-bounds!");
+    }
+
+    ThrowIfQbIdArrayIsBad(controls, qubitCount,
+        "QUnit::CMULModNOut parameter controls array values must be within allocated qubit bounds!");
+
+    // Try to optimize away the whole gate, or as many controls as is opportune.
+    std::vector<bitLenInt> controlVec;
+    bitCapInt _perm = pow2(controls.size());
+    bi_decrement(&_perm, 1U);
+    if (TrimControls(controls, controlVec, &_perm)) {
+        return;
+    }
+
+    CMULModx(&QAlu::CMULModNOut, toMod, modN, inStart, outStart, length, controlVec);
+}
+
+void QUnit::CIMULModNOut(const bitCapInt& toMod, const bitCapInt& modN, bitLenInt inStart, bitLenInt outStart,
+    bitLenInt length, const std::vector<bitLenInt>& controls)
+{
+    if (controls.empty()) {
+        return IMULModNOut(toMod, modN, inStart, outStart, length);
+    }
+
+    if (isBadBitRange(inStart, length, qubitCount)) {
+        throw std::invalid_argument("QUnit::CIMULModNOut inStart range is out-of-bounds!");
+    }
+
+    ThrowIfQbIdArrayIsBad(controls, qubitCount,
+        "QUnit::CIMULModNOut parameter controls array values must be within allocated qubit bounds!");
+
+    // Try to optimize away the whole gate, or as many controls as is opportune.
+    std::vector<bitLenInt> controlVec;
+    bitCapInt _perm = pow2(controls.size());
+    bi_decrement(&_perm, 1U);
+    if (TrimControls(controls, controlVec, &_perm)) {
+        return;
+    }
+
+    CMULModx(&QAlu::CIMULModNOut, toMod, modN, inStart, outStart, length, controlVec);
+}
+
 #if ENABLE_BCD
 void QUnit::INCBCD(const bitCapInt& toMod, bitLenInt start, bitLenInt length)
 {
