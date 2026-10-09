@@ -234,21 +234,6 @@ protected:
         hardware_rand_generator = orig->hardware_rand_generator;
     }
 
-    real1_f Flush4Pi(real1_f angle)
-    {
-        QRACK_CONST real1_f HalfPeriod = 2 * PI_R1;
-        QRACK_CONST real1_f Period = 2 * HalfPeriod;
-        angle = fmod(angle, 2 * HalfPeriod);
-        if (angle < -HalfPeriod) {
-            angle += Period;
-        }
-        if (angle >= HalfPeriod) {
-            angle -= Period;
-        }
-
-        return angle;
-    }
-
 public:
     QInterface(bitLenInt n, qrack_rand_gen_ptr rgp = nullptr, bool doNorm = false, bool useHardwareRNG = true,
         bool randomGlobalPhase = true, real1_f norm_thresh = REAL1_EPSILON);

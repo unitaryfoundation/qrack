@@ -17,10 +17,6 @@ namespace Qrack {
 /// General unitary gate
 void QInterface::U(bitLenInt target, real1_f theta, real1_f phi, real1_f lambda)
 {
-    theta = Flush4Pi(theta);
-    if (abs(theta) < (FP_NORM_EPSILON * PI_R1)) {
-        return;
-    }
     const real1 cos0 = (real1)cos(theta / 2);
     const real1 sin0 = (real1)sin(theta / 2);
     const complex uGate[4]{ complex(cos0, ZERO_R1), sin0 * complex((real1)(-cos(lambda)), (real1)(-sin(lambda))),
@@ -33,10 +29,6 @@ void QInterface::U(bitLenInt target, real1_f theta, real1_f phi, real1_f lambda)
 void QInterface::CU(
     const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi, real1_f lambda, real1_f gamma)
 {
-    theta = Flush4Pi(theta);
-    if (abs(theta) < (FP_NORM_EPSILON * PI_R1)) {
-        return;
-    }
     const complex eig = complex((real1)cos(gamma), (real1)sin(gamma));
     const real1 cos0 = (real1)cos(theta / 2);
     const real1 sin0 = (real1)sin(theta / 2);
@@ -50,10 +42,6 @@ void QInterface::CU(
 void QInterface::AntiCU(
     const std::vector<bitLenInt>& controls, bitLenInt target, real1_f theta, real1_f phi, real1_f lambda, real1_f gamma)
 {
-    theta = Flush4Pi(theta);
-    if (abs(theta) < (FP_NORM_EPSILON * PI_R1)) {
-        return;
-    }
     const complex eig = complex((real1)cos(gamma), (real1)sin(gamma));
     const real1 cos0 = (real1)cos(theta / 2);
     const real1 sin0 = (real1)sin(theta / 2);
