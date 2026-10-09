@@ -3291,6 +3291,7 @@ QEnginePtr QEngineOCL::CloneEmpty()
 QInterfacePtr QEngineOCL::Copy()
 {
     QEngineOCLPtr copyPtr = std::dynamic_pointer_cast<QEngineOCL>(CloneEmpty());
+    Finish();
     copyPtr->stateVec = stateVec;
     copyPtr->stateBuffer = stateBuffer;
     // TODO: This is a hack for TryDecompose():

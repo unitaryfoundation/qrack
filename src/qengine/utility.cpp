@@ -45,6 +45,8 @@ QEnginePtr QEngineCPU::CloneEmpty()
 QInterfacePtr QEngineCPU::Copy()
 {
     QEngineCPUPtr clone = std::dynamic_pointer_cast<QEngineCPU>(CloneEmpty());
+
+    Finish();
     clone->stateVec = stateVec;
     clone->fidelity = fidelity;
 

@@ -839,7 +839,7 @@ bool QUnit::TrySeparate(bitLenInt qubit1, bitLenInt qubit2)
     y = ONE_R1_F - 2 * unit->ACProb(mapped1, mapped2);
     unit->MACMtrx(controls, mtrx, mapped2);
     const real1_f inclinationAnti = atan2(sqrt(x * x + y * y), z);
-    const real1_f azimuthAnti = atan2(y, z);
+    const real1_f azimuthAnti = atan2(y, x);
     unit->AntiCIAI(mapped1, mapped2, azimuthAnti, inclinationAnti);
 
     shard1.MakeDirty();

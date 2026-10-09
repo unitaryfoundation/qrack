@@ -3197,6 +3197,7 @@ QEnginePtr QEngineCUDA::CloneEmpty()
 QInterfacePtr QEngineCUDA::Copy()
 {
     QEngineCUDAPtr copyPtr = std::dynamic_pointer_cast<QEngineCUDA>(CloneEmpty());
+    Finish();
     copyPtr->stateVec = stateVec;
     copyPtr->stateBuffer = stateBuffer;
     // TODO: This is a hack for TryDecompose():
