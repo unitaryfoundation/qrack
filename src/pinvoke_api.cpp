@@ -387,6 +387,63 @@ void RevertPauliBasis(QInterfacePtr simulator, uintq len, int* bases, uintq* qub
     }
 }
 
+// Not every simulator layer implements QParity (QTensorNetwork and QInterfaceNoisy do not, and either can
+// be the top layer). std::dynamic_pointer_cast<QParity>() then returns nullptr, which used to be
+// dereferenced (segfault in Exp(), MCExp(), Measure() and JointEnsembleProbability()). These helpers
+// use the native QParity method when it exists, and otherwise compute the parity onto the last qubit
+// with a CNOT ladder, act on that one qubit, and uncompute the ladder. "qs" are simulator-internal
+// (already shard-mapped) qubit indices.
+static bitCapInt parityMask(const std::vector<bitLenInt>& qs)
+{
+    bitCapInt mask = ZERO_BCI;
+    for (const bitLenInt& q : qs) {
+        bi_or_ip(&mask, pow2(q));
+    }
+    return mask;
+}
+
+static void parityLadder(QInterfacePtr simulator, const std::vector<bitLenInt>& qs)
+{
+    for (size_t i = 0U; (i + 1U) < qs.size(); ++i) {
+        simulator->CNOT(qs[i], qs.back());
+    }
+}
+
+static void parityLadderInverse(QInterfacePtr simulator, const std::vector<bitLenInt>& qs)
+{
+    for (size_t i = qs.size() - 1U; i > 0U; --i) {
+        simulator->CNOT(qs[i - 1U], qs.back());
+    }
+}
+
+static void CUniformParityRZHelper(
+    QInterfacePtr simulator, const std::vector<bitLenInt>& controls, const std::vector<bitLenInt>& qs, real1_f angle)
+{
+    QParityPtr qParity = QPARITY(simulator);
+    if (qParity) {
+        return qParity->CUniformParityRZ(controls, parityMask(qs), angle);
+    }
+    // Odd parity gets e^{i angle}, even parity gets e^{-i angle} (QParity::CUniformParityRZ).
+    parityLadder(simulator, qs);
+    const complex phaseFac = exp(complex(ZERO_R1, (real1)angle));
+    simulator->MCPhase(controls, std::conj(phaseFac), phaseFac, qs.back());
+    parityLadderInverse(simulator, qs);
+}
+
+static real1_f ParityHelper(QInterfacePtr simulator, const std::vector<bitLenInt>& qs, bool doMeasure)
+{
+    QParityPtr qParity = QPARITY(simulator);
+    if (qParity) {
+        const bitCapInt mask = parityMask(qs);
+        return doMeasure ? (qParity->MParity(mask) ? ONE_R1_F : ZERO_R1_F) : qParity->ProbParity(mask);
+    }
+    parityLadder(simulator, qs);
+    const real1_f result = doMeasure ? (simulator->M(qs.back()) ? ONE_R1_F : ZERO_R1_F) : simulator->Prob(qs.back());
+    parityLadderInverse(simulator, qs);
+
+    return result;
+}
+
 void removeIdentities(std::vector<int>* b, std::vector<bitLenInt>* qs)
 {
     uintq i = 0U;
@@ -468,15 +525,6 @@ void MCRHelper(uintq sid, uintq b, double phi, uintq n, uintq* c, uintq q)
     default:
         break;
     }
-}
-
-inline std::size_t make_mask(std::vector<bitLenInt> const& qs)
-{
-    std::size_t mask = 0U;
-    for (const std::size_t q : qs) {
-        mask = mask | pow2Ocl(q);
-    }
-    return mask;
 }
 
 std::map<uintq, bitLenInt>::iterator FindShardValue(bitLenInt v, std::map<uintq, bitLenInt>& simMap)
@@ -1413,13 +1461,12 @@ double _JointEnsembleProbabilityHelper(QInterfacePtr simulator, uintq n, int* b,
         return 0.0;
     }
 
-    bitCapInt mask = ZERO_BCI;
+    std::vector<bitLenInt> sVec(n);
     for (bitLenInt i = 0U; i < (bitLenInt)n; ++i) {
-        bi_or_ip(&mask, pow2(GetSimShardId(simulator, qVec[i])));
+        sVec[i] = GetSimShardId(simulator, qVec[i]);
     }
 
-    return (double)(doMeasure ? (QPARITY(simulator)->MParity(mask) ? ONE_R1 : ZERO_R1)
-                              : QPARITY(simulator)->ProbParity(mask));
+    return (double)ParityHelper(simulator, sVec, doMeasure);
 }
 
 /**
@@ -2196,8 +2243,11 @@ MICROSOFT_QUANTUM_DECL void Exp(
         } else {
             TransformPauliBasis(simulator, n, b, q);
 
-            std::size_t mask = make_mask(qVec);
-            QPARITY(simulator)->UniformParityRZ(mask, (real1_f)(-phi));
+            // Map user qubit IDs to simulator indices (as every other entry point does).
+            for (bitLenInt& qb : qVec) {
+                qb = GetSimShardId(simulator, qb);
+            }
+            CUniformParityRZHelper(simulator, std::vector<bitLenInt>(), qVec, (real1_f)(-phi));
 
             RevertPauliBasis(simulator, n, b, q);
         }
@@ -2232,12 +2282,17 @@ MICROSOFT_QUANTUM_DECL void MCExp(_In_ uintq sid, _In_ uintq n, _In_reads_(n) in
         } else if (bVec.size() == 1U) {
             MCRHelper(sid, bVec.front(), -2. * phi, nc, cs, qVec.front());
         } else {
-            std::vector<bitLenInt> csVec(cs, cs + nc);
+            std::vector<bitLenInt> csVec(nc);
+            for (uintq i = 0U; i < nc; ++i) {
+                csVec[i] = GetSimShardId(simulator, cs[i]);
+            }
 
             TransformPauliBasis(simulator, n, b, q);
 
-            std::size_t mask = make_mask(qVec);
-            QPARITY(simulator)->CUniformParityRZ(csVec, mask, (real1_f)(-phi));
+            for (bitLenInt& qb : qVec) {
+                qb = GetSimShardId(simulator, qb);
+            }
+            CUniformParityRZHelper(simulator, csVec, qVec, (real1_f)(-phi));
 
             RevertPauliBasis(simulator, n, b, q);
         }
