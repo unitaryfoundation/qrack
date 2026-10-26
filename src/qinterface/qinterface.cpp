@@ -934,7 +934,7 @@ void QInterface::GetReducedDensityMatrix(const std::vector<bitLenInt>& qubits, c
 
         for (bitCapIntOcl kept_i = 0U; kept_i < dimKept; ++kept_i) {
             const complex amp_i = amps[kept_i];
-            if (norm(amp_i) <= FP_NORM_EPSILON) {
+            if (norm(amp_i) <= REAL1_EPSILON) {
                 continue;
             }
             for (bitCapIntOcl kept_j = 0U; kept_j < dimKept; ++kept_j) {
