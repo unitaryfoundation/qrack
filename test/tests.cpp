@@ -847,6 +847,23 @@ TEST_CASE_METHOD(QInterfaceTestFixture, "test_fsim")
     qftReg->FSim(-theta, -phi, 0, 1);
     qftReg->H(0);
     REQUIRE_THAT(qftReg, HasProbability(0, 8, 0x03));
+
+    // Generic (non-Clifford) swap angle: fSim(theta) takes |01> to cos(theta) |01> - i sin(theta) |10>.
+    // theta = pi / 6 gives P(qubit 0 = 1) = 3/4; a doubled angle would give 1/4.
+    qftReg->SetPermutation(0x01);
+    qftReg->FSim((real1_f)(PI_R1 / 6), ZERO_R1_F, 0, 1);
+    REQUIRE_FLOAT(qftReg->Prob(0), (real1_f)0.75);
+    REQUIRE_FLOAT(qftReg->Prob(1), (real1_f)0.25);
+
+    // Controlled phase convention: fSim(0, phi) multiplies |11> by exp(-i phi).
+    // With qubit 1 set, phi = pi / 2 takes qubit 0 from |+> to (|0> - i |1>) / sqrt(2); S undoes that
+    // phase and H returns qubit 0 to |0>. (The opposite sign would end in |1>.)
+    qftReg->SetPermutation(0x02);
+    qftReg->H(0);
+    qftReg->FSim(ZERO_R1_F, (real1_f)(PI_R1 / 2), 0, 1);
+    qftReg->S(0);
+    qftReg->H(0);
+    REQUIRE_THAT(qftReg, HasProbability(0, 8, 0x02));
 }
 
 TEST_CASE_METHOD(QInterfaceTestFixture, "test_apply_single_bit")

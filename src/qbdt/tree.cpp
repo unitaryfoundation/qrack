@@ -675,10 +675,10 @@ void QBdt::FSim(real1_f theta, real1_f phi, bitLenInt qubit1, bitLenInt qubit2)
     const std::vector<bitLenInt> controls{ qubit1 };
     const real1_f sinTheta = sin(theta);
     if ((sinTheta * sinTheta) <= FP_NORM_EPSILON_F) {
-        return MCPhase(controls, ONE_CMPLX, exp(complex(ZERO_R1, (real1)phi)), qubit2);
+        return MCPhase(controls, ONE_CMPLX, exp(complex(ZERO_R1, -(real1)phi)), qubit2);
     }
 
-    const complex expIPhi = exp(complex(ZERO_R1, (real1)phi));
+    const complex expIPhi = exp(complex(ZERO_R1, -(real1)phi));
     const real1_f sinThetaDiffNeg = ONE_R1_F + sinTheta;
     if ((sinThetaDiffNeg * sinThetaDiffNeg) <= FP_NORM_EPSILON_F) {
         ISwap(qubit1, qubit2);

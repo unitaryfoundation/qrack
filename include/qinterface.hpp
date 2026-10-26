@@ -2446,24 +2446,26 @@ public:
             return IISwap(qubit1, qubit2);
         }
 
-        // Decompose root of ISWAP gate:
+        // fSim swap block: exp(-i theta/2 (XX + YY)) = RXX(theta) RYY(theta),
+        // which acts as cos(theta) |01><01| - i sin(theta) |01><10| (+ h.c.) on the {|01>, |10>} subspace.
+        // (RZ(a) = exp(-i a/2 Z), so CNOT RZ(theta) CNOT = exp(-i theta/2 ZZ); RZ(2 * theta) applied fSim(2 * theta).)
 
-        // RXX
+        // RXX(theta)
         H(qubit1);
         H(qubit2);
         CNOT(qubit1, qubit2);
-        RZ(2 * theta, qubit2);
+        RZ(theta, qubit2);
         CNOT(qubit1, qubit2);
         H(qubit2);
         H(qubit1);
 
-        // RYY
+        // RYY(theta)
         S(qubit1);
         S(qubit2);
         H(qubit1);
         H(qubit2);
         CNOT(qubit1, qubit2);
-        RZ(2 * theta, qubit2);
+        RZ(theta, qubit2);
         CNOT(qubit1, qubit2);
         H(qubit2);
         H(qubit1);

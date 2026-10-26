@@ -51,19 +51,18 @@ QPager::QPager(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, const bit
         return;
     }
 
-    const bitCapInt initState = maxQPower + ONE_BCI;
-    const bitCapIntOcl initStateOcl = (bitCapIntOcl)initState;
-    bitCapIntOcl pagePerm = basePageMaxQPower;
+    // Exactly one page holds the initial basis state; every other page starts as all-zero amplitudes.
+    // (The previous loop matched every page from the containing one upward -- underflowing the in-page
+    // offset -- and was masked by replacing the requested state with maxQPower + 1, which matched no
+    // page and left the whole register at zero norm.)
+    bitCapInt initPage, initOffset;
+    bi_div_mod(_initState, basePageMaxQPower, &initPage, &initOffset);
+    const bitCapIntOcl initPageOcl = (bitCapIntOcl)initPage;
     for (bitCapIntOcl i = 0U; i < basePageCount; ++i) {
-        if (bi_compare(initState, pagePerm) < 0) {
-            // Init state is in this page.
-            qPages.push_back(MakeEngine(baseQubitsPerPage, i));
-            qPages.back()->SetPermutation(initStateOcl - (pagePerm - basePageMaxQPower));
-        } else {
-            // Init state is in a higher page.
-            qPages.push_back(MakeEngine(baseQubitsPerPage, i));
+        qPages.push_back(MakeEngine(baseQubitsPerPage, i));
+        if (i == initPageOcl) {
+            qPages.back()->SetPermutation(initOffset);
         }
-        pagePerm += basePageMaxQPower;
     }
 }
 
@@ -1441,10 +1440,10 @@ void QPager::FSim(real1_f theta, real1_f phi, bitLenInt qubit1, bitLenInt qubit2
     const real1 sinTheta = (real1)sin(theta);
 
     if ((sinTheta * sinTheta) <= FP_NORM_EPSILON) {
-        return MCPhase(controls, ONE_CMPLX, exp(complex(ZERO_R1, (real1)phi)), qubit2);
+        return MCPhase(controls, ONE_CMPLX, exp(complex(ZERO_R1, -(real1)phi)), qubit2);
     }
 
-    const complex expIPhi = exp(complex(ZERO_R1, (real1)phi));
+    const complex expIPhi = exp(complex(ZERO_R1, -(real1)phi));
 
     const real1 sinThetaDiffNeg = ONE_R1 + sinTheta;
     if ((sinThetaDiffNeg * sinThetaDiffNeg) <= FP_NORM_EPSILON) {
