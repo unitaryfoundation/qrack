@@ -908,6 +908,8 @@ void QInterface::GetReducedDensityMatrix(const std::vector<bitLenInt>& qubits, c
         }
     }
 
+    std::vector<complex> amps(dimKept);
+
     // Precompute full-index masks for each kept basis state given an env pattern
     // We build a base index for each env state where kept qubits are all zero
     for (bitCapInt envState = ZERO_BCI; envState < dimEnv; ++envState) {
@@ -918,26 +920,25 @@ void QInterface::GetReducedDensityMatrix(const std::vector<bitLenInt>& qubits, c
             }
         }
 
-        // For each pair of kept basis states, accumulate contributions
+        // Read each kept-subspace amplitude once per environment pattern (dimKept reads, rather than
+        // dimKept * (dimKept + 1)), then accumulate the outer product.
         for (bitCapIntOcl kept_i = 0U; kept_i < dimKept; ++kept_i) {
-            bitCapInt fullIndex_i = envBaseIndex;
+            bitCapInt fullIndex = envBaseIndex;
             for (bitLenInt k = 0U; k < keptQubits; ++k) {
                 if (bi_and_1(kept_i >> k)) {
-                    fullIndex_i = fullIndex_i | pow2(keptBitPos[k]);
+                    fullIndex = fullIndex | pow2(keptBitPos[k]);
                 }
             }
+            amps[kept_i] = GetAmplitude(fullIndex);
+        }
 
-            const complex amp_i = GetAmplitude(fullIndex_i);
-
+        for (bitCapIntOcl kept_i = 0U; kept_i < dimKept; ++kept_i) {
+            const complex amp_i = amps[kept_i];
+            if (norm(amp_i) <= FP_NORM_EPSILON) {
+                continue;
+            }
             for (bitCapIntOcl kept_j = 0U; kept_j < dimKept; ++kept_j) {
-                bitCapInt fullIndex_j = envBaseIndex;
-                for (bitLenInt k = 0U; k < keptQubits; ++k) {
-                    if (bi_and_1(kept_j >> k)) {
-                        fullIndex_j = fullIndex_j | pow2(keptBitPos[k]);
-                    }
-                }
-
-                outputState[kept_i * dimKept + kept_j] += amp_i * std::conj(GetAmplitude(fullIndex_j));
+                outputState[kept_i * dimKept + kept_j] += amp_i * std::conj(amps[kept_j]);
             }
         }
     }
