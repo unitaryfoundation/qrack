@@ -713,14 +713,14 @@ void QBridge::GramSvd(
 
 // --- patch tensors through the kets ------------------------------------------
 
-QBridge::Tensor QBridge::ReadTensor(bitLenInt p)
+QBridge::Tensor QBridge::ReadTensor(bitLenInt p, QInterfacePtr eng)
 {
     const std::vector<Tag>& lay = layout[p];
     const size_t k = lay.size();
     const bitLenInt bl = LeftBonds(p), br = RightBonds(p);
     const bitLenInt nd = patchSize[p];
     std::unique_ptr<complex[]> v(new complex[(size_t)1U << k]);
-    sims[p]->GetQuantumState(v.get());
+    (eng ? eng : sims[p])->GetQuantumState(v.get());
     auto pos = [&](char kind, bitLenInt idx) -> size_t {
         for (size_t x = 0U; x < k; ++x) {
             if ((lay[x].kind == kind) && (lay[x].idx == idx)) {
@@ -1329,6 +1329,125 @@ void QBridge::GetQuantumState(complex* outputState)
     for (size_t x = 0U; x < Dacc; ++x) {
         outputState[x] = complex((real1)(psi[x].real() / nrm), (real1)(psi[x].imag() / nrm));
     }
+}
+
+void QBridge::TransferStep(std::vector<cmplx_d>& E, size_t W, const Tensor& A, const Tensor& B)
+{
+    // E'[w][ra][rb] = sum_{d, la, lb} E[w][la][lb] conj(A[la, d, ra]) B[lb, d, rb], for W open-index pairs w.
+    const size_t LA = A.l, LB = B.l, RA = A.r, RB = B.r, D = A.d;
+    const unsigned nc = GetConcurrencyLevel();
+    std::vector<std::vector<cmplx_d>> part(nc, std::vector<cmplx_d>(W * RA * RB, cmplx_d(0.0, 0.0)));
+    ParRange(D, 64U, [&](size_t b, size_t e, unsigned th) {
+        std::vector<cmplx_d>& out = part[th];
+        std::vector<cmplx_d> tmp(LA * RB);
+        for (size_t d = b; d < e; ++d) {
+            for (size_t w = 0U; w < W; ++w) {
+                const cmplx_d* Ew = &E[w * LA * LB];
+                // tmp[la][rb] = sum_lb E[w][la][lb] B[lb, d, rb]
+                std::fill(tmp.begin(), tmp.end(), cmplx_d(0.0, 0.0));
+                for (size_t lb = 0U; lb < LB; ++lb) {
+                    const complex* brow = &B.a[(lb * D + d) * RB];
+                    for (size_t la = 0U; la < LA; ++la) {
+                        const cmplx_d ev = Ew[la * LB + lb];
+                        if (ev == cmplx_d(0.0, 0.0)) {
+                            continue;
+                        }
+                        cmplx_d* t = &tmp[la * RB];
+                        for (size_t rb = 0U; rb < RB; ++rb) {
+                            t[rb] += ev * cmplx_d(brow[rb]);
+                        }
+                    }
+                }
+                // out[w][ra][rb] += sum_la conj(A[la, d, ra]) tmp[la][rb]
+                cmplx_d* ow = &out[w * RA * RB];
+                for (size_t la = 0U; la < LA; ++la) {
+                    const complex* arow = &A.a[(la * D + d) * RA];
+                    const cmplx_d* t = &tmp[la * RB];
+                    for (size_t ra = 0U; ra < RA; ++ra) {
+                        const cmplx_d av = std::conj(cmplx_d(arow[ra]));
+                        if (av == cmplx_d(0.0, 0.0)) {
+                            continue;
+                        }
+                        cmplx_d* o = &ow[ra * RB];
+                        for (size_t rb = 0U; rb < RB; ++rb) {
+                            o[rb] += av * t[rb];
+                        }
+                    }
+                }
+            }
+        }
+    });
+    E.assign(W * RA * RB, cmplx_d(0.0, 0.0));
+    for (const auto& pt : part) {
+        for (size_t i = 0U; i < E.size(); ++i) {
+            E[i] += pt[i];
+        }
+    }
+}
+
+real1_f QBridge::ExpectationPauliAll(const std::vector<bitLenInt>& bits, const std::vector<Pauli>& paulis)
+{
+    if (bits.size() != paulis.size()) {
+        throw std::invalid_argument("QBridge::ExpectationPauliAll: qubit and Pauli lists differ in length!");
+    }
+    Compress(false);
+    std::vector<std::vector<std::pair<bitLenInt, Pauli>>> per(patchCount);
+    for (size_t k = 0U; k < bits.size(); ++k) {
+        if (paulis[k] == PauliI) {
+            continue;
+        }
+        bitLenInt p, i;
+        Locate(bits[k], p, i);
+        per[p].push_back(std::make_pair(i, paulis[k]));
+    }
+    // Patch tensors |psi> (A) and P|psi> (B, where P acts), with P applied natively to an engine clone.
+    std::vector<Tensor> A, B;
+    std::vector<bool> hasB(patchCount, false);
+    for (bitLenInt p = 0U; p < patchCount; ++p) {
+        A.push_back(ReadTensor(p));
+        if (per[p].empty()) {
+            B.push_back(Tensor());
+            continue;
+        }
+        QInterfacePtr c = sims[p]->Clone();
+        for (const auto& ip : per[p]) {
+            bitLenInt pos = 0U;
+            while (!((layout[p][pos].kind == 'd') && (layout[p][pos].idx == ip.first))) {
+                ++pos;
+            }
+            if (ip.second == PauliX) {
+                c->X(pos);
+            } else if (ip.second == PauliY) {
+                c->Y(pos);
+            } else {
+                c->Z(pos);
+            }
+        }
+        B.push_back(ReadTensor(p, c));
+        hasB[p] = true;
+    }
+    // Transfer matrices from the left. On a ring, the bra-side wrap index wa is fixed one value at a
+    // time and the ket-side wrap index wb is carried (W = cw open pairs), so memory stays O(cw chi^2).
+    const size_t cw = A[0U].l;
+    cmplx_d e(0.0, 0.0), n(0.0, 0.0);
+    for (size_t wa = 0U; wa < cw; ++wa) {
+        std::vector<cmplx_d> E(cw * cw * cw, cmplx_d(0.0, 0.0)), N;
+        for (size_t wb = 0U; wb < cw; ++wb) {
+            E[(wb * cw + wa) * cw + wb] = cmplx_d(1.0, 0.0);
+        }
+        N = E;
+        for (bitLenInt p = 0U; p < patchCount; ++p) {
+            TransferStep(E, cw, A[p], hasB[p] ? B[p] : A[p]);
+            TransferStep(N, cw, A[p], A[p]);
+        }
+        // Close the ring: the last right indices must equal the wrap indices (wa on the bra, wb on the ket).
+        const size_t R = A[patchCount - 1U].r;
+        for (size_t wb = 0U; wb < cw; ++wb) {
+            e += E[(wb * R + wa) * R + wb];
+            n += N[(wb * R + wa) * R + wb];
+        }
+    }
+    return (real1_f)(e.real() / n.real());
 }
 
 } // namespace Qrack

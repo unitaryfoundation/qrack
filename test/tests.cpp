@@ -7590,3 +7590,31 @@ TEST_CASE("test_qbridge_measure", "[qbridge]")
     }
     REQUIRE(seen.size() == 2U);
 }
+
+TEST_CASE("test_qbridge_pauli_expectation", "[qbridge]")
+{
+    // Exact (untruncated) bridges, open and ring: <P> must match the exact engine for random Pauli products.
+    const bitLenInt n = 8U;
+    for (int wrap = 0; wrap < 2; ++wrap) {
+        const bitLenInt P = wrap ? 3U : 2U;
+        QBridge br({ QINTERFACE_CPU }, n, 8U, P, wrap != 0);
+        QInterfacePtr ref = CreateQuantumInterface(QINTERFACE_CPU, n, ZERO_BCI);
+        qbridge_random_circuit(br, ref, n, 3, 29U);
+        std::mt19937 g(5U);
+        std::uniform_int_distribution<int> pb(0, 3);
+        for (int t = 0; t < 10; ++t) {
+            std::vector<bitLenInt> qs;
+            std::vector<Pauli> ps;
+            for (bitLenInt q = 0U; q < n; ++q) {
+                const int b = pb(g);
+                if (b) {
+                    qs.push_back(q);
+                    ps.push_back((b == 1) ? PauliX : ((b == 2) ? PauliZ : PauliY));
+                }
+            }
+            const real1_f e = br.ExpectationPauliAll(qs, ps);
+            const real1_f r = ref->ExpectationPauliAll(qs, ps);
+            REQUIRE(std::abs(e - r) < (real1_f)1e-3f);
+        }
+    }
+}

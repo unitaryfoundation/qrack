@@ -105,7 +105,8 @@ protected:
     void Controlled(bitLenInt c, bitLenInt t, const complex* mtrx, bool anti);
     void PairGate(bitLenInt a, bitLenInt b, std::function<void(QInterfacePtr, bitLenInt, bitLenInt)> fn);
 
-    Tensor ReadTensor(bitLenInt p);
+    Tensor ReadTensor(bitLenInt p, QInterfacePtr eng = nullptr);
+    void TransferStep(std::vector<cmplx_d>& E, size_t W, const Tensor& A, const Tensor& B);
     void StoreTensor(bitLenInt p, const Tensor& t);
     std::vector<size_t> Select(const std::vector<double>& sv, bool exactOnly);
     void Sweep(bitLenInt lo, bitLenInt hi, bool exactOnly);
@@ -146,6 +147,7 @@ public:
     double GetFidelityEstimate() const { return fidelityEstimate; }
     size_t GetTruncationCount() const { return truncations; }
     bitLenInt GetPeakBonds() const { return peakBonds; }
+    size_t GetFlushCount() const { return flushes; }
 
     // --- gates ---
     void Mtrx(const complex* mtrx, bitLenInt q);
@@ -183,6 +185,12 @@ public:
     std::vector<bitCapInt> MeasureShots(const std::vector<bitLenInt>& qubits, unsigned shots);
     /** Dense contracted state, little-endian; for testing (2^n memory). */
     void GetQuantumState(complex* outputState);
+    /**
+     * Exact expectation value of a Pauli tensor product (identity elsewhere) for the stored state, by
+     * contracting <psi| with P|psi> patch by patch: P is applied natively to a clone of each patch it
+     * touches, and only bond-sized transfer matrices are formed. Flushes first.
+     */
+    real1_f ExpectationPauliAll(const std::vector<bitLenInt>& bits, const std::vector<Pauli>& paulis);
 };
 
 /** RAII guard: { QBridgeDeferred d(bridge); ...gates... } truncates once on scope exit. */

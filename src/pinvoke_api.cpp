@@ -7,6 +7,7 @@
 // for details.
 
 #include "pinvoke_api.hpp"
+#include "qbridge.hpp"
 #include "qcircuit.hpp"
 #include "qneuron.hpp"
 
@@ -282,6 +283,49 @@
 #endif
 
 #define QALU(qReg) std::dynamic_pointer_cast<QAlu>(qReg)
+#define QBRIDGE_LOCK_GUARD(bridge)                                                                                     \
+    std::unique_ptr<const std::lock_guard<std::mutex>> bridgeLock;                                                     \
+    if (true) {                                                                                                        \
+        std::lock(metaOperationMutex, qbridgeMutexes[bridge.get()]);                                                   \
+        const std::lock_guard<std::mutex> metaLock(metaOperationMutex, std::adopt_lock);                               \
+        bridgeLock = std::unique_ptr<const std::lock_guard<std::mutex>>(                                               \
+            new const std::lock_guard<std::mutex>(qbridgeMutexes[bridge.get()], std::adopt_lock));                     \
+    }
+
+#define QBRIDGE_LOCK_GUARD_TYPED(bid, def)                                                                             \
+    if (bid >= qbridges.size()) {                                                                                      \
+        std::cout << "Invalid argument: QBridge ID not found!" << std::endl;                                           \
+        metaError = 2;                                                                                                 \
+        return def;                                                                                                    \
+    }                                                                                                                  \
+                                                                                                                       \
+    QBridgePtr bridge = qbridges[bid];                                                                                 \
+    QBRIDGE_LOCK_GUARD(bridge)                                                                                         \
+    if (!bridge) {                                                                                                     \
+        return def;                                                                                                    \
+    }
+
+#define QBRIDGE_LOCK_GUARD_VOID(bid)                                                                                   \
+    if (bid >= qbridges.size()) {                                                                                      \
+        std::cout << "Invalid argument: QBridge ID not found!" << std::endl;                                           \
+        metaError = 2;                                                                                                 \
+        return;                                                                                                        \
+    }                                                                                                                  \
+                                                                                                                       \
+    QBridgePtr bridge = qbridges[bid];                                                                                 \
+    QBRIDGE_LOCK_GUARD(bridge)                                                                                         \
+    if (!bridge) {                                                                                                     \
+        return;                                                                                                        \
+    }
+
+#define QBRIDGE_TRY(bid, body)                                                                                         \
+    try {                                                                                                              \
+        body;                                                                                                          \
+    } catch (const std::exception& ex) {                                                                               \
+        qbridgeErrors[bid] = 1;                                                                                        \
+        std::cout << ex.what() << std::endl;                                                                           \
+    }
+
 #define QPARITY(qReg) std::dynamic_pointer_cast<QParity>(qReg)
 
 using namespace Qrack;
@@ -306,6 +350,10 @@ std::vector<QCircuitPtr> circuits;
 std::map<QCircuit*, std::mutex> circuitMutexes;
 std::vector<bool> circuitReservations;
 std::map<QCircuit*, std::string> circuitStrings;
+std::vector<QBridgePtr> qbridges;
+std::vector<int> qbridgeErrors;
+std::map<QBridge*, std::mutex> qbridgeMutexes;
+std::vector<bool> qbridgeReservations;
 
 bitLenInt GetSimShardId(QInterfacePtr simulator, bitLenInt i)
 {
@@ -4311,5 +4359,270 @@ MICROSOFT_QUANTUM_DECL void qcircuit_out_to_string(_In_ uintq cid, _In_ char* f)
     const std::string& s = circuitStrings[circuit.get()];
     const char* cs = s.c_str();
     std::copy(cs, cs + s.size() + 1U, f);
+}
+//////////////////////////////////////////////////////////////////////////////////////
+// QBridge
+//////////////////////////////////////////////////////////////////////////////////////
+
+static uintq _register_qbridge(QBridgePtr bridge, bool isSuccess)
+{
+    // (Caller holds metaOperationMutex.)
+    uintq bid = (uintq)qbridges.size();
+    for (uintq i = 0U; i < qbridges.size(); ++i) {
+        if (!qbridgeReservations[i]) {
+            bid = i;
+            break;
+        }
+    }
+    if (bid == qbridges.size()) {
+        qbridgeReservations.push_back(true);
+        qbridges.push_back(bridge);
+        qbridgeErrors.push_back(isSuccess ? 0 : 1);
+    } else {
+        qbridgeReservations[bid] = true;
+        qbridges[bid] = bridge;
+        qbridgeErrors[bid] = isSuccess ? 0 : 1;
+    }
+    return bid;
+}
+
+MICROSOFT_QUANTUM_DECL uintq init_qbridge(_In_ uintq q, _In_ uintq mb, _In_ uintq p, _In_ bool wrap, _In_ bool born,
+    _In_ uintq lazy, _In_ uintq mpq, _In_ uintq seed, _In_ bool tn, _In_ bool md, _In_ bool sd, _In_ bool sh,
+    _In_ bool bdt, _In_ bool pg, _In_ bool hy, _In_ bool oc)
+{
+    META_LOCK_GUARD()
+
+#if ENABLE_OPENCL || ENABLE_CUDA
+    const bool isOcl = oc && (DEVICE_COUNT > 0);
+    const bool isOclMulti = oc && md && (DEVICE_COUNT > 1);
+#else
+    const bool isOcl = false;
+    const bool isOclMulti = false;
+#endif
+    // Patch engine stack, as in init_count_type (without the noise layer). Construct backwards, then reverse:
+    std::vector<QInterfaceEngine> simulatorType;
+    simulatorType.push_back(isOcl ? (hy ? QINTERFACE_HYBRID : QINTERFACE_OPENCL) : QINTERFACE_CPU);
+    if (pg && isOcl && !hy) {
+        simulatorType.push_back(QINTERFACE_QPAGER);
+    }
+    if (bdt) {
+        simulatorType.push_back(QINTERFACE_BDT);
+    }
+    if (sh) {
+        simulatorType.push_back(QINTERFACE_STABILIZER_HYBRID);
+    }
+    if (sd) {
+        simulatorType.push_back(isOclMulti ? QINTERFACE_QUNIT_MULTI : QINTERFACE_QUNIT);
+    }
+    if (tn) {
+        simulatorType.push_back(QINTERFACE_TENSOR_NETWORK);
+    }
+    std::reverse(simulatorType.begin(), simulatorType.end());
+
+    bool isSuccess = true;
+    QBridgePtr bridge{ nullptr };
+    try {
+        bridge = std::make_shared<QBridge>(simulatorType, (bitLenInt)q, (bitLenInt)mb, (bitLenInt)p, wrap, born,
+            (bitLenInt)lazy, (bitLenInt)mpq, randNumGen, (uint64_t)seed);
+    } catch (const std::exception& ex) {
+        std::cout << ex.what() << std::endl;
+        isSuccess = false;
+    }
+
+    return _register_qbridge(bridge, isSuccess);
+}
+
+MICROSOFT_QUANTUM_DECL uintq init_qbridge_clone(_In_ uintq bid)
+{
+    META_LOCK_GUARD()
+    if ((bid >= qbridges.size()) || !qbridges[bid]) {
+        std::cout << "Invalid argument: QBridge ID not found!" << std::endl;
+        metaError = 2;
+        return 0U;
+    }
+    QBridgePtr bridge = qbridges[bid];
+    bool isSuccess = true;
+    QBridgePtr nBridge{ nullptr };
+    {
+        const std::lock_guard<std::mutex> bridgeLock(qbridgeMutexes[bridge.get()]);
+        try {
+            nBridge = bridge->Clone();
+        } catch (const std::exception& ex) {
+            std::cout << ex.what() << std::endl;
+            isSuccess = false;
+        }
+    }
+
+    return _register_qbridge(nBridge, isSuccess);
+}
+
+MICROSOFT_QUANTUM_DECL void destroy_qbridge(_In_ uintq bid)
+{
+    META_LOCK_GUARD()
+    if (bid >= qbridges.size()) {
+        return;
+    }
+    qbridgeMutexes.erase(qbridges[bid].get());
+    qbridges[bid] = nullptr;
+    qbridgeReservations[bid] = false;
+}
+
+MICROSOFT_QUANTUM_DECL int get_qbridge_error(_In_ uintq bid)
+{
+    if (bid >= qbridgeErrors.size()) {
+        return 2;
+    }
+    return qbridgeErrors[bid];
+}
+
+MICROSOFT_QUANTUM_DECL uintq get_qbridge_qubit_count(_In_ uintq bid)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0U)
+    return (uintq)bridge->GetQubitCount();
+}
+
+MICROSOFT_QUANTUM_DECL void qbridge_mtrx(_In_ uintq bid, _In_reads_(8) double* m, _In_ uintq q)
+{
+    QBRIDGE_LOCK_GUARD_VOID(bid)
+    const complex mtrx[4U]{ complex((real1)m[0U], (real1)m[1U]), complex((real1)m[2U], (real1)m[3U]),
+        complex((real1)m[4U], (real1)m[5U]), complex((real1)m[6U], (real1)m[7U]) };
+    QBRIDGE_TRY(bid, bridge->Mtrx(mtrx, (bitLenInt)q))
+}
+
+MICROSOFT_QUANTUM_DECL void qbridge_u(
+    _In_ uintq bid, _In_ uintq q, _In_ double theta, _In_ double phi, _In_ double lambda)
+{
+    QBRIDGE_LOCK_GUARD_VOID(bid)
+    QBRIDGE_TRY(bid, bridge->U((bitLenInt)q, (real1_f)theta, (real1_f)phi, (real1_f)lambda))
+}
+
+static void _qbridge_mc(uintq bid, QBridgePtr bridge, uintq n, uintq* c, double* m, uintq q, bool anti)
+{
+    const complex mtrx[4U]{ complex((real1)m[0U], (real1)m[1U]), complex((real1)m[2U], (real1)m[3U]),
+        complex((real1)m[4U], (real1)m[5U]), complex((real1)m[6U], (real1)m[7U]) };
+    std::vector<bitLenInt> ctrls(n);
+    for (uintq i = 0U; i < n; ++i) {
+        ctrls[i] = (bitLenInt)c[i];
+    }
+    if (anti) {
+        QBRIDGE_TRY(bid, bridge->MACMtrx(ctrls, mtrx, (bitLenInt)q))
+    } else {
+        QBRIDGE_TRY(bid, bridge->MCMtrx(ctrls, mtrx, (bitLenInt)q))
+    }
+}
+
+MICROSOFT_QUANTUM_DECL void qbridge_mcmtrx(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* c, _In_reads_(8) double* m, _In_ uintq q)
+{
+    QBRIDGE_LOCK_GUARD_VOID(bid)
+    _qbridge_mc(bid, bridge, n, c, m, q, false);
+}
+
+MICROSOFT_QUANTUM_DECL void qbridge_macmtrx(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* c, _In_reads_(8) double* m, _In_ uintq q)
+{
+    QBRIDGE_LOCK_GUARD_VOID(bid)
+    _qbridge_mc(bid, bridge, n, c, m, q, true);
+}
+
+MICROSOFT_QUANTUM_DECL void qbridge_swap(_In_ uintq bid, _In_ uintq q1,
+    _In_ uintq q2){ QBRIDGE_LOCK_GUARD_VOID(bid) QBRIDGE_TRY(bid, bridge -> Swap((bitLenInt)q1, (bitLenInt)q2)) }
+
+MICROSOFT_QUANTUM_DECL void qbridge_iswap(_In_ uintq bid, _In_ uintq q1,
+    _In_ uintq q2){ QBRIDGE_LOCK_GUARD_VOID(bid) QBRIDGE_TRY(bid, bridge->ISwap((bitLenInt)q1, (bitLenInt)q2)) }
+
+MICROSOFT_QUANTUM_DECL void qbridge_adjiswap(_In_ uintq bid, _In_ uintq q1,
+    _In_ uintq q2){ QBRIDGE_LOCK_GUARD_VOID(bid) QBRIDGE_TRY(bid, bridge->IISwap((bitLenInt)q1, (bitLenInt)q2)) }
+
+MICROSOFT_QUANTUM_DECL void qbridge_fsim(
+    _In_ uintq bid, _In_ double theta, _In_ double phi, _In_ uintq q1, _In_ uintq q2){ QBRIDGE_LOCK_GUARD_VOID(bid)
+        QBRIDGE_TRY(bid, bridge->FSim((real1_f)theta, (real1_f)phi, (bitLenInt)q1, (bitLenInt)q2)) }
+
+MICROSOFT_QUANTUM_DECL void qbridge_begin_deferred(_In_ uintq bid)
+{
+    QBRIDGE_LOCK_GUARD_VOID(bid)
+    bridge->BeginDeferred();
+}
+
+MICROSOFT_QUANTUM_DECL void qbridge_end_deferred(
+    _In_ uintq bid){ QBRIDGE_LOCK_GUARD_VOID(bid) QBRIDGE_TRY(bid, bridge -> EndDeferred()) }
+
+MICROSOFT_QUANTUM_DECL
+    void qbridge_flush(_In_ uintq bid){ QBRIDGE_LOCK_GUARD_VOID(bid) QBRIDGE_TRY(bid, bridge->Flush()) }
+
+MICROSOFT_QUANTUM_DECL void qbridge_measure_shots(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* q, _In_ uintq s, _In_reads_(s) uintq* m)
+{
+    QBRIDGE_LOCK_GUARD_VOID(bid)
+    std::vector<bitLenInt> qubits(n);
+    for (uintq i = 0U; i < n; ++i) {
+        qubits[i] = (bitLenInt)q[i];
+    }
+    try {
+        const std::vector<bitCapInt> shots = bridge->MeasureShots(qubits, (unsigned)s);
+        for (size_t i = 0U; i < shots.size(); ++i) {
+            m[i] = (uintq)(bitCapIntOcl)shots[i];
+        }
+    } catch (const std::exception& ex) {
+        qbridgeErrors[bid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
+MICROSOFT_QUANTUM_DECL double qbridge_pauli_expectation(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(n) uintq* b)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0.0)
+    std::vector<bitLenInt> qubits(n);
+    std::vector<Pauli> paulis(n);
+    for (uintq i = 0U; i < n; ++i) {
+        qubits[i] = (bitLenInt)q[i];
+        paulis[i] = (Pauli)b[i];
+    }
+    double result = 0.0;
+    QBRIDGE_TRY(bid, result = (double)bridge->ExpectationPauliAll(qubits, paulis))
+    return result;
+}
+
+MICROSOFT_QUANTUM_DECL void qbridge_out_ket(_In_ uintq bid, _In_ real1_s* ket){ QBRIDGE_LOCK_GUARD_VOID(bid)
+        QBRIDGE_TRY(bid, bridge -> GetQuantumState(reinterpret_cast<complex*>(ket))) }
+
+MICROSOFT_QUANTUM_DECL double qbridge_get_fidelity_estimate(_In_ uintq bid)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0.0)
+    return bridge->GetFidelityEstimate();
+}
+
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_truncations(_In_ uintq bid)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0U)
+    return (uintq)bridge->GetTruncationCount();
+}
+
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_flushes(_In_ uintq bid)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0U)
+    return (uintq)bridge->GetFlushCount();
+}
+
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_peak_bonds(_In_ uintq bid)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0U)
+    return (uintq)bridge->GetPeakBonds();
+}
+
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_cut_count(_In_ uintq bid)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0U)
+    return (uintq)bridge->GetBonds().size();
+}
+
+MICROSOFT_QUANTUM_DECL void qbridge_get_bonds(_In_ uintq bid, _In_ uintq* b)
+{
+    QBRIDGE_LOCK_GUARD_VOID(bid)
+    const std::vector<bitLenInt> bonds = bridge->GetBonds();
+    for (size_t i = 0U; i < bonds.size(); ++i) {
+        b[i] = (uintq)bonds[i];
+    }
 }
 }

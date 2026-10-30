@@ -346,4 +346,38 @@ MICROSOFT_QUANTUM_DECL void qcircuit_out_to_file(_In_ uintq cid, _In_ char* f);
 MICROSOFT_QUANTUM_DECL void qcircuit_in_from_file(_In_ uintq cid, _In_ char* f);
 MICROSOFT_QUANTUM_DECL size_t qcircuit_out_to_string_length(_In_ uintq cid);
 MICROSOFT_QUANTUM_DECL void qcircuit_out_to_string(_In_ uintq cid, _In_ char* f);
+// QBridge: bridged patching (an MPS whose sites are whole Qrack simulators). Separate ID space.
+MICROSOFT_QUANTUM_DECL uintq init_qbridge(_In_ uintq q, _In_ uintq mb, _In_ uintq p, _In_ bool wrap, _In_ bool born,
+    _In_ uintq lazy, _In_ uintq mpq, _In_ uintq seed, _In_ bool tn, _In_ bool md, _In_ bool sd, _In_ bool sh,
+    _In_ bool bdt, _In_ bool pg, _In_ bool hy, _In_ bool oc);
+MICROSOFT_QUANTUM_DECL uintq init_qbridge_clone(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL void destroy_qbridge(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL int get_qbridge_error(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL uintq get_qbridge_qubit_count(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL void qbridge_mtrx(_In_ uintq bid, _In_reads_(8) double* m, _In_ uintq q);
+MICROSOFT_QUANTUM_DECL void qbridge_u(
+    _In_ uintq bid, _In_ uintq q, _In_ double theta, _In_ double phi, _In_ double lambda);
+MICROSOFT_QUANTUM_DECL void qbridge_mcmtrx(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* c, _In_reads_(8) double* m, _In_ uintq q);
+MICROSOFT_QUANTUM_DECL void qbridge_macmtrx(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* c, _In_reads_(8) double* m, _In_ uintq q);
+MICROSOFT_QUANTUM_DECL void qbridge_swap(_In_ uintq bid, _In_ uintq q1, _In_ uintq q2);
+MICROSOFT_QUANTUM_DECL void qbridge_iswap(_In_ uintq bid, _In_ uintq q1, _In_ uintq q2);
+MICROSOFT_QUANTUM_DECL void qbridge_adjiswap(_In_ uintq bid, _In_ uintq q1, _In_ uintq q2);
+MICROSOFT_QUANTUM_DECL void qbridge_fsim(
+    _In_ uintq bid, _In_ double theta, _In_ double phi, _In_ uintq q1, _In_ uintq q2);
+MICROSOFT_QUANTUM_DECL void qbridge_begin_deferred(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL void qbridge_end_deferred(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL void qbridge_flush(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL void qbridge_measure_shots(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* q, _In_ uintq s, _In_reads_(s) uintq* m);
+MICROSOFT_QUANTUM_DECL double qbridge_pauli_expectation(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(n) uintq* b);
+MICROSOFT_QUANTUM_DECL void qbridge_out_ket(_In_ uintq bid, _In_ real1_s* ket);
+MICROSOFT_QUANTUM_DECL double qbridge_get_fidelity_estimate(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_truncations(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_flushes(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_peak_bonds(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_cut_count(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL void qbridge_get_bonds(_In_ uintq bid, _In_ uintq* b);
 }
