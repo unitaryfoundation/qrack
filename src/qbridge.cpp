@@ -11,6 +11,7 @@
 #include "qbridge.hpp"
 
 #include <algorithm>
+#include <array>
 #include <future>
 #include <numeric>
 
@@ -76,6 +77,7 @@ QBridge::QBridge(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, bitLenI
     , truncations(0U)
     , flushes(0U)
     , peakBonds(0U)
+    , peakPatchQubits(0U)
 {
     if (!patches || (patches > qBitCount)) {
         throw std::invalid_argument("QBridge needs 1 <= patches <= qubit count!");
@@ -94,6 +96,7 @@ QBridge::QBridge(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, bitLenI
         }
         layout.push_back(lay);
         sims.push_back(MakeEngine(sz));
+        peakPatchQubits = std::max(peakPatchQubits, sz);
     }
     bond.assign(isRing ? patches : (patches - 1U), 0U);
 }
@@ -135,7 +138,7 @@ QBridgePtr QBridge::Clone()
 {
     QBridgePtr c = std::make_shared<QBridge>(*this);
     for (size_t p = 0U; p < sims.size(); ++p) {
-        c->sims[p] = sims[p]->Clone();
+        c->sims[p] = sims[p] ? sims[p]->Clone() : nullptr;
     }
     c->deferring = 0;
     return c;
@@ -167,71 +170,183 @@ std::vector<bitLenInt> QBridge::Path(bitLenInt pa, bitLenInt pb) const
     return path;
 }
 
-void QBridge::NewBond(bitLenInt here, bitLenInt there, bitLenInt& idHere, bitLenInt& idThere)
+QInterfacePtr QBridge::Eng(bitLenInt p)
 {
-    const bool rightward = isRing ? (there == ((here + 1U) % patchCount)) : (there == (here + 1U));
-    const bitLenInt c = rightward ? here : there;
-    const bitLenInt j = bond[c];
-    ++bond[c];
-    peakBonds = std::max(peakBonds, bond[c]);
-    if (isRing && (c == (patchCount - 1U))) {
-        wrapTouched = true;
+    // An in-patch operation needs the patch's engine: write any host tensors back first (exactly, if a
+    // deferred block or lazy buffer is still open; this is the only case an engine can exceed maxBonds).
+    if (hostT.count(p)) {
+        Compress((deferring > 0) || (lazyBonds > 0U), true);
     }
-    const bitLenInt pl = c, pr = (c + 1U) % patchCount;
-    const bitLenInt ql = (bitLenInt)layout[pl].size();
-    sims[pl]->Allocate(1U);
-    layout[pl].push_back(Tag{ 'R', j });
-    const bitLenInt qr = (bitLenInt)layout[pr].size();
-    sims[pr]->Allocate(1U);
-    layout[pr].push_back(Tag{ 'L', j });
-    idHere = (here == pl) ? ql : qr;
-    idThere = (there == pl) ? ql : qr;
+    return sims[p];
 }
 
-bitLenInt QBridge::NewScratch(bitLenInt p)
+QBridge::Tensor QBridge::TakeTensor(bitLenInt p)
 {
-    const bitLenInt q = (bitLenInt)layout[p].size();
-    sims[p]->Allocate(1U);
-    layout[p].push_back(Tag{ '0', q });
-    return q;
+    auto it = hostT.find(p);
+    if (it != hostT.end()) {
+        Tensor t = std::move(it->second);
+        hostT.erase(it);
+        return t;
+    }
+    Tensor t = ReadTensor(p);
+    sims[p] = nullptr; // release the engine while its tensor is on the host
+    return t;
 }
 
-bitLenInt QBridge::Ship(const std::vector<bitLenInt>& path, bitLenInt src)
+// Exact two-qubit unitary of a gate as Qrack applies it: G[(ya + 2 yb) * 4 + (xa + 2 xb)].
+static void QBridgeGateMatrix(std::function<void(QInterfacePtr, bitLenInt, bitLenInt)> fn, std::complex<double>* G)
 {
-    bitLenInt out, inc;
-    NewBond(path[0U], path[1U], out, inc);
-    sims[path[0U]]->Swap(src, out);
-    for (size_t k = 1U; (k + 1U) < path.size(); ++k) {
-        QInterfacePtr s = sims[path[k]];
-        s->H(inc);
-        bitLenInt nxt;
-        NewBond(path[k], path[k + 1U], out, nxt);
-        s->CNOT(inc, out);
-        inc = nxt;
+    for (int xin = 0; xin < 4; ++xin) {
+        bitCapInt perm = ZERO_BCI;
+        if (xin & 1) {
+            bi_or_ip(&perm, pow2(0U));
+        }
+        if (xin & 2) {
+            bi_or_ip(&perm, pow2(1U));
+        }
+        QInterfacePtr e = std::make_shared<QEngineCPU>(2U, perm, nullptr, CMPLX_DEFAULT_ARG, false, false);
+        fn(e, 0U, 1U);
+        complex out[4U];
+        e->GetQuantumState(out);
+        for (int y = 0; y < 4; ++y) {
+            G[y * 4 + xin] = std::complex<double>(out[y]);
+        }
     }
-    QInterfacePtr s = sims[path.back()];
-    const bitLenInt z = NewScratch(path.back());
-    s->H(inc);
-    s->CNOT(inc, z);
-    return z;
 }
 
-void QBridge::Unship(const std::vector<bitLenInt>& path, bitLenInt z, bitLenInt dst)
+void QBridge::HostTwoQubit(bitLenInt a, bitLenInt b, const cmplx_d* G)
 {
-    bitLenInt out, inc;
-    NewBond(path[0U], path[1U], out, inc);
-    sims[path[0U]]->Swap(z, out);
-    for (size_t k = 1U; (k + 1U) < path.size(); ++k) {
-        QInterfacePtr s = sims[path[k]];
-        s->H(inc);
-        bitLenInt nxt;
-        NewBond(path[k], path[k + 1U], out, nxt);
-        s->CNOT(inc, out);
-        inc = nxt;
+    // Bridged two-qubit gate without ancillae. Operator-Schmidt decomposition G = sum_k A_k (x) B_k
+    // (K <= 4 terms; 2 for controlled gates), applied to the patch tensors on the host: patch a gets
+    // its bond toward b extended by k with A_k on qubit a, patch b gets k with B_k on qubit b, and every
+    // patch in between carries k unchanged. The usual sweep then recompresses before anything is
+    // written back, so patch engines never hold more than data + bond qubits.
+    bitLenInt pa, ia, pb, ib;
+    Locate(a, pa, ia);
+    Locate(b, pb, ib);
+    std::vector<cmplx_d> M(16U), MM(16U, cmplx_d(0.0, 0.0)), U;
+    for (int ya = 0; ya < 2; ++ya) {
+        for (int xa = 0; xa < 2; ++xa) {
+            for (int yb = 0; yb < 2; ++yb) {
+                for (int xb = 0; xb < 2; ++xb) {
+                    M[(ya * 2 + xa) * 4 + (yb * 2 + xb)] = G[(ya + 2 * yb) * 4 + (xa + 2 * xb)];
+                }
+            }
+        }
     }
-    QInterfacePtr s = sims[path.back()];
-    s->H(inc);
-    s->CNOT(inc, dst);
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            for (int x = 0; x < 4; ++x) {
+                MM[i * 4 + j] += M[i * 4 + x] * std::conj(M[j * 4 + x]);
+            }
+        }
+    }
+    std::vector<double> lam;
+    EighDesc(MM, 4U, lam, U);
+    size_t K = 0U;
+    while ((K < 4U) && (lam[K] > (1e-12 * lam[0U]))) {
+        ++K;
+    }
+    const size_t Kp = (K <= 1U) ? 1U : ((K <= 2U) ? 2U : 4U);
+    std::vector<std::array<complex, 4U>> Ak(Kp), Bk(Kp);
+    for (size_t k = 0U; k < Kp; ++k) {
+        Ak[k].fill(ZERO_CMPLX);
+        Bk[k].fill(ZERO_CMPLX);
+        if (k >= K) {
+            continue;
+        }
+        const double s = std::sqrt(lam[k]);
+        const double rs = std::sqrt(s);
+        for (int i = 0; i < 4; ++i) {
+            const cmplx_d av = rs * U[i * 4 + k];
+            Ak[k][i] = complex((real1)av.real(), (real1)av.imag());
+            cmplx_d vh(0.0, 0.0);
+            for (int j = 0; j < 4; ++j) {
+                vh += std::conj(U[j * 4 + k]) * M[j * 4 + i];
+            }
+            vh *= rs / s;
+            Bk[k][i] = complex((real1)vh.real(), (real1)vh.imag());
+        }
+    }
+
+    const std::vector<bitLenInt> path = Path(pa, pb);
+    std::vector<Tensor> T;
+    for (const bitLenInt& p : path) {
+        T.push_back(TakeTensor(p)); // read before any bond count changes
+    }
+    std::vector<bool> kL(path.size(), false), kR(path.size(), false);
+    const bitLenInt kb = bondBits(Kp);
+    for (size_t i = 0U; (i + 1U) < path.size(); ++i) {
+        const bitLenInt u = path[i], v = path[i + 1U];
+        const bool rightward = isRing ? (v == ((u + 1U) % patchCount)) : (v == (u + 1U));
+        const bitLenInt c = rightward ? u : v;
+        if (rightward) {
+            kR[i] = true;
+            kL[i + 1U] = true;
+        } else {
+            kL[i] = true;
+            kR[i + 1U] = true;
+        }
+        bond[c] += kb;
+        peakBonds = std::max(peakBonds, bond[c]);
+        if (isRing && (c == (patchCount - 1U))) {
+            wrapTouched = true;
+        }
+    }
+
+    for (size_t i = 0U; i < path.size(); ++i) {
+        const Tensor& t = T[i];
+        const size_t L = t.l, D = t.d, R = t.r;
+        const size_t nl = kL[i] ? (L * Kp) : L, nr = kR[i] ? (R * Kp) : R;
+        Tensor n(nl, D, nr);
+        const bool isA = (i == 0U), isB = ((i + 1U) == path.size());
+        if (!isA && !isB) {
+            // Relay: k passes through unchanged.
+            ParRange(D, 1024U, [&](size_t b0, size_t e0, unsigned th) {
+                for (size_t k = 0U; k < Kp; ++k) {
+                    for (size_t l = 0U; l < L; ++l) {
+                        for (size_t d = b0; d < e0; ++d) {
+                            const complex* src = &t.a[(l * D + d) * R];
+                            complex* dst = &n.a[((l * Kp + k) * D + d) * nr];
+                            for (size_t r = 0U; r < R; ++r) {
+                                dst[r * Kp + k] = src[r];
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            const std::vector<std::array<complex, 4U>>& op = isA ? Ak : Bk;
+            const size_t bit = (size_t)1U << (isA ? ia : ib);
+            const bool right = kR[i]; // an endpoint carries k on exactly one side
+            ParRange(D, 1024U, [&](size_t b0, size_t e0, unsigned th) {
+                for (size_t k = 0U; k < Kp; ++k) {
+                    const complex o00 = op[k][0U], o01 = op[k][1U], o10 = op[k][2U], o11 = op[k][3U];
+                    for (size_t l = 0U; l < L; ++l) {
+                        for (size_t d = b0; d < e0; ++d) {
+                            if (d & bit) {
+                                continue;
+                            }
+                            const size_t d1 = d | bit;
+                            const complex* s0 = &t.a[(l * D + d) * R];
+                            const complex* s1 = &t.a[(l * D + d1) * R];
+                            const size_t nlIdx = right ? l : (l * Kp + k);
+                            complex* t0 = &n.a[(nlIdx * D + d) * nr];
+                            complex* t1 = &n.a[(nlIdx * D + d1) * nr];
+                            for (size_t r = 0U; r < R; ++r) {
+                                const size_t nrIdx = right ? (r * Kp + k) : r;
+                                t0[nrIdx] = o00 * s0[r] + o01 * s1[r];
+                                t1[nrIdx] = o10 * s0[r] + o11 * s1[r];
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        hostT[path[i]] = std::move(n);
+    }
+    touched.insert(path.begin(), path.end());
+    MaybeCompress();
 }
 
 void QBridge::Controlled(bitLenInt c, bitLenInt t, const complex* mtrx, bool anti)
@@ -241,32 +356,30 @@ void QBridge::Controlled(bitLenInt c, bitLenInt t, const complex* mtrx, bool ant
     Locate(t, pt, it);
     if (pc == pt) {
         if (anti) {
-            sims[pc]->MACMtrx({ ic }, mtrx, it);
+            Eng(pc)->MACMtrx({ ic }, mtrx, it);
         } else {
-            sims[pc]->MCMtrx({ ic }, mtrx, it);
+            Eng(pc)->MCMtrx({ ic }, mtrx, it);
         }
         return;
     }
-    const std::vector<bitLenInt> path = Path(pc, pt);
-    bitLenInt out, inc;
-    NewBond(path[0U], path[1U], out, inc);
-    if (anti) {
-        sims[pc]->AntiCNOT(ic, out);
-    } else {
-        sims[pc]->CNOT(ic, out);
+    // G = |on><on| (x) U + |off><off| (x) I, qubit a = control, b = target.
+    const int on = anti ? 0 : 1;
+    cmplx_d G[16U];
+    for (int y = 0; y < 4; ++y) {
+        for (int x = 0; x < 4; ++x) {
+            const int ya = y & 1, yb = y >> 1, xa = x & 1, xb = x >> 1;
+            cmplx_d v(0.0, 0.0);
+            if (ya == xa) {
+                if (xa == on) {
+                    v = cmplx_d(mtrx[yb * 2 + xb]);
+                } else if (yb == xb) {
+                    v = cmplx_d(1.0, 0.0);
+                }
+            }
+            G[y * 4 + x] = v;
+        }
     }
-    for (size_t k = 1U; (k + 1U) < path.size(); ++k) {
-        QInterfacePtr s = sims[path[k]];
-        s->H(inc);
-        bitLenInt nxt;
-        NewBond(path[k], path[k + 1U], out, nxt);
-        s->CNOT(inc, out);
-        inc = nxt;
-    }
-    sims[pt]->H(inc);
-    sims[pt]->MCMtrx({ inc }, mtrx, it);
-    touched.insert(path.begin(), path.end());
-    MaybeCompress();
+    HostTwoQubit(c, t, G);
 }
 
 void QBridge::PairGate(bitLenInt a, bitLenInt b, std::function<void(QInterfacePtr, bitLenInt, bitLenInt)> fn)
@@ -275,16 +388,12 @@ void QBridge::PairGate(bitLenInt a, bitLenInt b, std::function<void(QInterfacePt
     Locate(a, pa, ia);
     Locate(b, pb, ib);
     if (pa == pb) {
-        fn(sims[pa], ia, ib);
+        fn(Eng(pa), ia, ib);
         return;
     }
-    std::vector<bitLenInt> path = Path(pa, pb);
-    const bitLenInt z = Ship(path, ia);
-    fn(sims[pb], z, ib);
-    std::vector<bitLenInt> back(path.rbegin(), path.rend());
-    Unship(back, z, ia);
-    touched.insert(path.begin(), path.end());
-    MaybeCompress();
+    cmplx_d G[16U];
+    QBridgeGateMatrix(fn, G);
+    HostTwoQubit(a, b, G);
 }
 
 // --- gates -------------------------------------------------------------------
@@ -293,49 +402,49 @@ void QBridge::Mtrx(const complex* mtrx, bitLenInt q)
 {
     bitLenInt p, i;
     Locate(q, p, i);
-    sims[p]->Mtrx(mtrx, i);
+    Eng(p)->Mtrx(mtrx, i);
 }
 void QBridge::U(bitLenInt q, real1_f theta, real1_f phi, real1_f lambda)
 {
     bitLenInt p, i;
     Locate(q, p, i);
-    sims[p]->U(i, theta, phi, lambda);
+    Eng(p)->U(i, theta, phi, lambda);
 }
 void QBridge::H(bitLenInt q)
 {
     bitLenInt p, i;
     Locate(q, p, i);
-    sims[p]->H(i);
+    Eng(p)->H(i);
 }
 void QBridge::S(bitLenInt q)
 {
     bitLenInt p, i;
     Locate(q, p, i);
-    sims[p]->S(i);
+    Eng(p)->S(i);
 }
 void QBridge::IS(bitLenInt q)
 {
     bitLenInt p, i;
     Locate(q, p, i);
-    sims[p]->IS(i);
+    Eng(p)->IS(i);
 }
 void QBridge::X(bitLenInt q)
 {
     bitLenInt p, i;
     Locate(q, p, i);
-    sims[p]->X(i);
+    Eng(p)->X(i);
 }
 void QBridge::Y(bitLenInt q)
 {
     bitLenInt p, i;
     Locate(q, p, i);
-    sims[p]->Y(i);
+    Eng(p)->Y(i);
 }
 void QBridge::Z(bitLenInt q)
 {
     bitLenInt p, i;
     Locate(q, p, i);
-    sims[p]->Z(i);
+    Eng(p)->Z(i);
 }
 
 void QBridge::MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
@@ -355,7 +464,7 @@ void QBridge::MCMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx
         }
         lc.push_back(ic);
     }
-    sims[pt]->MCMtrx(lc, mtrx, it);
+    Eng(pt)->MCMtrx(lc, mtrx, it);
 }
 
 void QBridge::MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtrx, bitLenInt target)
@@ -375,7 +484,7 @@ void QBridge::MACMtrx(const std::vector<bitLenInt>& controls, const complex* mtr
         }
         lc.push_back(ic);
     }
-    sims[pt]->MACMtrx(lc, mtrx, it);
+    Eng(pt)->MACMtrx(lc, mtrx, it);
 }
 
 static const complex QB_X[4U]{ ZERO_CMPLX, ONE_CMPLX, ONE_CMPLX, ZERO_CMPLX };
@@ -808,6 +917,7 @@ void QBridge::StoreTensor(bitLenInt p, const Tensor& t)
         lay.push_back(Tag{ 'R', i });
     }
     layout[p] = lay;
+    peakPatchQubits = std::max(peakPatchQubits, k);
     sims[p] = MakeEngine(k);
     sims[p]->SetQuantumState(v.data());
 }
@@ -869,17 +979,19 @@ std::vector<size_t> QBridge::Select(const std::vector<double>& sv, bool exactOnl
     return idx;
 }
 
-void QBridge::Sweep(bitLenInt lo, bitLenInt hi, bool exactOnly)
+void QBridge::Sweep(bitLenInt lo, bitLenInt hi, bool exactOnly, bool toEngine)
 {
     const bitLenInt start = std::min(lo, center), end = std::max(hi, center);
     if (start == end) {
         center = lo;
+        if (toEngine && hostT.count(lo)) {
+            StoreTensor(lo, TakeTensor(lo));
+        }
         return;
     }
     std::vector<Tensor> T;
     for (bitLenInt k = start; k <= end; ++k) {
-        T.push_back(ReadTensor(k));
-        sims[k] = nullptr; // release the engine while its tensor is on the host
+        T.push_back(TakeTensor(k));
     }
     // Left-isometric up to the centre at `end`.
     for (bitLenInt k = start; k < end; ++k) {
@@ -960,7 +1072,11 @@ void QBridge::Sweep(bitLenInt lo, bitLenInt hi, bool exactOnly)
         bond[k - 1U] = bondBits(kk);
     }
     for (bitLenInt k = start; k <= end; ++k) {
-        StoreTensor(k, T[k - start]);
+        if (toEngine) {
+            StoreTensor(k, T[k - start]);
+        } else {
+            hostT[k] = std::move(T[k - start]);
+        }
     }
     center = lo;
 }
@@ -969,9 +1085,7 @@ void QBridge::CompressWrap(bool exactOnly)
 {
     // Ring only: recompress the wrap cut (P-1 | 0) locally, from both sides' orthonormal factors.
     const bitLenInt last = patchCount - 1U;
-    Tensor A = ReadTensor(last), B = ReadTensor(0U);
-    sims[last] = nullptr;
-    sims[0U] = nullptr;
+    Tensor A = TakeTensor(last), B = TakeTensor(0U);
     const size_t w = A.r, bcols = B.d * B.r;
     std::vector<complex> qa, qb;
     std::vector<cmplx_d> ra, rb;
@@ -1033,11 +1147,11 @@ void QBridge::CompressWrap(bool exactOnly)
         }
     });
     bond[last] = bondBits(kk);
-    StoreTensor(last, nA);
-    StoreTensor(0U, nB);
+    hostT[last] = std::move(nA); // the sweep that follows writes these back (or keeps them on the host)
+    hostT[0U] = std::move(nB);
 }
 
-void QBridge::Compress(bool exactOnly)
+void QBridge::Compress(bool exactOnly, bool toEngine)
 {
     if (touched.empty()) {
         return;
@@ -1047,7 +1161,7 @@ void QBridge::Compress(bool exactOnly)
         touched.insert(0U);
         touched.insert(patchCount - 1U);
     }
-    Sweep(*touched.begin(), *touched.rbegin(), exactOnly);
+    Sweep(*touched.begin(), *touched.rbegin(), exactOnly, toEngine);
     if (!exactOnly) {
         ++flushes;
         touched.clear();
@@ -1063,8 +1177,8 @@ bool QBridge::OverBudget() const
         }
     }
     if (maxPatchQubits) {
-        for (const auto& lay : layout) {
-            if (lay.size() > maxPatchQubits) {
+        for (bitLenInt p = 0U; p < patchCount; ++p) {
+            if ((patchSize[p] + LeftBonds(p) + RightBonds(p)) > maxPatchQubits) {
                 return true;
             }
         }
@@ -1075,13 +1189,16 @@ bool QBridge::OverBudget() const
 void QBridge::MaybeCompress()
 {
     if (deferring) {
+        // Inside a deferred block: drop exact zeros on the host, never truncate, never widen an engine.
         if (!lazyBonds || OverBudget()) {
-            Compress(true);
+            Compress(true, false);
         }
         return;
     }
+    // Eager: truncate and write back after every bridged gate. Lazy: let bonds grow on the host until
+    // a cut exceeds maxBonds + lazyBonds (or a patch would exceed maxPatchQubits).
     if (!lazyBonds || OverBudget()) {
-        Compress(false);
+        Compress(false, true);
     }
 }
 

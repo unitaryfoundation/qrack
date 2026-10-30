@@ -378,6 +378,7 @@ MICROSOFT_QUANTUM_DECL double qbridge_get_fidelity_estimate(_In_ uintq bid);
 MICROSOFT_QUANTUM_DECL uintq qbridge_get_truncations(_In_ uintq bid);
 MICROSOFT_QUANTUM_DECL uintq qbridge_get_flushes(_In_ uintq bid);
 MICROSOFT_QUANTUM_DECL uintq qbridge_get_peak_bonds(_In_ uintq bid);
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_peak_patch_qubits(_In_ uintq bid);
 MICROSOFT_QUANTUM_DECL uintq qbridge_get_cut_count(_In_ uintq bid);
 MICROSOFT_QUANTUM_DECL void qbridge_get_bonds(_In_ uintq bid, _In_ uintq* b);
 }

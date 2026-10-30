@@ -4611,6 +4611,12 @@ MICROSOFT_QUANTUM_DECL uintq qbridge_get_peak_bonds(_In_ uintq bid)
     return (uintq)bridge->GetPeakBonds();
 }
 
+MICROSOFT_QUANTUM_DECL uintq qbridge_get_peak_patch_qubits(_In_ uintq bid)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0U)
+    return (uintq)bridge->GetPeakPatchQubits();
+}
+
 MICROSOFT_QUANTUM_DECL uintq qbridge_get_cut_count(_In_ uintq bid)
 {
     QBRIDGE_LOCK_GUARD_TYPED(bid, 0U)

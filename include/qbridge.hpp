@@ -80,6 +80,9 @@ protected:
 
     bitLenInt center;
     std::set<bitLenInt> touched;
+    // Patches whose current tensor lives on the host (bond growth from bridged gates, or exact-only
+    // recompression inside a deferred block); their engines are released until written back.
+    std::map<bitLenInt, Tensor> hostT;
     bool wrapTouched;
     int deferring;
 
@@ -87,6 +90,7 @@ protected:
     size_t truncations;
     size_t flushes;
     bitLenInt peakBonds;
+    bitLenInt peakPatchQubits;
 
     QInterfacePtr MakeEngine(bitLenInt n);
     void ParRange(size_t n, size_t grain, std::function<void(size_t, size_t, unsigned)> fn);
@@ -98,10 +102,9 @@ protected:
     bitLenInt LeftBonds(bitLenInt p) const { return HasLeftCut(p) ? bond[LeftCut(p)] : 0U; }
     bitLenInt RightBonds(bitLenInt p) const { return HasRightCut(p) ? bond[RightCut(p)] : 0U; }
     std::vector<bitLenInt> Path(bitLenInt pa, bitLenInt pb) const;
-    void NewBond(bitLenInt here, bitLenInt there, bitLenInt& idHere, bitLenInt& idThere);
-    bitLenInt NewScratch(bitLenInt p);
-    bitLenInt Ship(const std::vector<bitLenInt>& path, bitLenInt src);
-    void Unship(const std::vector<bitLenInt>& path, bitLenInt z, bitLenInt dst);
+    QInterfacePtr Eng(bitLenInt p);
+    Tensor TakeTensor(bitLenInt p);
+    void HostTwoQubit(bitLenInt a, bitLenInt b, const cmplx_d* G);
     void Controlled(bitLenInt c, bitLenInt t, const complex* mtrx, bool anti);
     void PairGate(bitLenInt a, bitLenInt b, std::function<void(QInterfacePtr, bitLenInt, bitLenInt)> fn);
 
@@ -109,9 +112,9 @@ protected:
     void TransferStep(std::vector<cmplx_d>& E, size_t W, const Tensor& A, const Tensor& B);
     void StoreTensor(bitLenInt p, const Tensor& t);
     std::vector<size_t> Select(const std::vector<double>& sv, bool exactOnly);
-    void Sweep(bitLenInt lo, bitLenInt hi, bool exactOnly);
+    void Sweep(bitLenInt lo, bitLenInt hi, bool exactOnly, bool toEngine = true);
     void CompressWrap(bool exactOnly);
-    void Compress(bool exactOnly);
+    void Compress(bool exactOnly, bool toEngine = true);
     bool OverBudget() const;
     void MaybeCompress();
 
@@ -147,6 +150,8 @@ public:
     double GetFidelityEstimate() const { return fidelityEstimate; }
     size_t GetTruncationCount() const { return truncations; }
     bitLenInt GetPeakBonds() const { return peakBonds; }
+    /** Widest patch engine ever allocated (data + bond qubits): the ancilla budget actually used. */
+    bitLenInt GetPeakPatchQubits() const { return peakPatchQubits; }
     size_t GetFlushCount() const { return flushes; }
 
     // --- gates ---

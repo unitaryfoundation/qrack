@@ -7618,3 +7618,15 @@ TEST_CASE("test_qbridge_pauli_expectation", "[qbridge]")
         }
     }
 }
+
+TEST_CASE("test_qbridge_engine_width", "[qbridge]")
+{
+    // Bridged gates grow bonds on the host only: no patch engine is ever wider than its data qubits
+    // plus maxBonds per cut, even for SWAP-type gates and gates relayed across several patches.
+    const bitLenInt n = 12U, mb = 2U, P = 4U;
+    QBridge br({ QINTERFACE_CPU }, n, mb, P);
+    QInterfacePtr ref = CreateQuantumInterface(QINTERFACE_CPU, n, ZERO_BCI);
+    qbridge_random_circuit(br, ref, n, 6, 41U);
+    REQUIRE(br.GetPeakBonds() > mb);
+    REQUIRE(br.GetPeakPatchQubits() <= (n / P + 2U * mb));
+}
