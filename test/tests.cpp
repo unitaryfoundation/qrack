@@ -20,6 +20,7 @@
 #include <stdlib.h>
 
 #include "catch.hpp"
+#include "qbridge.hpp"
 #include "qneuron.hpp"
 
 #include "tests.hpp"
@@ -7427,3 +7428,165 @@ TEST_CASE("test_qcircuit_inc", "[qcircuit]")
     REQUIRE((bitCapIntOcl)qftReg->MAll() == 2);
 }
 #endif
+
+// --- QBridge (bridged patching) ---------------------------------------------------------------
+
+static real1_f qbridge_fidelity(QBridge& br, QInterfacePtr ref, bitLenInt n)
+{
+    std::vector<complex> a((size_t)1U << n), b((size_t)1U << n);
+    ref->GetQuantumState(a.data());
+    br.GetQuantumState(b.data());
+    complex ov = ZERO_CMPLX;
+    for (size_t i = 0U; i < a.size(); ++i) {
+        ov += conj(a[i]) * b[i];
+    }
+    return (real1_f)norm(ov);
+}
+
+static void qbridge_random_circuit(QBridge& br, QInterfacePtr ref, bitLenInt n, int depth, unsigned seed)
+{
+    std::mt19937 g(seed);
+    std::uniform_real_distribution<real1_f> ang(-PI_R1, PI_R1);
+    std::uniform_int_distribution<int> pick(0, 6);
+    std::uniform_int_distribution<int> qd(0, (int)n - 1);
+    const complex z[4U]{ ONE_CMPLX, ZERO_CMPLX, ZERO_CMPLX, -ONE_CMPLX };
+    for (int d = 0; d < depth; ++d) {
+        for (bitLenInt q = 0U; q < n; ++q) {
+            const real1_f th = ang(g), ph = ang(g), lm = ang(g);
+            br.U(q, th, ph, lm);
+            ref->U(q, th, ph, lm);
+        }
+        for (bitLenInt k = 0U; k < (n >> 1U); ++k) {
+            const bitLenInt a = (bitLenInt)qd(g);
+            bitLenInt b = (bitLenInt)qd(g);
+            if (a == b) {
+                b = (a + 1U) % n;
+            }
+            switch (pick(g)) {
+            case 0:
+                br.CNOT(a, b);
+                ref->CNOT(a, b);
+                break;
+            case 1:
+                br.CZ(a, b);
+                ref->CZ(a, b);
+                break;
+            case 2:
+                br.AntiCNOT(a, b);
+                ref->AntiCNOT(a, b);
+                break;
+            case 3:
+                br.Swap(a, b);
+                ref->Swap(a, b);
+                break;
+            case 4:
+                br.ISwap(a, b);
+                ref->ISwap(a, b);
+                break;
+            case 5:
+                br.IISwap(a, b);
+                ref->IISwap(a, b);
+                break;
+            default:
+                br.MCMtrx({ a }, z, b);
+                ref->MCMtrx({ a }, z, b);
+                break;
+            }
+        }
+    }
+}
+
+TEST_CASE("test_qbridge_exact", "[qbridge]")
+{
+    // With enough bond qubits, every patch count, open or ring, must reproduce the exact state,
+    // including gates between non-adjacent patches (relayed) and SWAP-type gates (ship-and-return).
+    const bitLenInt n = 8U;
+    for (bitLenInt P = 1U; P <= 4U; ++P) {
+        for (int wrap = 0; wrap < 2; ++wrap) {
+            QBridge br({ QINTERFACE_CPU }, n, 8U, P, wrap != 0);
+            QInterfacePtr ref = CreateQuantumInterface(QINTERFACE_CPU, n, ZERO_BCI);
+            qbridge_random_circuit(br, ref, n, 6, 17U + P);
+            REQUIRE(qbridge_fidelity(br, ref, n) > (real1_f)0.999f);
+            REQUIRE(br.GetFidelityEstimate() > 0.999);
+        }
+    }
+}
+
+TEST_CASE("test_qbridge_truncation", "[qbridge]")
+{
+    const bitLenInt n = 8U;
+    QBridge br({ QINTERFACE_CPU }, n, 1U, 2U);
+    QInterfacePtr ref = CreateQuantumInterface(QINTERFACE_CPU, n, ZERO_BCI);
+    qbridge_random_circuit(br, ref, n, 6, 3U);
+    const real1_f f = qbridge_fidelity(br, ref, n);
+    REQUIRE(f < (real1_f)0.999f);
+    REQUIRE(f > ZERO_R1_F);
+    REQUIRE(br.GetFidelityEstimate() < 0.999);
+    REQUIRE(br.GetTruncationCount() > 0U);
+    for (const bitLenInt& b : br.GetBonds()) {
+        REQUIRE(b <= 1U);
+    }
+}
+
+TEST_CASE("test_qbridge_deferred", "[qbridge]")
+{
+    // Three CNOTs across the cut, then two undone: the result carries 1 ebit across the cut, so
+    // max_bonds=1 is exact if truncation waits for the whole block, and lossy if it truncates per gate.
+    const bitLenInt n = 6U;
+    for (int defer = 0; defer < 2; ++defer) {
+        QBridge br({ QINTERFACE_CPU }, n, 1U, 2U);
+        QInterfacePtr ref = CreateQuantumInterface(QINTERFACE_CPU, n, ZERO_BCI);
+        for (bitLenInt q = 0U; q < 3U; ++q) {
+            br.U(q, (real1_f)(0.7f + 0.4f * q), (real1_f)0.3f, (real1_f)(-0.2f));
+            ref->U(q, (real1_f)(0.7f + 0.4f * q), (real1_f)0.3f, (real1_f)(-0.2f));
+        }
+        if (defer) {
+            br.BeginDeferred();
+        }
+        for (bitLenInt q = 0U; q < 3U; ++q) {
+            br.CNOT(q, q + 3U);
+            ref->CNOT(q, q + 3U);
+        }
+        for (bitLenInt q = 1U; q < 3U; ++q) {
+            br.CNOT(q, q + 3U);
+            ref->CNOT(q, q + 3U);
+        }
+        if (defer) {
+            br.EndDeferred();
+        }
+        const real1_f f = qbridge_fidelity(br, ref, n);
+        if (defer) {
+            REQUIRE(f > (real1_f)0.999f);
+        } else {
+            REQUIRE(f < (real1_f)0.99f);
+        }
+    }
+}
+
+TEST_CASE("test_qbridge_measure", "[qbridge]")
+{
+    // Basis state across 3 patches on a ring: every shot is the same bitstring.
+    QBridge br({ QINTERFACE_CPU }, 9U, 2U, 3U, true, false, 0U, 0U, nullptr, 7U);
+    br.X(1U);
+    br.X(4U);
+    br.X(8U);
+    br.CNOT(8U, 0U); // across the wrap cut: sets qubit 0
+    std::vector<bitLenInt> qs;
+    for (bitLenInt q = 0U; q < 9U; ++q) {
+        qs.push_back(q);
+    }
+    for (const bitCapInt& s : br.MeasureShots(qs, 64U)) {
+        REQUIRE(bi_compare(s, 0x113U) == 0);
+    }
+    // Bell pair across the cut: only 00 and 11 on (0, 5), both seen.
+    QBridge bell({ QINTERFACE_CPU }, 6U, 1U, 2U, false, false, 0U, 0U, nullptr, 11U);
+    bell.H(0U);
+    bell.CNOT(0U, 5U);
+    std::map<int, int> seen;
+    for (const bitCapInt& s : bell.MeasureShots({ 0U, 5U }, 256U)) {
+        const int v = (int)(bitCapIntOcl)s;
+        REQUIRE(((v == 0) || (v == 3)));
+        ++seen[v];
+    }
+    REQUIRE(seen.size() == 2U);
+}

@@ -46,6 +46,7 @@ add_library (qrack STATIC
     src/qcircuit.cpp
     src/qtensornetwork.cpp
     src/qinterface_noisy.cpp
+    src/qbridge.cpp
     )
 set_property(TARGET qrack PROPERTY POSITION_INDEPENDENT_CODE ON)
 if (ENABLE_PTHREAD AND ENABLE_QUNIT_CPU_PARALLEL)
@@ -388,6 +389,7 @@ install (FILES
 # Install qrack library headers
 install (FILES
     include/hamiltonian.hpp
+    include/qbridge.hpp
     include/statevector.hpp
     include/statevector_turboquant.hpp
     include/pinvoke_api.hpp
