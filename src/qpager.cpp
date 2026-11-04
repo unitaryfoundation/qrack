@@ -399,7 +399,7 @@ template <typename Qubit1Fn> void QPager::SingleBitGate(bitLenInt target, Qubit1
     target -= qpp;
     const bitCapIntOcl targetPow = pow2Ocl(target);
     const bitCapIntOcl targetMask = targetPow - 1U;
-    const bitCapIntOcl maxLcv = qPages.size() >> 1U;
+    const bitCapIntOcl maxLcv = (bitCapIntOcl)qPages.size() >> 1U;
 #if ENABLE_PTHREAD
     const unsigned numCores = GetConcurrencyLevel();
     const bitCapIntOcl fCount = (maxLcv < numCores) ? maxLcv : (bitCapIntOcl)numCores;
@@ -816,7 +816,7 @@ void QPager::SetQuantumState(const complex* inputState)
     bitCapIntOcl pagePerm = 0U;
 #if ENABLE_PTHREAD
     const unsigned numCores = GetConcurrencyLevel();
-    const bitCapIntOcl fCount = (qPages.size() < numCores) ? qPages.size() : (bitCapIntOcl)numCores;
+    const bitCapIntOcl fCount = (bitCapIntOcl)((qPages.size() < numCores) ? qPages.size() : numCores);
     std::vector<std::future<void>> futures(fCount);
 #endif
     for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
@@ -856,7 +856,7 @@ void QPager::GetQuantumState(complex* outputState)
     bitCapIntOcl pagePerm = 0U;
 #if ENABLE_PTHREAD
     const unsigned numCores = GetConcurrencyLevel();
-    const bitCapIntOcl fCount = (qPages.size() < numCores) ? qPages.size() : (bitCapIntOcl)numCores;
+    const bitCapIntOcl fCount = (bitCapIntOcl)((qPages.size() < numCores) ? qPages.size() : numCores);
     std::vector<std::future<void>> futures(fCount);
 #endif
     for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
@@ -890,7 +890,7 @@ void QPager::GetProbs(real1* outputProbs)
     bitCapIntOcl pagePerm = 0U;
 #if ENABLE_PTHREAD
     const unsigned numCores = GetConcurrencyLevel();
-    const bitCapIntOcl fCount = (qPages.size() < numCores) ? qPages.size() : (bitCapIntOcl)numCores;
+    const bitCapIntOcl fCount = (bitCapIntOcl)((qPages.size() < numCores) ? qPages.size() : numCores);
     std::vector<std::future<void>> futures(fCount);
 #endif
     for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
@@ -1473,7 +1473,7 @@ real1_f QPager::Prob(bitLenInt qubit)
     if (qubit < qpp) {
 #if ENABLE_PTHREAD
         const unsigned numCores = GetConcurrencyLevel();
-        const bitCapIntOcl fCount = (qPages.size() < numCores) ? qPages.size() : (bitCapIntOcl)numCores;
+        const bitCapIntOcl fCount = (bitCapIntOcl)((qPages.size() < numCores) ? qPages.size() : numCores);
         std::vector<std::future<real1_f>> futures(fCount);
 #endif
         for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
@@ -1497,7 +1497,7 @@ real1_f QPager::Prob(bitLenInt qubit)
     } else {
         const bitCapIntOcl qPower = pow2Ocl(qubit - qpp);
         const bitCapIntOcl qMask = qPower - 1U;
-        const bitCapIntOcl fSize = qPages.size() >> 1U;
+        const bitCapIntOcl fSize = (bitCapIntOcl)qPages.size() >> 1U;
 #if ENABLE_PTHREAD
         const unsigned numCores = GetConcurrencyLevel();
         const bitCapIntOcl fCount = (fSize < numCores) ? fSize : (bitCapIntOcl)numCores;
@@ -1561,7 +1561,7 @@ real1_f QPager::ExpVarBitsAll(bool isExp, const std::vector<bitLenInt>& bits, co
     bitCapIntOcl pagePerm = 0U;
 #if ENABLE_PTHREAD
     const unsigned numCores = GetConcurrencyLevel();
-    const bitCapIntOcl fCount = (qPages.size() < numCores) ? qPages.size() : (bitCapIntOcl)numCores;
+    const bitCapIntOcl fCount = (bitCapIntOcl)((qPages.size() < numCores) ? qPages.size() : numCores);
     std::vector<std::future<real1_f>> futures(fCount);
 #endif
     for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
@@ -1670,7 +1670,7 @@ real1_f QPager::SumSqrDiff(QPagerPtr toCompare)
     real1_f toRet = ZERO_R1_F;
 #if ENABLE_PTHREAD
     const unsigned numCores = GetConcurrencyLevel();
-    const bitCapIntOcl fCount = (qPages.size() < numCores) ? qPages.size() : (bitCapIntOcl)numCores;
+    const bitCapIntOcl fCount = (bitCapIntOcl)((qPages.size() < numCores) ? qPages.size() : numCores);
     std::vector<std::future<real1_f>> futures(fCount);
 #endif
     for (bitCapIntOcl i = 0U; i < qPages.size(); ++i) {
