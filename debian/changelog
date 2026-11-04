@@ -1,3 +1,15 @@
+libqrack (10.14.4) resolute; urgency=medium
+
+  * QrackBridge and security fixes (Resolute 1/5)
+
+ -- Dan Strano <stranoj@gmail.com>  Wed, 04 Nov 2026 15:10:15 -0500
+
+libqrack (10.14.3) resolute; urgency=medium
+
+  * QrackBridge and security fixes (Resolute 1/5)
+
+ -- Dan Strano <stranoj@gmail.com>  Wed, 04 Nov 2026 14:17:28 -0500
+
 libqrack (10.10.4) resolute; urgency=medium
 
   * Security fixes (Resolute 1/5)

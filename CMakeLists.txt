@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.10)
-project (Qrack VERSION 10.14.2 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
+project (Qrack VERSION 10.14.4 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
 
 # Installation commands
 include (GNUInstallDirs)
@@ -499,6 +499,7 @@ if (PACK_DEBIAN)
     file(COPY cmake DESTINATION ${CMAKE_BINARY_DIR})
     file(COPY CMakeLists.txt DESTINATION ${CMAKE_BINARY_DIR})
     file(COPY libqrack.pc.in DESTINATION ${CMAKE_BINARY_DIR})
+    file(COPY makefile.in DESTINATION ${CMAKE_BINARY_DIR})
     file(COPY include DESTINATION ${CMAKE_BINARY_DIR})
     file(COPY src DESTINATION ${CMAKE_BINARY_DIR})
     file(COPY test DESTINATION ${CMAKE_BINARY_DIR})
