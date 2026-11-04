@@ -294,7 +294,7 @@ void QEngineCPU::LossyLoadStateVector(std::string f)
     ifile.close();
 
     const size_t sz = sv->get_size();
-    const bitLenInt qbCount = log2Ocl(sz);
+    const bitLenInt qbCount = log2Ocl((bitCapIntOcl)sz);
     if (qbCount > qubitCount) {
         Allocate(qubitCount, qbCount - qubitCount);
     } else if (qbCount < qubitCount) {
@@ -1089,7 +1089,8 @@ void QEngineCPU::PhaseRootNMask(bitLenInt n, const bitCapInt& mask)
         const size_t maskOcl = (size_t)(uint64_t)mask;
         const size_t nPhases = pow2Cpu(n);
         par_for(0U, maxQPowerOcl, [&](const size_t& lcv, const unsigned& cpu) {
-            const size_t nPhaseSteps = popCountOcl(lcv & maskOcl) % nPhases;
+            const size_t lcvOcl = (size_t)(uint64_t)lcv;
+            const size_t nPhaseSteps = popCountOcl(lcvOcl & maskOcl) % nPhases;
             if (nPhaseSteps != 0U) {
                 stateVec->write(lcv, std::polar(ONE_R1, (real1)(radians * nPhaseSteps)) * stateVec->read(lcv));
             }
@@ -1222,9 +1223,11 @@ void QEngineCPU::UniformParityRZ(const bitCapInt& mask, real1_f angle)
             };
             par_for_set(CastStateVecSparse()->iterable(), fn);
         } else {
+            const size_t maskOcl = (size_t)(uint64_t)mask;
             ParallelFunc fn = [&](const size_t& lcv, const unsigned& cpu) {
+                const size_t lcvOcl = (size_t)(uint64_t)lcv;
                 stateVec->write(lcv,
-                    stateVec->read(lcv) * ((popCountOcl(lcv & (size_t)(uint64_t)mask) & 1U) ? phaseFac : phaseFacAdj));
+                    stateVec->read(lcv) * ((popCountOcl(lcvOcl & maskOcl) & 1U) ? phaseFac : phaseFacAdj));
             };
             par_for(0U, maxQPowerOcl, fn);
         }
@@ -1261,10 +1264,13 @@ void QEngineCPU::CUniformParityRZ(const std::vector<bitLenInt>& cControls, const
         const complex phaseFac(cosine, sine);
         const complex phaseFacAdj(cosine, -sine);
 
+        const size_t maskOcl = (size_t)(uint64_t)mask;
+
         par_for_mask(0U, maxQPowerOcl, controlPowers, [&](const size_t& lcv, const unsigned& cpu) {
+            const size_t lcvOcl = (size_t)(uint64_t)lcv;
             stateVec->write(controlMask | lcv,
                 stateVec->read(controlMask | lcv) *
-                    ((popCountOcl(lcv & (size_t)(uint64_t)mask) & 1U) ? phaseFac : phaseFacAdj));
+                    ((popCountOcl(lcvOcl & maskOcl) & 1U) ? phaseFac : phaseFacAdj));
         });
     });
 }
@@ -1982,7 +1988,8 @@ real1_f QEngineCPU::ProbParity(const bitCapInt& mask)
     } else {
         const size_t maskOcl = (size_t)(uint64_t)mask;
         ParallelFunc fn = [&](const size_t& lcv, const unsigned& cpu) {
-            if (popCountOcl(lcv & maskOcl) & 1U) {
+            const size_t lcvOcl = (size_t)(uint64_t)lcv;
+            if (popCountOcl(lcvOcl & maskOcl) & 1U) {
                 oddChanceBuff[cpu] += norm(stateVec->read(lcv));
             }
         };
@@ -2086,7 +2093,8 @@ bool QEngineCPU::ForceMParity(const bitCapInt& mask, bool result, bool doForce)
         par_for_set(CastStateVecSparse()->iterable(), fn);
     } else {
         ParallelFunc fn = [&](const size_t& lcv, const unsigned& cpu) {
-            if ((popCountOcl(lcv & maskOcl) & 1U) == result) {
+            const size_t lcvOcl = (size_t)(uint64_t)lcv;
+            if ((popCountOcl(lcvOcl & maskOcl) & 1U) == result) {
                 oddChanceBuff[cpu] += norm(stateVec->read(lcv));
             } else {
                 stateVec->write(lcv, ZERO_CMPLX);
