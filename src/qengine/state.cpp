@@ -293,8 +293,8 @@ void QEngineCPU::LossyLoadStateVector(std::string f)
     StateVectorTurboQuantPtr sv = StateVectorTurboQuant::load(ifile);
     ifile.close();
 
-    const size_t sz = sv->get_size();
-    const bitLenInt qbCount = log2Ocl((bitCapIntOcl)sz);
+    const bitCapIntOcl sz = (bitCapIntOcl)(sv->get_size());
+    const bitLenInt qbCount = log2Ocl(sz);
     if (qbCount > qubitCount) {
         Allocate(qubitCount, qbCount - qubitCount);
     } else if (qbCount < qubitCount) {
@@ -1329,7 +1329,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy)
     }
     Finish();
 
-    StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
+    StateVectorPtr nStateVec = AllocStateVec((bitCapIntOcl)nMaxQPower);
 
     const unsigned numCores = GetConcurrencyLevel();
     if (isSparse && (stateVec->is_sparse() || toCopy->stateVec->is_sparse())) {
@@ -1424,7 +1424,7 @@ bitLenInt QEngineCPU::Compose(QEngineCPUPtr toCopy, bitLenInt start)
     }
     toCopy->Finish();
 
-    StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
+    StateVectorPtr nStateVec = AllocStateVec((bitCapIntOcl)nMaxQPower);
 
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
@@ -1506,7 +1506,7 @@ std::map<QInterfacePtr, bitLenInt> QEngineCPU::Compose(std::vector<QInterfacePtr
 
     const size_t nMaxQPower = pow2Cpu(nQubitCount);
 
-    StateVectorPtr nStateVec = AllocStateVec(nMaxQPower);
+    StateVectorPtr nStateVec = AllocStateVec((bitCapIntOcl)nMaxQPower);
 
     const unsigned numCores = GetConcurrencyLevel();
     std::unique_ptr<real1[]> fidelityLoss;
@@ -1743,7 +1743,7 @@ void QEngineCPU::Dispose(bitLenInt start, bitLenInt length, const bitCapInt& dis
     }
     Finish();
 
-    StateVectorPtr nStateVec = AllocStateVec(remainderPower);
+    StateVectorPtr nStateVec = AllocStateVec((bitCapIntOcl)remainderPower);
 
     par_for(0U, remainderPower, [&](const size_t& iHigh, const unsigned& cpu) {
         const size_t iLow = iHigh & skipMask;

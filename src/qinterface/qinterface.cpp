@@ -870,7 +870,7 @@ void QInterface::LossyLoadStateVector(std::string f)
     StateVectorTurboQuantPtr sv = StateVectorTurboQuant::load(ifile);
     ifile.close();
 
-    const bitCapIntOcl sz = sv->get_size();
+    const bitCapIntOcl sz = (bitCapIntOcl)(sv->get_size());
     const bitLenInt qbCount = log2Ocl(sz);
     if (qbCount > qubitCount) {
         Allocate(qubitCount, qbCount - qubitCount);
