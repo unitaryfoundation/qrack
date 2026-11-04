@@ -42,7 +42,7 @@ ParallelFor::ParallelFor()
     , numCores(1U)
 #endif
 {
-    const bitLenInt pStridePow = log2Ocl(pStride);
+    const bitLenInt pStridePow = log2Ocl((bitCapIntOcl)pStride);
     const bitLenInt minStridePow = (numCores > 1U) ? (bitLenInt)pow2Cpu(log2Ocl(numCores - 1U)) : 0U;
     dispatchThreshold = (pStridePow > minStridePow) ? (pStridePow - minStridePow) : 0U;
 }
