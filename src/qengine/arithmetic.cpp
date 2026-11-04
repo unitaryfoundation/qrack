@@ -600,7 +600,7 @@ void QEngineCPU::ModNOut(const MFn& kernelFn, const bitCapInt& modN, const bitLe
 
     CHECK_ZERO_SKIP();
 
-    const size_t modNOcl = (size_t)(uint64_t)modN;
+    const bitCapIntOcl modNOcl = (bitCapIntOcl)(uint64_t)modN;
     const size_t lowMask = pow2MaskOcl(length);
     const size_t inMask = lowMask << inStart;
     const size_t modMask = (isPowerOfTwo(modN) ? modNOcl : pow2Cpu(log2Ocl(modNOcl) + 1U)) - 1U;
@@ -615,7 +615,7 @@ void QEngineCPU::ModNOut(const MFn& kernelFn, const bitCapInt& modN, const bitLe
     par_for_skip(0, maxQPowerOcl, pow2Cpu(outStart), length, [&](const size_t& lcv, const unsigned& cpu) {
         const size_t otherRes = lcv & otherMask;
         const size_t inRes = lcv & inMask;
-        const size_t outRes = (kernelFn(inRes >> inStart) % modNOcl) << outStart;
+        const size_t outRes = (kernelFn((bitCapIntOcl)(inRes >> inStart)) % modNOcl) << outStart;
         if (inverse) {
             nStateVec->write(lcv, stateVec->read(inRes | outRes | otherRes));
         } else {
@@ -705,7 +705,7 @@ void QEngineCPU::CModNOut(const MFn& kernelFn, const bitCapInt& modN, const bitL
     par_for_mask(0, maxQPowerOcl, skipPowers, [&](const size_t& lcv, const unsigned& cpu) {
         const size_t otherRes = lcv & otherMask;
         const size_t inRes = lcv & inMask;
-        const size_t outRes = (kernelFn(inRes >> inStart) % modNOcl) << outStart;
+        const size_t outRes = (kernelFn((bitCapIntOcl)(inRes >> inStart)) % modNOcl) << outStart;
 
         if (inverse) {
             nStateVec->write(lcv | controlMask, stateVec->read(inRes | outRes | otherRes | controlMask));
