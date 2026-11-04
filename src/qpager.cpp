@@ -662,14 +662,14 @@ bitLenInt QPager::ComposeEither(QPagerPtr toCopy, bool willDestroy)
 
         if (IS_NORM_0(amp)) {
             for (bitCapIntOcl j = 0U; j < qPages.size(); ++j) {
-                const bitCapIntOcl page = i * qPages.size() + j;
+                const bitCapIntOcl page = i * (bitCapIntOcl)qPages.size() + j;
                 nQPages[page] = MakeEngine(qpp, (pmqp * page) / nPagePow);
             }
             continue;
         }
 
         for (bitCapIntOcl j = 0U; j < qPages.size(); ++j) {
-            const bitCapIntOcl page = i * qPages.size() + j;
+            const bitCapIntOcl page = i * (bitCapIntOcl)qPages.size() + j;
             nQPages[page] = MakeEngine(qpp, (pmqp * page) / nPagePow);
             if (!qPages[j]->IsZeroAmplitude()) {
                 nQPages[page]->SetAmplitudePage(qPages[j], 0U, 0U, (bitCapIntOcl)nQPages[page]->GetMaxQPower());
@@ -684,13 +684,13 @@ bitLenInt QPager::ComposeEither(QPagerPtr toCopy, bool willDestroy)
     }
     if (IS_NORM_0(amp)) {
         for (bitCapIntOcl j = 0U; j < qPages.size(); ++j) {
-            const bitCapIntOcl page = maxI * qPages.size() + j;
+            const bitCapIntOcl page = maxI * (bitCapIntOcl)qPages.size() + j;
             nQPages[page] = MakeEngine(qpp, (pmqp * page) / nPagePow);
             qPages[j] = nullptr;
         }
     } else {
         for (bitCapIntOcl j = 0U; j < qPages.size(); ++j) {
-            const bitCapIntOcl page = maxI * qPages.size() + j;
+            const bitCapIntOcl page = maxI * (bitCapIntOcl)qPages.size() + j;
             nQPages[page] = MakeEngine(qpp, (pmqp * page) / nPagePow);
             if (!qPages[j]->IsZeroAmplitude()) {
                 nQPages[page]->SetAmplitudePage(qPages[j], 0U, 0U, (bitCapIntOcl)nQPages[page]->GetMaxQPower());
