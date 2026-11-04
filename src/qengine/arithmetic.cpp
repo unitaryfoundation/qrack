@@ -446,7 +446,7 @@ void QEngineCPU::MULDIV(const IOFn& inFn, const IOFn& outFn, const bitCapInt& to
         const size_t mulInt = ((lcv & inOutMask) >> inOutStart) * toMulOcl;
         const size_t mulRes =
             ((mulInt & lowMask) << inOutStart) | (((mulInt & highMask) >> length) << carryStart) | otherRes;
-        nStateVec->write(outFn(lcv, mulRes), stateVec->read(inFn(lcv, mulRes)));
+        nStateVec->write(outFn((bitCapIntOcl)lcv, (bitCapIntOcl)mulRes), stateVec->read(inFn((bitCapIntOcl)lcv, (bitCapIntOcl)mulRes)));
     });
 
     ResetStateVec(nStateVec);
@@ -529,7 +529,7 @@ void QEngineCPU::CMULDIV(const IOFn& inFn, const IOFn& outFn, const bitCapInt& t
         const size_t mulRes = ((mulInt & lowMask) << inOutStart) | (((mulInt & highMask) >> length) << carryStart) |
             otherRes | controlMask;
         const size_t origRes = lcv | controlMask;
-        nStateVec->write(outFn(origRes, mulRes), stateVec->read(inFn(origRes, mulRes)));
+        nStateVec->write(outFn((bitCapIntOcl)origRes, (bitCapIntOcl)mulRes), stateVec->read(inFn((bitCapIntOcl)origRes, (bitCapIntOcl)mulRes)));
 
         nStateVec->write(lcv, stateVec->read(lcv));
         size_t partControlMask;
@@ -657,8 +657,8 @@ void QEngineCPU::POWModNOut(
         return SetReg(outStart, length, ONE_BCI);
     }
 
-    const size_t toModOcl = (size_t)(uint64_t)toMod;
-    ModNOut([&toModOcl](const size_t& inInt) { return intPowOcl(toModOcl, inInt); }, modN, inStart, outStart, length);
+    const bitCapIntOcl toModOcl = (bitCapIntOcl)(uint64_t)toMod;
+    ModNOut([&toModOcl](const size_t& inInt) { return intPowOcl(toModOcl, (bitCapIntOcl)inInt); }, modN, inStart, outStart, length);
 }
 
 void QEngineCPU::CModNOut(const MFn& kernelFn, const bitCapInt& modN, const bitLenInt& inStart,
@@ -760,8 +760,8 @@ void QEngineCPU::CPOWModNOut(const bitCapInt& toMod, const bitCapInt& modN, bitL
         return POWModNOut(toMod, modN, inStart, outStart, length);
     }
 
-    const size_t toModOcl = (size_t)(uint64_t)toMod;
-    CModNOut([&toModOcl](const size_t& inInt) { return intPowOcl(toModOcl, inInt); }, modN, inStart, outStart, length,
+    const bitCapIntOcl toModOcl = (bitCapIntOcl)(uint64_t)toMod;
+    CModNOut([&toModOcl](const size_t& inInt) { return intPowOcl(toModOcl, (bitCapIntOcl)inInt); }, modN, inStart, outStart, length,
         controls);
 }
 
