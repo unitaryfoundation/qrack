@@ -63,7 +63,7 @@ protected:
         bi_div_mod_small(maxQPower, (uint32_t)qPages.size(), &toRet, nullptr);
         return (bitCapIntOcl)toRet;
     }
-    bitLenInt pagedQubitCount() { return log2Ocl(qPages.size()); }
+    bitLenInt pagedQubitCount() { return log2Ocl((bitCapIntOcl)(qPages.size())); }
     bitLenInt qubitsPerPage() { return log2Ocl(pageMaxQPower()); }
     int64_t GetPageDevice(bitCapIntOcl page) { return deviceIDs[page % deviceIDs.size()]; }
     bool GetPageHostPointer(bitCapIntOcl page) { return devicesHostPointer[page % devicesHostPointer.size()]; }

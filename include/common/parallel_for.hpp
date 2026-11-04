@@ -42,7 +42,7 @@ public:
             return;
         }
         numCores = num;
-        const bitLenInt pStridePow = log2Ocl(pStride);
+        const bitLenInt pStridePow = log2Ocl((bitCapIntOcl)pStride);
         const bitLenInt minStridePow = (bitLenInt)pow2Cpu(log2Ocl(numCores - 1U));
         dispatchThreshold = (pStridePow > minStridePow) ? (pStridePow - minStridePow) : 0U;
     }
