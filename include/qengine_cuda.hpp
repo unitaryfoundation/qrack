@@ -199,6 +199,9 @@ protected:
     DeviceContextPtr device_context;
     std::list<QueueItem> wait_queue_items;
     std::vector<PoolItemPtr> poolItems;
+#if defined(USE_HIP)
+    std::vector<BufferPtr> deferredFreeBuffers;
+#endif
     std::unique_ptr<real1[], void (*)(real1*)> nrmArray;
 
     // For std::function, cudaError_t use might discard int qualifiers.
@@ -432,6 +435,9 @@ public:
 
     void PopQueue();
     void DispatchQueue();
+#if defined(USE_HIP)
+    void DrainDeferredFreeBuffers();
+#endif
 
 protected:
     void AddAlloc(size_t size)

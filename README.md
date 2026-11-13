@@ -212,6 +212,16 @@ cmake -DENABLE_CUDA=ON [-DENABLE_OPENCL=OFF] [-DQRACK_CUDA_ARCHITECTURES=86] ..
 
 where `-DENABLE_CUDA=ON` is required to enable CUDA, `-DENABLE_OPENCL=OFF` will cause CUDA to be used in the default optimal simulation layer stack instead of OpenCL, and `-DQRACK_CUDA_ARCHITECTURES` optionally specifies an explicit list of CUDA architectures for which to build. (If `-DQRACK_CUDA_ARCHITECTURES` is not set, Qrack will attempt to detect your native installed GPU architectures and build for exactly that set.)
 
+## Optional HIP (AMD ROCm) instead of OpenCL
+
+The CUDA engine can also be built with HIP for AMD GPUs. With ROCm installed, use this CMake command:
+
+```sh
+cmake -DENABLE_CUDA=ON -DUSE_HIP=ON -DENABLE_OPENCL=OFF [-DCMAKE_HIP_ARCHITECTURES=gfx942] [-DCMAKE_PREFIX_PATH=/opt/rocm] ..
+```
+
+where `-DUSE_HIP=ON` compiles the CUDA engine sources with the ROCm HIP compiler instead of `nvcc`, and `-DENABLE_OPENCL=OFF` is required, because with OpenCL enabled the CUDA engine, and so the HIP build, is turned off. `-DCMAKE_HIP_ARCHITECTURES` optionally specifies an explicit list of AMD GPU architectures; if it is not set, CMake detects the GPUs installed on the build machine. `-DCMAKE_PREFIX_PATH` optionally points CMake at a ROCm installation it does not find by default. At runtime, the HIP build is selected through the same CUDA engine types and options (for example, `--proc-cuda` in the unit tests).
+
 ## Distributed OpenCL (and CUDA)
 
 We maintain a [fork](https://github.com/vm6502q/snucl) of [SnuCL](http://snucl.snu.ac.kr/), by authors at Seoul National University. (We have no association with or endorsement from them, but we give proper credit). Linking against (open-source) SnuCL enables Qrack to achieve MPI integration while maintaining a tidy _separation of concerns_ such that simulation logic isn't coupled to MPI logic or semantics: in the abstract, Qrack can handle it in code internals the same way as single-node multi-device OpenCL.

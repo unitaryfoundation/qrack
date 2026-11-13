@@ -316,6 +316,10 @@ void QEngineCUDA::clFinish(bool doHard)
     }
 
     wait_queue_items.clear();
+
+#if defined(USE_HIP)
+    DrainDeferredFreeBuffers();
+#endif
 }
 
 void QEngineCUDA::clDump() { clFinish(); }
@@ -337,6 +341,19 @@ void QEngineCUDA::WaitCall(
 }
 
 void CUDART_CB _PopQueue(void* user_data) { ((QEngineCUDA*)user_data)->PopQueue(); }
+
+#if defined(USE_HIP)
+void QEngineCUDA::DrainDeferredFreeBuffers()
+{
+    std::vector<BufferPtr> toFree;
+    if (true) {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        toFree.swap(deferredFreeBuffers);
+    }
+    // Released here, on a user thread, never on the HIP host-callback thread.
+    toFree.clear();
+}
+#endif
 
 void QEngineCUDA::PopQueue()
 {
@@ -365,10 +382,28 @@ void QEngineCUDA::PopQueue()
     }
 
     wait_queue_items.pop_front();
+
+#if defined(USE_HIP)
+    // hipLaunchHostFunc host callbacks run on a HIP runtime worker thread, and
+    // calling any HIP API (here hipFree, via a BufferPtr deleter) from that
+    // thread deadlocks the runtime. Most ops only reference long-lived pool/
+    // state buffers here, but ops that pass per-call MakeBuffer allocations
+    // (e.g. UniformlyControlledSingleBit) hold the last reference in this
+    // QueueItem, so dropping it would free on the callback thread. Hand the
+    // buffers off to be released later on a user thread (clFinish/DispatchQueue).
+    for (BufferPtr& b : item.buffers) {
+        deferredFreeBuffers.push_back(std::move(b));
+    }
+    item.buffers.clear();
+#endif
 }
 
 void QEngineCUDA::DispatchQueue()
 {
+#if defined(USE_HIP)
+    DrainDeferredFreeBuffers();
+#endif
+
     QueueItem item;
 
     if (true) {

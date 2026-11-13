@@ -193,15 +193,24 @@ else (MSVC)
     endif ()
 endif (MSVC)
 
-if (QBCAPPOW GREATER 6)
-    set(QRACK_CUDA_COMPILE_OPTS -O3 -use_fast_math -Xcompiler -fpermissive ${QRACK_CPP_STD_OPT} --ptxas-options -O3,)
-else (QBCAPPOW GREATER 6)
-    set(QRACK_CUDA_COMPILE_OPTS -O3 -use_fast_math -Werror all-warnings ${QRACK_CPP_STD_OPT} --ptxas-options -O3,)
-endif (QBCAPPOW GREATER 6)
+if (USE_HIP)
+    # clang for HIP defaults to -ffp-contract=fast (FMAs formed across separate
+    # statements), which drifts float results from the nvcc build; pin it to
+    # expression-only contraction. The nvcc-only flags (-use_fast_math,
+    # -Werror all-warnings, --ptxas-options, -Xcompiler, --cudart=shared) are
+    # not passed to the HIP compiler.
+    set(QRACK_HIP_COMPILE_OPTS -O3 -ffp-contract=on -fno-math-errno ${QRACK_CPP_STD_OPT})
+else (USE_HIP)
+    if (QBCAPPOW GREATER 6)
+        set(QRACK_CUDA_COMPILE_OPTS -O3 -use_fast_math -Xcompiler -fpermissive ${QRACK_CPP_STD_OPT} --ptxas-options -O3,)
+    else (QBCAPPOW GREATER 6)
+        set(QRACK_CUDA_COMPILE_OPTS -O3 -use_fast_math -Werror all-warnings ${QRACK_CPP_STD_OPT} --ptxas-options -O3,)
+    endif (QBCAPPOW GREATER 6)
 
-if (ENABLE_GVIRTUS)
-    set(QRACK_CUDA_COMPILE_OPTS --cudart=shared ${QRACK_CUDA_COMPILE_OPTS})
-endif (ENABLE_GVIRTUS)
+    if (ENABLE_GVIRTUS)
+        set(QRACK_CUDA_COMPILE_OPTS --cudart=shared ${QRACK_CUDA_COMPILE_OPTS})
+    endif (ENABLE_GVIRTUS)
+endif (USE_HIP)
 
 if (MSVC)
     if (CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -306,12 +315,14 @@ if (ENABLE_CUDA)
         "$<$<COMPILE_LANGUAGE:C>:${QRACK_COMPILE_OPTS}>"
         "$<$<COMPILE_LANGUAGE:CXX>:${QRACK_COMPILE_OPTS}>"
         "$<$<COMPILE_LANGUAGE:CUDA>:${QRACK_CUDA_COMPILE_OPTS}>"
+        "$<$<COMPILE_LANGUAGE:HIP>:${QRACK_HIP_COMPILE_OPTS}>"
         -DCATCH_CONFIG_FAST_COMPILE
         )
     target_compile_options (qrack_pinvoke PUBLIC
         "$<$<COMPILE_LANGUAGE:C>:${QRACK_COMPILE_OPTS}>"
         "$<$<COMPILE_LANGUAGE:CXX>:${QRACK_COMPILE_OPTS}>"
         "$<$<COMPILE_LANGUAGE:CUDA>:${QRACK_CUDA_COMPILE_OPTS}>"
+        "$<$<COMPILE_LANGUAGE:HIP>:${QRACK_HIP_COMPILE_OPTS}>"
         -DCATCH_CONFIG_FAST_COMPILE
         )
     if (EMSCRIPTEN)
@@ -319,6 +330,7 @@ if (ENABLE_CUDA)
             "$<$<COMPILE_LANGUAGE:C>:${QRACK_COMPILE_OPTS}>"
             "$<$<COMPILE_LANGUAGE:CXX>:${QRACK_COMPILE_OPTS}>"
             "$<$<COMPILE_LANGUAGE:CUDA>:${QRACK_CUDA_COMPILE_OPTS}>"
+            "$<$<COMPILE_LANGUAGE:HIP>:${QRACK_HIP_COMPILE_OPTS}>"
             -DCATCH_CONFIG_FAST_COMPILE
             )
     endif (EMSCRIPTEN)

@@ -12,9 +12,7 @@
 
 #include "common/qrack_types.hpp"
 
-#if FPPOW < 5
-#include "cuda_fp16.h"
-#endif
+#include "cuda_to_hip.h"
 
 namespace Qrack {
 __global__ void apply2x2(

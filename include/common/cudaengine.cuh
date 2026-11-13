@@ -18,7 +18,7 @@
 #error CUDA has not been enabled
 #endif
 
-#include <cuda_runtime.h>
+#include "cuda_to_hip.h"
 
 #include <memory>
 #include <mutex>
@@ -79,6 +79,14 @@ public:
         cudaStreamDestroy(params_queue);
         cudaStreamDestroy(queue);
     }
+
+    // Owns two streams destroyed in the destructor; a value copy would destroy
+    // a borrowed stream twice. Held only via shared_ptr, so non-copyable is the
+    // correct contract (ROCm faults on a double hipStreamDestroy).
+    CUDADeviceContext(const CUDADeviceContext&) = delete;
+    CUDADeviceContext& operator=(const CUDADeviceContext&) = delete;
+    CUDADeviceContext(CUDADeviceContext&&) = delete;
+    CUDADeviceContext& operator=(CUDADeviceContext&&) = delete;
 
     size_t GetPreferredSizeMultiple()
     {

@@ -30,7 +30,7 @@ using std::size_t;
 #define IS_OPPOSITE(c1, c2) (IS_NORM_0((c1) + (c2)))
 
 #if ENABLE_CUDA
-#include <cuda_runtime.h>
+#include "common/cuda_to_hip.h"
 #endif
 
 #if (FPPOW < 5) && !defined(__arm__)
@@ -214,7 +214,6 @@ QRACK_CONST real1 REAL1_EPSILON = (real1)7.965459555662261e-59;
 
 #if ENABLE_CUDA
 #if FPPOW < 5
-#include <cuda_fp16.h>
 #define qCudaReal1 __half
 #define qCudaReal2 __half2
 #define qCudaReal4 __half2*

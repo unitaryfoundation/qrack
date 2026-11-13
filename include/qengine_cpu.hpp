@@ -17,6 +17,9 @@
 
 #if ENABLE_QUNIT_CPU_PARALLEL && ENABLE_PTHREAD
 #include "common/dispatchqueue.hpp"
+#else
+#include <functional>
+typedef std::function<void(void)> DispatchFn;
 #endif
 
 namespace Qrack {
