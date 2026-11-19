@@ -119,7 +119,7 @@ jobs:
 
       - name: Install vcpkg dependencies
         run: |
-          vcpkg install opencl boost-dynamic-bitset boost-multiprecision blas
+          vcpkg install opencl boost-dynamic-bitset boost-multiprecision
 
       - name: Build Qrack Windows x86-64
         env:
@@ -131,7 +131,7 @@ jobs:
           cd build
           powershell -c "Invoke-WebRequest -Uri 'https://github.com/ckormanyos/xxd/releases/download/v1.1/xxd-win64-msvc.zip' -OutFile 'xxd-win64-msvc.zip'"
           powershell -c "Expand-Archive -Path xxd-win64-msvc.zip -DestinationPath ."
-          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DBoost_NO_SYSTEM_PATHS=TRUE -DXXD_BIN="xxd.exe" -DQBCAPPOW=10 -DCPP_STD=14 -DBoost_INCLUDE_DIR="C:/vcpkg/installed/x64-windows/include"
+          cmake .. -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DBoost_NO_SYSTEM_PATHS=TRUE -DXXD_BIN="xxd.exe" -DENABLE_BLAS=OFF -DQBCAPPOW=10 -DCPP_STD=14 -DBoost_INCLUDE_DIR="C:/vcpkg/installed/x64-windows/include"
           cmake --build . --config Release --target PACKAGE qrack_pinvoke
           cmake --build . --config Release --target PACKAGE benchmarks
 
