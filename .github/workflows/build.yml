@@ -23,7 +23,7 @@ jobs:
       - name: Prepare Build Environment (Linux)
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev opencl-headers libboost-dev libopenblas-dev
+          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev opencl-headers libboost-dev libopenblas-dev libclblast-dev libclblast1
 
       - name: Build Qrack Linux x86-64
         run: |
@@ -55,7 +55,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev opencl-headers libboost-dev libopenblas-dev
+          sudo apt-get install -y build-essential cmake ocl-icd-opencl-dev opencl-headers libboost-dev libopenblas-dev libclblast-dev libclblast1
 
       - name: Build Qrack Linux x86-64
         run: |
