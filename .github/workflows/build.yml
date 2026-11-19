@@ -86,10 +86,6 @@ jobs:
       - name: Install Homebrew (MacOS)
         uses: Homebrew/actions/setup-homebrew@main
 
-      - name: Prepare Build Environment (Mac)
-        run: |
-          brew install openblas
-
       - name: Build Qrack MacOS
         run: |
           mkdir build
