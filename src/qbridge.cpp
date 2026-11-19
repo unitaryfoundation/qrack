@@ -20,6 +20,11 @@
 #include <cblas.h>
 #endif
 
+#if QRACK_ENABLE_CLBLAST
+#include "common/oclengine.hpp"
+#include <clblast_c.h>
+#endif
+
 #if QRACK_ENABLE_LAPACK
 // LAPACK's Hermitian divide-and-conquer eigensolver (Fortran symbol; trailing hidden string lengths).
 extern "C" void zheevd_(const char* jobz, const char* uplo, const int* n, std::complex<double>* a, const int* lda,
@@ -114,6 +119,11 @@ QBridge::QBridge(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, bitLenI
     , sampler(seed)
     , center(0U)
     , useFastGate(!std::getenv("QRACK_QBRIDGE_LEGACY_GATE"))
+    , devBlasOff(std::getenv("QRACK_QBRIDGE_NO_DEVICE_BLAS") != nullptr)
+    , devMinElems(std::getenv("QRACK_QBRIDGE_DEVICE_MIN")
+              ? (size_t)std::strtoull(std::getenv("QRACK_QBRIDGE_DEVICE_MIN"), nullptr, 10)
+              : ((size_t)1U << 20U))
+    , gramLowPrecision(false)
     , wrapTouched(false)
     , deferring(0)
     , fidelityEstimate(1.0)
@@ -180,6 +190,7 @@ void QBridge::ParRange(size_t n, size_t grain, std::function<void(size_t, size_t
 QBridgePtr QBridge::Clone()
 {
     QBridgePtr c = std::make_shared<QBridge>(*this);
+    c->devBlas = nullptr; // each clone opens its own queue and buffers on first use
     for (size_t p = 0U; p < sims.size(); ++p) {
         c->sims[p] = sims[p] ? sims[p]->Clone() : nullptr;
     }
@@ -425,10 +436,251 @@ void QBridge::HostTwoQubit(bitLenInt a, bitLenInt b, const cmplx_d* G)
 // Items per streamed chunk, so a chunk buffer holds about 2^20 complex doubles (16 MiB).
 static size_t QBridgeChunk(size_t w) { return std::max<size_t>(1U, ((size_t)1U << 20U) / std::max<size_t>(1U, w)); }
 
+static void QBridgeMirrorUpper(std::vector<std::complex<double>>& G, size_t w)
+{
+    for (size_t i = 0U; i < w; ++i) {
+        G[i * w + i] = std::complex<double>(G[i * w + i].real(), 0.0);
+        for (size_t j = 0U; j < i; ++j) {
+            G[i * w + j] = std::conj(G[j * w + i]);
+        }
+    }
+}
+
+// --- CLBlast (OpenCL BLAS) offload, host-staged ----------------------------------------------------
+//
+// The patch tensors stay on the host (patch engines are general Qrack stacks, read and written through
+// Get/SetQuantumState); each streamed chunk is gathered on the host, converted to the build's
+// precision (real1), copied to the device, reduced there by CHERK/CGEMM (ZHERK/ZGEMM for FPPOW=6), and
+// only the small Gram matrix or the projected chunk is copied back. Uploads are blocking, so the host
+// gathers chunk i + 1 while the device computes chunk i.
+
+#if QRACK_ENABLE_CLBLAST && ((FPPOW == 5) || (FPPOW == 6))
+#define QRACK_QBRIDGE_DEVICE 1
+#endif
+
+#if QRACK_QBRIDGE_DEVICE
+// Device chunk: about 2^22 complex elements per buffer.
+static const size_t QBRIDGE_DEV_CHUNK_ELEMS = (size_t)1U << 22U;
+#endif
+
+struct QBridgeDeviceBlas {
+#if QRACK_QBRIDGE_DEVICE
+    typedef std::complex<real1> devc;
+    cl::Context context;
+    cl::Device device;
+    cl::CommandQueue queue; // in-order, separate from the engines' (possibly out-of-order) queues
+    cl::Buffer a, c, m;
+    size_t aCap, cCap, mCap;
+    std::vector<devc> stageIn, stageOut;
+    QBridgeDeviceBlas()
+        : aCap(0U)
+        , cCap(0U)
+        , mCap(0U)
+    {
+    }
+    void Reserve(cl::Buffer& b, size_t& cap, size_t elems)
+    {
+        if (elems <= cap) {
+            return;
+        }
+        cl_int error;
+        b = cl::Buffer(context, CL_MEM_READ_WRITE, elems * sizeof(devc), nullptr, &error);
+        if (error != CL_SUCCESS) {
+            throw std::runtime_error("QBridge: CLBlast buffer allocation failed!");
+        }
+        cap = elems;
+    }
+    void Zero(cl::Buffer& b, size_t elems)
+    {
+        const devc z(ZERO_R1, ZERO_R1);
+        queue.enqueueFillBuffer(b, z, 0U, elems * sizeof(devc));
+    }
+    static void Check(CLBlastStatusCode st)
+    {
+        if (st != CLBlastSuccess) {
+            throw std::runtime_error("QBridge: CLBlast call failed (status " + std::to_string((int)st) + ")!");
+        }
+    }
+    void Herk(bool conjTrans, size_t n, size_t k, size_t lda, bool accumulate)
+    {
+        cl_command_queue q = queue();
+#if FPPOW == 5
+        Check(CLBlastCherk(CLBlastLayoutRowMajor, CLBlastTriangleUpper,
+            conjTrans ? CLBlastTransposeConjugate : CLBlastTransposeNo, n, k, 1.0f, a(), 0U, lda,
+            accumulate ? 1.0f : 0.0f, c(), 0U, n, &q, nullptr));
+#else
+        Check(CLBlastZherk(CLBlastLayoutRowMajor, CLBlastTriangleUpper,
+            conjTrans ? CLBlastTransposeConjugate : CLBlastTransposeNo, n, k, 1.0, a(), 0U, lda, accumulate ? 1.0 : 0.0,
+            c(), 0U, n, &q, nullptr));
+#endif
+    }
+    // C (m x n) = A (m x k) . B (k x n), row-major; A, B and C are given as device buffers.
+    void Gemm(const cl::Buffer& A, size_t lda, const cl::Buffer& B, size_t ldb, size_t m_, size_t n, size_t k)
+    {
+        cl_command_queue q = queue();
+#if FPPOW == 5
+        cl_float2 one, zero;
+        one.s[0] = 1.0f;
+        one.s[1] = 0.0f;
+        zero.s[0] = 0.0f;
+        zero.s[1] = 0.0f;
+        Check(CLBlastCgemm(CLBlastLayoutRowMajor, CLBlastTransposeNo, CLBlastTransposeNo, m_, n, k, one, A(), 0U, lda,
+            B(), 0U, ldb, zero, c(), 0U, n, &q, nullptr));
+#else
+        cl_double2 one, zero;
+        one.s[0] = 1.0;
+        one.s[1] = 0.0;
+        zero.s[0] = 0.0;
+        zero.s[1] = 0.0;
+        Check(CLBlastZgemm(CLBlastLayoutRowMajor, CLBlastTransposeNo, CLBlastTransposeNo, m_, n, k, one, A(), 0U, lda,
+            B(), 0U, ldb, zero, c(), 0U, n, &q, nullptr));
+#endif
+    }
+#endif
+};
+
+bool QBridge::DeviceReady(size_t elems)
+{
+#if QRACK_QBRIDGE_DEVICE
+    if (devBlasOff || (elems < devMinElems)) {
+        return false;
+    }
+    if (devBlas) {
+        return true;
+    }
+    try {
+        DeviceContextPtr dcp = OCLEngine::Instance().GetDeviceContextPtr(-1);
+        if (!dcp) {
+            devBlasOff = true;
+            return false;
+        }
+        std::shared_ptr<QBridgeDeviceBlas> d = std::make_shared<QBridgeDeviceBlas>();
+        d->context = dcp->context;
+        d->device = dcp->device;
+        cl_int error;
+        d->queue = cl::CommandQueue(d->context, d->device, 0, &error);
+        if (error != CL_SUCCESS) {
+            devBlasOff = true;
+            return false;
+        }
+        devBlas = d;
+    } catch (const std::exception&) {
+        devBlasOff = true;
+        return false;
+    }
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool QBridge::DeviceGram(size_t n, size_t w, bool tall,
+    const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather, std::vector<cmplx_d>& G)
+{
+#if QRACK_QBRIDGE_DEVICE
+    if (!DeviceReady(n * w)) {
+        return false;
+    }
+    typedef QBridgeDeviceBlas::devc devc;
+    QBridgeDeviceBlas& D = *devBlas;
+    const size_t chunk = std::max<size_t>(1U, std::min(n, QBRIDGE_DEV_CHUNK_ELEMS / w));
+    D.Reserve(D.a, D.aCap, chunk * w);
+    D.Reserve(D.c, D.cCap, w * w);
+    D.stageIn.resize(chunk * w);
+    D.stageOut.resize(w * w);
+    std::vector<cmplx_d> buf(chunk * w);
+    D.Zero(D.c, w * w);
+    for (size_t b = 0U; b < n; b += chunk) {
+        const size_t e = std::min(n, b + chunk), k = e - b;
+        const size_t ld = tall ? w : k;
+        ParRange(k, 256U, [&](size_t b2, size_t e2, unsigned th) {
+            gather(b + b2, b + e2, buf.data() + (tall ? (b2 * ld) : b2), ld);
+        });
+        ParRange(k * w, 4096U, [&](size_t b2, size_t e2, unsigned th) {
+            for (size_t i = b2; i < e2; ++i) {
+                D.stageIn[i] = devc((real1)buf[i].real(), (real1)buf[i].imag());
+            }
+        });
+        // Blocking upload: the in-order queue runs it after the previous HERK, and stageIn is free on return.
+        D.queue.enqueueWriteBuffer(D.a, CL_TRUE, 0U, k * w * sizeof(devc), D.stageIn.data());
+        D.Herk(tall, w, k, ld, true);
+    }
+    D.queue.enqueueReadBuffer(D.c, CL_TRUE, 0U, w * w * sizeof(devc), D.stageOut.data());
+    for (size_t i = 0U; i < w; ++i) {
+        for (size_t j = i; j < w; ++j) {
+            G[i * w + j] = cmplx_d(D.stageOut[i * w + j]);
+        }
+    }
+    gramLowPrecision = (sizeof(real1) < sizeof(double));
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool QBridge::DeviceProject(size_t n, size_t wIn, size_t wOut, bool tall,
+    const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather, const std::vector<cmplx_d>& mat,
+    const std::function<void(size_t, size_t, const cmplx_d*, size_t)>& scatter)
+{
+#if QRACK_QBRIDGE_DEVICE
+    if (!DeviceReady(n * std::max(wIn, wOut))) {
+        return false;
+    }
+    typedef QBridgeDeviceBlas::devc devc;
+    QBridgeDeviceBlas& D = *devBlas;
+    const size_t chunk = std::max<size_t>(1U, std::min(n, QBRIDGE_DEV_CHUNK_ELEMS / std::max(wIn, wOut)));
+    D.Reserve(D.a, D.aCap, chunk * wIn);
+    D.Reserve(D.c, D.cCap, chunk * wOut);
+    D.Reserve(D.m, D.mCap, wIn * wOut);
+    D.stageIn.resize(std::max(chunk * wIn, wIn * wOut));
+    D.stageOut.resize(chunk * wOut);
+    for (size_t i = 0U; i < (wIn * wOut); ++i) {
+        D.stageIn[i] = devc((real1)mat[i].real(), (real1)mat[i].imag());
+    }
+    D.queue.enqueueWriteBuffer(D.m, CL_TRUE, 0U, wIn * wOut * sizeof(devc), D.stageIn.data());
+    std::vector<cmplx_d> in(chunk * wIn), out(chunk * wOut);
+    for (size_t b = 0U; b < n; b += chunk) {
+        const size_t e = std::min(n, b + chunk), k = e - b;
+        const size_t ldIn = tall ? wIn : k, ldOut = tall ? wOut : k;
+        ParRange(k, 256U, [&](size_t b2, size_t e2, unsigned th) {
+            gather(b + b2, b + e2, in.data() + (tall ? (b2 * ldIn) : b2), ldIn);
+        });
+        ParRange(k * wIn, 4096U, [&](size_t b2, size_t e2, unsigned th) {
+            for (size_t i = b2; i < e2; ++i) {
+                D.stageIn[i] = devc((real1)in[i].real(), (real1)in[i].imag());
+            }
+        });
+        D.queue.enqueueWriteBuffer(D.a, CL_TRUE, 0U, k * wIn * sizeof(devc), D.stageIn.data());
+        D.Zero(D.c, k * wOut); // beta = 0 must not meet stale or uninitialized contents
+        if (tall) {
+            D.Gemm(D.a, ldIn, D.m, wOut, k, wOut, wIn); // out (k x wOut) = in . mat
+        } else {
+            D.Gemm(D.m, wIn, D.a, ldIn, wOut, k, wIn); // out (wOut x k) = mat . in
+        }
+        D.queue.enqueueReadBuffer(D.c, CL_TRUE, 0U, k * wOut * sizeof(devc), D.stageOut.data());
+        ParRange(k * wOut, 4096U, [&](size_t b2, size_t e2, unsigned th) {
+            for (size_t i = b2; i < e2; ++i) {
+                out[i] = cmplx_d(D.stageOut[i]);
+            }
+        });
+        ParRange(k, 256U, [&](size_t b2, size_t e2, unsigned th) {
+            scatter(b + b2, b + e2, out.data() + (tall ? (b2 * ldOut) : b2), ldOut);
+        });
+    }
+    return true;
+#else
+    return false;
+#endif
+}
+
 void QBridge::ChunkedGram(size_t n, size_t w, bool tall,
     const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather, std::vector<cmplx_d>& G)
 {
     G.assign(w * w, cmplx_d(0.0, 0.0));
+    if (DeviceGram(n, w, tall, gather, G)) {
+        QBridgeMirrorUpper(G, w);
+        return;
+    }
     const size_t chunk = std::max<size_t>(1U, std::min(n, QBridgeChunk(w)));
 #if QRACK_ENABLE_BLAS
     // Sequential chunks; the BLAS library threads each HERK, and the gather is split across threads.
@@ -497,18 +749,16 @@ void QBridge::ChunkedGram(size_t n, size_t w, bool tall,
         }
     }
 #endif
-    for (size_t i = 0U; i < w; ++i) {
-        G[i * w + i] = cmplx_d(G[i * w + i].real(), 0.0);
-        for (size_t j = 0U; j < i; ++j) {
-            G[i * w + j] = std::conj(G[j * w + i]);
-        }
-    }
+    QBridgeMirrorUpper(G, w);
 }
 
 void QBridge::ChunkedProject(size_t n, size_t wIn, size_t wOut, bool tall,
     const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather, const std::vector<cmplx_d>& mat,
     const std::function<void(size_t, size_t, const cmplx_d*, size_t)>& scatter)
 {
+    if (DeviceProject(n, wIn, wOut, tall, gather, mat, scatter)) {
+        return;
+    }
     const size_t chunk = std::max<size_t>(1U, std::min(n, QBridgeChunk(std::max(wIn, wOut))));
 #if QRACK_ENABLE_BLAS
     std::vector<cmplx_d> in(chunk * wIn), out(chunk * wOut);
@@ -634,6 +884,7 @@ void QBridge::FastTwoQubit(bitLenInt u, size_t bu, const OpList& opU, size_t bv,
     };
 
     std::vector<cmplx_d> N, M;
+    gramLowPrecision = false;
     ChunkedGram(nU, w, true, gatherU, N); // N[(x1, b), (x2, b')] = sum conj(T_u[., x1, b]) T_u[., x2, b']
     ChunkedGram(nV, w, false, gatherV, M); // M[(y1, b), (y2, b')] = sum T_v[b, y1, .] conj(T_v[b', y2, .])
 
@@ -691,9 +942,13 @@ void QBridge::FastTwoQubit(bitLenInt u, size_t bu, const OpList& opU, size_t bv,
     std::vector<cmplx_d> VX, VY;
     EighDesc(GX, KCu, lamX, VX);
     EighDesc(GY, KCv, lamY, VY);
-    auto rankOf = [](const std::vector<double>& lam) {
+    // A Gram accumulated in single precision on the device resolves eigenvalues only to about
+    // 1e-7 of the largest; drop modes below 1e-6 there (singular values below 1e-3 relative) rather
+    // than amplify rounding noise through 1 / sqrt(lambda).
+    const double lamTol = gramLowPrecision ? 1e-6 : (QBRIDGE_TOL * QBRIDGE_TOL);
+    auto rankOf = [lamTol](const std::vector<double>& lam) {
         size_t m = 1U;
-        while ((m < lam.size()) && (lam[m] > (QBRIDGE_TOL * QBRIDGE_TOL * lam[0U]))) {
+        while ((m < lam.size()) && (lam[m] > (lamTol * lam[0U]))) {
             ++m;
         }
         return m;
@@ -738,8 +993,14 @@ void QBridge::FastTwoQubit(bitLenInt u, size_t bu, const OpList& opU, size_t bv,
     EighDesc(CC, mX, lamC, UC);
     std::vector<double> sv(mX);
     size_t live = 0U;
+    // After a single-precision device Gram, Schmidt values below sqrt(lamTol) of the largest are at the
+    // rounding floor: zero them, so Select() neither keeps nor counts them (same floor as rankOf).
+    const double svFloor = gramLowPrecision ? std::sqrt(lamTol) : QBRIDGE_TOL;
     for (size_t k = 0U; k < mX; ++k) {
         sv[k] = (lamC[k] > 0.0) ? std::sqrt(lamC[k]) : 0.0;
+        if (gramLowPrecision && (sv[k] < (svFloor * sv[0U]))) {
+            sv[k] = 0.0;
+        }
         if (sv[k] > (QBRIDGE_TOL * sv[0U])) {
             ++live;
         }

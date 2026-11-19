@@ -33,6 +33,9 @@ namespace Qrack {
 class QBridge;
 typedef std::shared_ptr<QBridge> QBridgePtr;
 
+/** Opaque CLBlast state (queue, device buffers); defined in qbridge.cpp when built with ENABLE_CLBLAST. */
+struct QBridgeDeviceBlas;
+
 class QBridge : public ParallelFor {
 public:
     typedef std::complex<double> cmplx_d;
@@ -84,6 +87,14 @@ protected:
     // Eager bridged gates between chain neighbours take the canonical-form fast path (FastTwoQubit)
     // unless the environment variable QRACK_QBRIDGE_LEGACY_GATE is set (for A/B comparison).
     bool useFastGate;
+    // CLBlast offload of the streamed Gram matrices and projections (ENABLE_CLBLAST builds): used for
+    // matrices of at least devMinElems elements (environment QRACK_QBRIDGE_DEVICE_MIN, default 2^20),
+    // unless QRACK_QBRIDGE_NO_DEVICE_BLAS is set. gramLowPrecision records that the last Gram was
+    // accumulated on the device in single precision (rank tolerances widen accordingly).
+    std::shared_ptr<QBridgeDeviceBlas> devBlas;
+    bool devBlasOff;
+    size_t devMinElems;
+    bool gramLowPrecision;
     std::set<bitLenInt> touched;
     // Patches whose current tensor lives on the host (bond growth from bridged gates, or exact-only
     // recompression inside a deferred block); their engines are released until written back.
@@ -131,6 +142,15 @@ protected:
      * wide, out (wOut x k) = mat (wOut x wIn) . in (wIn x k). gather as for ChunkedGram; scatter(b, e,
      * out, ld) reads the chunk's results with the same layout convention.
      */
+    /** True if the CLBlast path is available and worth using for a matrix of `elems` elements. */
+    bool DeviceReady(size_t elems);
+    /** ChunkedGram on the device; false (G untouched) if the device path is unavailable. Fills the upper triangle. */
+    bool DeviceGram(size_t n, size_t w, bool tall, const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather,
+        std::vector<cmplx_d>& G);
+    /** ChunkedProject on the device; false if the device path is unavailable. */
+    bool DeviceProject(size_t n, size_t wIn, size_t wOut, bool tall,
+        const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather, const std::vector<cmplx_d>& mat,
+        const std::function<void(size_t, size_t, const cmplx_d*, size_t)>& scatter);
     void ChunkedProject(size_t n, size_t wIn, size_t wOut, bool tall,
         const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather, const std::vector<cmplx_d>& mat,
         const std::function<void(size_t, size_t, const cmplx_d*, size_t)>& scatter);

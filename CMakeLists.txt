@@ -130,6 +130,7 @@ if (ENABLE_EXAMPLES AND NOT ENABLE_EMIT_LLVM)
     include ("cmake/Examples.cmake")
 endif (ENABLE_EXAMPLES AND NOT ENABLE_EMIT_LLVM)
 include ("cmake/OpenCL.cmake" )
+include ("cmake/ClBlast.cmake")
 include ("cmake/CUDA.cmake")
 
 message ("C++ standard year is (at least): ${CPP_STD}")
