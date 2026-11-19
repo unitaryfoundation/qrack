@@ -12,8 +12,20 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <future>
 #include <numeric>
+
+#if QRACK_ENABLE_BLAS
+#include <cblas.h>
+#endif
+
+#if QRACK_ENABLE_LAPACK
+// LAPACK's Hermitian divide-and-conquer eigensolver (Fortran symbol; trailing hidden string lengths).
+extern "C" void zheevd_(const char* jobz, const char* uplo, const int* n, std::complex<double>* a, const int* lda,
+    double* w, std::complex<double>* work, const int* lwork, double* rwork, const int* lrwork, int* iwork,
+    const int* liwork, int* info, size_t jobzLen, size_t uploLen);
+#endif
 
 namespace Qrack {
 
@@ -58,6 +70,36 @@ static inline std::complex<double> cDotc(const complex* a, const complex* b, siz
     return std::complex<double>(sr, si);
 }
 
+// C (m x n) = op(A) (m x k) . B (k x n), row-major, double complex; op(A) = A (m x k, leading dim lda)
+// or, if conjA, A^H with A stored k x m (leading dim lda). B has leading dim ldb, C leading dim n.
+static void QBridgeMatMul(const std::complex<double>* A, bool conjA, size_t m, size_t k, size_t lda,
+    const std::complex<double>* B, size_t n, size_t ldb, std::complex<double>* C)
+{
+    if (!m || !n) {
+        return;
+    }
+#if QRACK_ENABLE_BLAS
+    const std::complex<double> one(1.0, 0.0), zero(0.0, 0.0);
+    cblas_zgemm(CblasRowMajor, conjA ? CblasConjTrans : CblasNoTrans, CblasNoTrans, (int)m, (int)n, (int)k, &one, A,
+        (int)lda, B, (int)ldb, &zero, C, (int)n);
+#else
+    std::fill(C, C + m * n, std::complex<double>(0.0, 0.0));
+    for (size_t i = 0U; i < m; ++i) {
+        std::complex<double>* ci = C + i * n;
+        for (size_t t = 0U; t < k; ++t) {
+            const std::complex<double> a = conjA ? std::conj(A[t * lda + i]) : A[i * lda + t];
+            if (a == std::complex<double>(0.0, 0.0)) {
+                continue;
+            }
+            const std::complex<double>* bt = B + t * ldb;
+            for (size_t j = 0U; j < n; ++j) {
+                ci[j] += a * bt[j];
+            }
+        }
+    }
+#endif
+}
+
 QBridge::QBridge(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, bitLenInt mb, bitLenInt patches, bool wrap,
     bool born, bitLenInt lazy, bitLenInt maxPatchQb, qrack_rand_gen_ptr rgp, uint64_t seed)
     : qubitCount(qBitCount)
@@ -71,6 +113,7 @@ QBridge::QBridge(std::vector<QInterfaceEngine> eng, bitLenInt qBitCount, bitLenI
     , rand_generator(rgp)
     , sampler(seed)
     , center(0U)
+    , useFastGate(!std::getenv("QRACK_QBRIDGE_LEGACY_GATE"))
     , wrapTouched(false)
     , deferring(0)
     , fidelityEstimate(1.0)
@@ -214,16 +257,8 @@ static void QBridgeGateMatrix(std::function<void(QInterfacePtr, bitLenInt, bitLe
     }
 }
 
-void QBridge::HostTwoQubit(bitLenInt a, bitLenInt b, const cmplx_d* G)
+void QBridge::OpSchmidt(const cmplx_d* G, OpList& Ak, OpList& Bk)
 {
-    // Bridged two-qubit gate without ancillae. Operator-Schmidt decomposition G = sum_k A_k (x) B_k
-    // (K <= 4 terms; 2 for controlled gates), applied to the patch tensors on the host: patch a gets
-    // its bond toward b extended by k with A_k on qubit a, patch b gets k with B_k on qubit b, and every
-    // patch in between carries k unchanged. The usual sweep then recompresses before anything is
-    // written back, so patch engines never hold more than data + bond qubits.
-    bitLenInt pa, ia, pb, ib;
-    Locate(a, pa, ia);
-    Locate(b, pb, ib);
     std::vector<cmplx_d> M(16U), MM(16U, cmplx_d(0.0, 0.0)), U;
     for (int ya = 0; ya < 2; ++ya) {
         for (int xa = 0; xa < 2; ++xa) {
@@ -247,6 +282,50 @@ void QBridge::HostTwoQubit(bitLenInt a, bitLenInt b, const cmplx_d* G)
     while ((K < 4U) && (lam[K] > (1e-12 * lam[0U]))) {
         ++K;
     }
+    if (!K) {
+        K = 1U;
+    }
+    Ak.resize(K);
+    Bk.resize(K);
+    for (size_t k = 0U; k < K; ++k) {
+        const double s = std::sqrt(lam[k]);
+        const double rs = std::sqrt(s);
+        for (int i = 0; i < 4; ++i) {
+            Ak[k][i] = rs * U[i * 4 + k];
+            cmplx_d vh(0.0, 0.0);
+            for (int j = 0; j < 4; ++j) {
+                vh += std::conj(U[j * 4 + k]) * M[j * 4 + i];
+            }
+            Bk[k][i] = (s > 0.0) ? (vh * (rs / s)) : cmplx_d(0.0, 0.0);
+        }
+    }
+}
+
+void QBridge::HostTwoQubit(bitLenInt a, bitLenInt b, const cmplx_d* G)
+{
+    // Bridged two-qubit gate without ancillae. Operator-Schmidt decomposition G = sum_k A_k (x) B_k
+    // (K <= 4 terms; 2 for controlled gates), applied to the patch tensors on the host: patch a gets
+    // its bond toward b extended by k with A_k on qubit a, patch b gets k with B_k on qubit b, and every
+    // patch in between carries k unchanged. The usual sweep then recompresses before anything is
+    // written back, so patch engines never hold more than data + bond qubits.
+    bitLenInt pa, ia, pb, ib;
+    Locate(a, pa, ia);
+    Locate(b, pb, ib);
+    OpList Ad, Bd;
+    OpSchmidt(G, Ad, Bd);
+
+    // Eager gate between chain neighbours: one-step apply-and-truncate (see FastTwoQubit).
+    if (useFastGate && !isRing && !deferring && !lazyBonds && hostT.empty() && touched.empty() &&
+        (((pa + 1U) == pb) || ((pb + 1U) == pa))) {
+        if (pa < pb) {
+            FastTwoQubit(pa, (size_t)1U << ia, Ad, (size_t)1U << ib, Bd);
+        } else {
+            FastTwoQubit(pb, (size_t)1U << ib, Bd, (size_t)1U << ia, Ad);
+        }
+        return;
+    }
+
+    const size_t K = Ad.size();
     const size_t Kp = (K <= 1U) ? 1U : ((K <= 2U) ? 2U : 4U);
     std::vector<std::array<complex, 4U>> Ak(Kp), Bk(Kp);
     for (size_t k = 0U; k < Kp; ++k) {
@@ -255,17 +334,9 @@ void QBridge::HostTwoQubit(bitLenInt a, bitLenInt b, const cmplx_d* G)
         if (k >= K) {
             continue;
         }
-        const double s = std::sqrt(lam[k]);
-        const double rs = std::sqrt(s);
         for (int i = 0; i < 4; ++i) {
-            const cmplx_d av = rs * U[i * 4 + k];
-            Ak[k][i] = complex((real1)av.real(), (real1)av.imag());
-            cmplx_d vh(0.0, 0.0);
-            for (int j = 0; j < 4; ++j) {
-                vh += std::conj(U[j * 4 + k]) * M[j * 4 + i];
-            }
-            vh *= rs / s;
-            Bk[k][i] = complex((real1)vh.real(), (real1)vh.imag());
+            Ak[k][i] = complex((real1)Ad[k][i].real(), (real1)Ad[k][i].imag());
+            Bk[k][i] = complex((real1)Bd[k][i].real(), (real1)Bd[k][i].imag());
         }
     }
 
@@ -347,6 +418,439 @@ void QBridge::HostTwoQubit(bitLenInt a, bitLenInt b, const cmplx_d* G)
     }
     touched.insert(path.begin(), path.end());
     MaybeCompress();
+}
+
+// --- streamed Gram matrices and projections (CBLAS when built with ENABLE_BLAS) ----------------
+
+// Items per streamed chunk, so a chunk buffer holds about 2^20 complex doubles (16 MiB).
+static size_t QBridgeChunk(size_t w) { return std::max<size_t>(1U, ((size_t)1U << 20U) / std::max<size_t>(1U, w)); }
+
+void QBridge::ChunkedGram(size_t n, size_t w, bool tall,
+    const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather, std::vector<cmplx_d>& G)
+{
+    G.assign(w * w, cmplx_d(0.0, 0.0));
+    const size_t chunk = std::max<size_t>(1U, std::min(n, QBridgeChunk(w)));
+#if QRACK_ENABLE_BLAS
+    // Sequential chunks; the BLAS library threads each HERK, and the gather is split across threads.
+    std::vector<cmplx_d> buf(chunk * w);
+    for (size_t b = 0U; b < n; b += chunk) {
+        const size_t e = std::min(n, b + chunk), k = e - b;
+        const size_t ld = tall ? w : k;
+        ParRange(k, 256U, [&](size_t b2, size_t e2, unsigned th) {
+            gather(b + b2, b + e2, buf.data() + (tall ? (b2 * ld) : b2), ld);
+        });
+        if (tall) {
+            cblas_zherk(CblasRowMajor, CblasUpper, CblasConjTrans, (int)w, (int)k, 1.0, buf.data(), (int)ld, 1.0,
+                G.data(), (int)w);
+        } else {
+            cblas_zherk(CblasRowMajor, CblasUpper, CblasNoTrans, (int)w, (int)k, 1.0, buf.data(), (int)ld, 1.0,
+                G.data(), (int)w);
+        }
+    }
+#else
+    // One contiguous item range per thread, streamed in chunks, with a partial (upper) Gram per thread.
+    const unsigned nc = GetConcurrencyLevel();
+    std::vector<std::vector<cmplx_d>> part(nc);
+    ParRange(n, 64U, [&](size_t b0, size_t e0, unsigned th) {
+        std::vector<cmplx_d>& g = part[th];
+        g.assign(w * w, cmplx_d(0.0, 0.0));
+        std::vector<cmplx_d> buf(std::min(chunk, e0 - b0) * w);
+        for (size_t b = b0; b < e0; b += chunk) {
+            const size_t e = std::min(e0, b + chunk), k = e - b;
+            if (tall) {
+                gather(b, e, buf.data(), w);
+                for (size_t x = 0U; x < k; ++x) {
+                    const cmplx_d* row = &buf[x * w];
+                    for (size_t i = 0U; i < w; ++i) {
+                        const cmplx_d ci = std::conj(row[i]);
+                        if (ci == cmplx_d(0.0, 0.0)) {
+                            continue;
+                        }
+                        cmplx_d* gi = &g[i * w];
+                        for (size_t j = i; j < w; ++j) {
+                            gi[j] += ci * row[j];
+                        }
+                    }
+                }
+            } else {
+                gather(b, e, buf.data(), k);
+                for (size_t i = 0U; i < w; ++i) {
+                    const cmplx_d* ri = &buf[i * k];
+                    for (size_t j = i; j < w; ++j) {
+                        const cmplx_d* rj = &buf[j * k];
+                        cmplx_d acc(0.0, 0.0);
+                        for (size_t c = 0U; c < k; ++c) {
+                            acc += ri[c] * std::conj(rj[c]);
+                        }
+                        g[i * w + j] += acc;
+                    }
+                }
+            }
+        }
+    });
+    for (const auto& g : part) {
+        if (g.empty()) {
+            continue;
+        }
+        for (size_t i = 0U; i < (w * w); ++i) {
+            G[i] += g[i];
+        }
+    }
+#endif
+    for (size_t i = 0U; i < w; ++i) {
+        G[i * w + i] = cmplx_d(G[i * w + i].real(), 0.0);
+        for (size_t j = 0U; j < i; ++j) {
+            G[i * w + j] = std::conj(G[j * w + i]);
+        }
+    }
+}
+
+void QBridge::ChunkedProject(size_t n, size_t wIn, size_t wOut, bool tall,
+    const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather, const std::vector<cmplx_d>& mat,
+    const std::function<void(size_t, size_t, const cmplx_d*, size_t)>& scatter)
+{
+    const size_t chunk = std::max<size_t>(1U, std::min(n, QBridgeChunk(std::max(wIn, wOut))));
+#if QRACK_ENABLE_BLAS
+    std::vector<cmplx_d> in(chunk * wIn), out(chunk * wOut);
+    const cmplx_d one(1.0, 0.0), zero(0.0, 0.0);
+    for (size_t b = 0U; b < n; b += chunk) {
+        const size_t e = std::min(n, b + chunk), k = e - b;
+        const size_t ldIn = tall ? wIn : k, ldOut = tall ? wOut : k;
+        ParRange(k, 256U, [&](size_t b2, size_t e2, unsigned th) {
+            gather(b + b2, b + e2, in.data() + (tall ? (b2 * ldIn) : b2), ldIn);
+        });
+        if (tall) {
+            cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, (int)k, (int)wOut, (int)wIn, &one, in.data(),
+                (int)ldIn, mat.data(), (int)wOut, &zero, out.data(), (int)ldOut);
+        } else {
+            cblas_zgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, (int)wOut, (int)k, (int)wIn, &one, mat.data(),
+                (int)wIn, in.data(), (int)ldIn, &zero, out.data(), (int)ldOut);
+        }
+        ParRange(k, 256U, [&](size_t b2, size_t e2, unsigned th) {
+            scatter(b + b2, b + e2, out.data() + (tall ? (b2 * ldOut) : b2), ldOut);
+        });
+    }
+#else
+    ParRange(n, 64U, [&](size_t b0, size_t e0, unsigned th) {
+        const size_t c0 = std::min(chunk, e0 - b0);
+        std::vector<cmplx_d> in(c0 * wIn), out(c0 * wOut);
+        for (size_t b = b0; b < e0; b += chunk) {
+            const size_t e = std::min(e0, b + chunk), k = e - b;
+            std::fill(out.begin(), out.begin() + k * wOut, cmplx_d(0.0, 0.0));
+            if (tall) {
+                gather(b, e, in.data(), wIn);
+                for (size_t x = 0U; x < k; ++x) {
+                    const cmplx_d* ri = &in[x * wIn];
+                    cmplx_d* ro = &out[x * wOut];
+                    for (size_t i = 0U; i < wIn; ++i) {
+                        const cmplx_d v = ri[i];
+                        if (v == cmplx_d(0.0, 0.0)) {
+                            continue;
+                        }
+                        const cmplx_d* mi = &mat[i * wOut];
+                        for (size_t o = 0U; o < wOut; ++o) {
+                            ro[o] += v * mi[o];
+                        }
+                    }
+                }
+                scatter(b, e, out.data(), wOut);
+            } else {
+                gather(b, e, in.data(), k);
+                for (size_t o = 0U; o < wOut; ++o) {
+                    cmplx_d* ro = &out[o * k];
+                    for (size_t i = 0U; i < wIn; ++i) {
+                        const cmplx_d m = mat[o * wIn + i];
+                        if (m == cmplx_d(0.0, 0.0)) {
+                            continue;
+                        }
+                        const cmplx_d* ri = &in[i * k];
+                        for (size_t c = 0U; c < k; ++c) {
+                            ro[c] += m * ri[c];
+                        }
+                    }
+                }
+                scatter(b, e, out.data(), k);
+            }
+        }
+    });
+#endif
+}
+
+// --- eager bridged gate between chain neighbours, in one step ------------------------------------
+
+void QBridge::FastTwoQubit(bitLenInt u, size_t bu, const OpList& opU, size_t bv, const OpList& opV)
+{
+    // With patch u (left) holding T_u[l, d, b] and patch v = u + 1 holding T_v[b, d, r], the gate gives
+    // Theta' = X Y, with X[(l, d), (k, b)] = (A_k T_u) and Y[(k, b), (d, r)] = (B_k T_v), A_k on data bit bu
+    // of u, B_k on bit bv of v. Because each A_k (B_k) acts on one data qubit, the Gram matrices X^H X and
+    // Y Y^H are fixed linear combinations of the four chi x chi blocks of ONE 2chi x 2chi Gram per patch
+    // (rows split by the gated bit), so neither tensor is ever grown by the operator-Schmidt rank K.
+    // From those Grams: X = Q_X R_X, Y = P_Y Q_Y, Theta' = Q_X (R_X P_Y) Q_Y, and the SVD of the small
+    // core R_X P_Y gives the new Schmidt values. After Select() (greedy or Born, as in Sweep()), each
+    // patch is rebuilt by ONE streamed product with a 2chi x 2kk matrix: u carries the Schmidt values
+    // (the new centre), v is right-isometric. Exact up to Select(), as the legacy relay + sweep is.
+    const bitLenInt v = u + 1U;
+    if (center != u) {
+        Sweep(u, u, true, true); // exact; moves the centre to u
+    }
+    const Tensor TU = TakeTensor(u);
+    const Tensor TV = TakeTensor(v);
+    const size_t L = TU.l, Du = TU.d, chi = TU.r, Dv = TV.d, R = TV.r;
+    if (TV.l != chi) {
+        throw std::runtime_error("QBridge internal error: bond mismatch in FastTwoQubit!");
+    }
+    const size_t w = chi << 1U, hu = Du >> 1U, hv = Dv >> 1U;
+    const size_t mu = bu - 1U, mv = bv - 1U;
+    // Data index with the gated bit inserted: (rest, x) -> d
+    auto dU = [bu, mu](size_t rest, size_t x) { return ((rest & ~mu) << 1U) | (rest & mu) | (x ? bu : 0U); };
+    auto dV = [bv, mv](size_t rest, size_t x) { return ((rest & ~mv) << 1U) | (rest & mv) | (x ? bv : 0U); };
+
+    // Left: tall matrix, rows (l, rest), columns (x, b).
+    const size_t nU = L * hu;
+    auto gatherU = [&](size_t b, size_t e, cmplx_d* buf, size_t ld) {
+        for (size_t row = b; row < e; ++row) {
+            const size_t l = row / hu, rest = row % hu;
+            cmplx_d* o = buf + (row - b) * ld;
+            for (size_t x = 0U; x < 2U; ++x) {
+                const complex* src = &TU.a[(l * Du + dU(rest, x)) * chi];
+                for (size_t j = 0U; j < chi; ++j) {
+                    o[x * chi + j] = cmplx_d(src[j]);
+                }
+            }
+        }
+    };
+    // Right: wide matrix, rows (y, b), columns (rest, r).
+    const size_t nV = hv * R;
+    auto gatherV = [&](size_t b, size_t e, cmplx_d* buf, size_t ld) {
+        for (size_t col = b; col < e; ++col) {
+            const size_t rest = col / R, r = col % R;
+            for (size_t y = 0U; y < 2U; ++y) {
+                const size_t d = dV(rest, y);
+                for (size_t j = 0U; j < chi; ++j) {
+                    buf[(y * chi + j) * ld + (col - b)] = cmplx_d(TV.a[(j * Dv + d) * R + r]);
+                }
+            }
+        }
+    };
+
+    std::vector<cmplx_d> N, M;
+    ChunkedGram(nU, w, true, gatherU, N); // N[(x1, b), (x2, b')] = sum conj(T_u[., x1, b]) T_u[., x2, b']
+    ChunkedGram(nV, w, false, gatherV, M); // M[(y1, b), (y2, b')] = sum T_v[b, y1, .] conj(T_v[b', y2, .])
+
+    // Gram matrices of X and Y, K chi x K chi.
+    const size_t KU = opU.size(), KV = opV.size();
+    const size_t KCu = KU * chi, KCv = KV * chi;
+    std::vector<cmplx_d> GX(KCu * KCu), GY(KCv * KCv);
+    for (size_t k = 0U; k < KU; ++k) {
+        for (size_t k2 = 0U; k2 < KU; ++k2) {
+            cmplx_d c[2][2];
+            for (int x1 = 0; x1 < 2; ++x1) {
+                for (int x2 = 0; x2 < 2; ++x2) {
+                    c[x1][x2] = std::conj(opU[k][x1]) * opU[k2][x2] + std::conj(opU[k][2 + x1]) * opU[k2][2 + x2];
+                }
+            }
+            for (size_t b = 0U; b < chi; ++b) {
+                for (size_t b2 = 0U; b2 < chi; ++b2) {
+                    cmplx_d acc(0.0, 0.0);
+                    for (int x1 = 0; x1 < 2; ++x1) {
+                        for (int x2 = 0; x2 < 2; ++x2) {
+                            acc += c[x1][x2] * N[(x1 * chi + b) * w + x2 * chi + b2];
+                        }
+                    }
+                    GX[(k * chi + b) * KCu + k2 * chi + b2] = acc;
+                }
+            }
+        }
+    }
+    for (size_t k = 0U; k < KV; ++k) {
+        for (size_t k2 = 0U; k2 < KV; ++k2) {
+            cmplx_d c[2][2];
+            for (int y1 = 0; y1 < 2; ++y1) {
+                for (int y2 = 0; y2 < 2; ++y2) {
+                    c[y1][y2] = opV[k][y1] * std::conj(opV[k2][y2]) + opV[k][2 + y1] * std::conj(opV[k2][2 + y2]);
+                }
+            }
+            for (size_t b = 0U; b < chi; ++b) {
+                for (size_t b2 = 0U; b2 < chi; ++b2) {
+                    cmplx_d acc(0.0, 0.0);
+                    for (int y1 = 0; y1 < 2; ++y1) {
+                        for (int y2 = 0; y2 < 2; ++y2) {
+                            acc += c[y1][y2] * M[(y1 * chi + b) * w + y2 * chi + b2];
+                        }
+                    }
+                    GY[(k * chi + b) * KCv + k2 * chi + b2] = acc;
+                }
+            }
+        }
+    }
+    N.clear();
+    M.clear();
+
+    // X = Q_X R_X with R_X = sX VX^H (mX x KCu); Y = P_Y Q_Y with P_Y = VY sY (KCv x mY).
+    std::vector<double> lamX, lamY;
+    std::vector<cmplx_d> VX, VY;
+    EighDesc(GX, KCu, lamX, VX);
+    EighDesc(GY, KCv, lamY, VY);
+    auto rankOf = [](const std::vector<double>& lam) {
+        size_t m = 1U;
+        while ((m < lam.size()) && (lam[m] > (QBRIDGE_TOL * QBRIDGE_TOL * lam[0U]))) {
+            ++m;
+        }
+        return m;
+    };
+    const size_t mX = rankOf(lamX), mY = rankOf(lamY);
+    std::vector<double> sX(mX), sY(mY);
+    for (size_t i = 0U; i < mX; ++i) {
+        sX[i] = (lamX[i] > 0.0) ? std::sqrt(lamX[i]) : 1.0;
+    }
+    for (size_t i = 0U; i < mY; ++i) {
+        sY[i] = (lamY[i] > 0.0) ? std::sqrt(lamY[i]) : 1.0;
+    }
+    // Core C = R_X P_Y (mX x mY): C[i][j] = sX[i] sY[j] sum_t conj(VX[t][i]) VY[t][j], summed over the
+    // shared (k, b) index t (the operator-Schmidt index k pairs A_k with B_k, so KU == KV).
+    if (KU != KV) {
+        throw std::runtime_error("QBridge internal error: operator-Schmidt rank mismatch!");
+    }
+    const size_t KC = KCu;
+    // C = sX (VX[:, :mX])^H VY[:, :mY] sY
+    std::vector<cmplx_d> C(mX * mY);
+    QBridgeMatMul(VX.data(), true, mX, KC, KC, VY.data(), mY, KC, C.data());
+    for (size_t i = 0U; i < mX; ++i) {
+        for (size_t j = 0U; j < mY; ++j) {
+            C[i * mY + j] *= sX[i] * sY[j];
+        }
+    }
+    // SVD of the core through C C^H.
+    std::vector<cmplx_d> Ct(mY * mX), CC(mX * mX), UC;
+    for (size_t i = 0U; i < mX; ++i) {
+        for (size_t j = 0U; j < mY; ++j) {
+            Ct[j * mX + i] = std::conj(C[i * mY + j]);
+        }
+    }
+    QBridgeMatMul(C.data(), false, mX, mY, mY, Ct.data(), mX, mX, CC.data());
+    for (size_t i = 0U; i < mX; ++i) {
+        CC[i * mX + i] = cmplx_d(CC[i * mX + i].real(), 0.0);
+        for (size_t j = 0U; j < i; ++j) {
+            CC[i * mX + j] = std::conj(CC[j * mX + i]);
+        }
+    }
+    std::vector<double> lamC;
+    EighDesc(CC, mX, lamC, UC);
+    std::vector<double> sv(mX);
+    size_t live = 0U;
+    for (size_t k = 0U; k < mX; ++k) {
+        sv[k] = (lamC[k] > 0.0) ? std::sqrt(lamC[k]) : 0.0;
+        if (sv[k] > (QBRIDGE_TOL * sv[0U])) {
+            ++live;
+        }
+    }
+    peakBonds = std::max(peakBonds, bondBits(std::max<size_t>(live, 1U)));
+    const std::vector<size_t> idx = Select(sv, false);
+    const size_t kk = idx.size();
+
+    // New left tensor: X Zc, Zc = VX sX^-1 UC[:, idx] S (KC x kk); folded with A_k into Zb (2chi x 2kk):
+    // Zb[(x', b), (x, c)] = sum_k A_k[x][x'] Zc[(k, b)][c].
+    // Ucs = UC[:, idx] (mX x kk); Zc = (VX[:, :mX] / sX) Ucs S
+    std::vector<cmplx_d> Ucs(mX * kk), VXs(KC * mX), Zc(KC * kk);
+    for (size_t i = 0U; i < mX; ++i) {
+        for (size_t c = 0U; c < kk; ++c) {
+            Ucs[i * kk + c] = UC[i * mX + idx[c]];
+        }
+    }
+    for (size_t t = 0U; t < KC; ++t) {
+        for (size_t i = 0U; i < mX; ++i) {
+            VXs[t * mX + i] = VX[t * KC + i] / sX[i];
+        }
+    }
+    QBridgeMatMul(VXs.data(), false, KC, mX, mX, Ucs.data(), kk, kk, Zc.data());
+    for (size_t t = 0U; t < KC; ++t) {
+        for (size_t c = 0U; c < kk; ++c) {
+            Zc[t * kk + c] *= sv[idx[c]];
+        }
+    }
+    const size_t w2 = kk << 1U;
+    std::vector<cmplx_d> Zb(w * w2, cmplx_d(0.0, 0.0));
+    for (size_t k = 0U; k < KU; ++k) {
+        for (int x = 0; x < 2; ++x) {
+            for (int xp = 0; xp < 2; ++xp) {
+                const cmplx_d a = opU[k][x * 2 + xp];
+                if (a == cmplx_d(0.0, 0.0)) {
+                    continue;
+                }
+                for (size_t b = 0U; b < chi; ++b) {
+                    for (size_t c = 0U; c < kk; ++c) {
+                        Zb[(xp * chi + b) * w2 + x * kk + c] += a * Zc[(k * chi + b) * kk + c];
+                    }
+                }
+            }
+        }
+    }
+    // New right tensor: Wc Y, Wc = Vh sY^-1 VY^H (kk x KC), Vh = S^-1 UC[:, idx]^H C; folded with B_k into
+    // Wb (2kk x 2chi): Wb[(y, c), (y', b)] = sum_k B_k[y][y'] Wc[c][(k, b)].
+    std::vector<cmplx_d> Vh(kk * mY), VYt(mY * KC), Wc(kk * KC);
+    QBridgeMatMul(Ucs.data(), true, kk, mX, kk, C.data(), mY, mY, Vh.data());
+    for (size_t c = 0U; c < kk; ++c) {
+        for (size_t j = 0U; j < mY; ++j) {
+            Vh[c * mY + j] /= sv[idx[c]] * sY[j];
+        }
+    }
+    for (size_t j = 0U; j < mY; ++j) {
+        for (size_t t = 0U; t < KC; ++t) {
+            VYt[j * KC + t] = std::conj(VY[t * KC + j]);
+        }
+    }
+    QBridgeMatMul(Vh.data(), false, kk, mY, mY, VYt.data(), KC, KC, Wc.data());
+    std::vector<cmplx_d> Wb(w2 * w, cmplx_d(0.0, 0.0));
+    for (size_t k = 0U; k < KV; ++k) {
+        for (int y = 0; y < 2; ++y) {
+            for (int yp = 0; yp < 2; ++yp) {
+                const cmplx_d bk = opV[k][y * 2 + yp];
+                if (bk == cmplx_d(0.0, 0.0)) {
+                    continue;
+                }
+                for (size_t c = 0U; c < kk; ++c) {
+                    for (size_t b = 0U; b < chi; ++b) {
+                        Wb[(y * kk + c) * w + yp * chi + b] += bk * Wc[c * KC + k * chi + b];
+                    }
+                }
+            }
+        }
+    }
+
+    // Stream both patches once through their 2chi x 2kk maps.
+    Tensor NU(L, Du, kk), NV(kk, Dv, R);
+    auto scatterU = [&](size_t b, size_t e, const cmplx_d* buf, size_t ld) {
+        for (size_t row = b; row < e; ++row) {
+            const size_t l = row / hu, rest = row % hu;
+            const cmplx_d* o = buf + (row - b) * ld;
+            for (size_t x = 0U; x < 2U; ++x) {
+                complex* dst = &NU.a[(l * Du + dU(rest, x)) * kk];
+                for (size_t c = 0U; c < kk; ++c) {
+                    dst[c] = complex((real1)o[x * kk + c].real(), (real1)o[x * kk + c].imag());
+                }
+            }
+        }
+    };
+    auto scatterV = [&](size_t b, size_t e, const cmplx_d* buf, size_t ld) {
+        for (size_t col = b; col < e; ++col) {
+            const size_t rest = col / R, r = col % R;
+            for (size_t y = 0U; y < 2U; ++y) {
+                const size_t d = dV(rest, y);
+                for (size_t c = 0U; c < kk; ++c) {
+                    const cmplx_d z = buf[(y * kk + c) * ld + (col - b)];
+                    NV.a[(c * Dv + d) * R + r] = complex((real1)z.real(), (real1)z.imag());
+                }
+            }
+        }
+    };
+    ChunkedProject(nU, w, w2, true, gatherU, Zb, scatterU);
+    ChunkedProject(nV, w, w2, false, gatherV, Wb, scatterV);
+
+    bond[u] = bondBits(kk);
+    StoreTensor(u, NU);
+    StoreTensor(v, NV);
+    center = u;
+    ++flushes;
 }
 
 void QBridge::Controlled(bitLenInt c, bitLenInt t, const complex* mtrx, bool anti)
@@ -519,6 +1023,40 @@ void QBridge::FSim(real1_f theta, real1_f phi, bitLenInt a, bitLenInt b)
 
 void QBridge::EighDesc(std::vector<cmplx_d>& A, size_t n, std::vector<double>& lam, std::vector<cmplx_d>& V)
 {
+#if QRACK_ENABLE_LAPACK
+    if (n > 1U) {
+        // Row-major A read as column-major is A^T = conj(A): same eigenvalues, conjugated eigenvectors.
+        const int N = (int)n;
+        int info = 0, lwork = -1, lrwork = -1, liwork = -1;
+        std::vector<double> w(n);
+        std::complex<double> wq;
+        double rq;
+        int iq;
+        zheevd_("V", "U", &N, A.data(), &N, w.data(), &wq, &lwork, &rq, &lrwork, &iq, &liwork, &info, 1U, 1U);
+        lwork = (int)wq.real();
+        lrwork = (int)rq;
+        liwork = iq;
+        std::vector<std::complex<double>> work(std::max(1, lwork));
+        std::vector<double> rwork(std::max(1, lrwork));
+        std::vector<int> iwork(std::max(1, liwork));
+        zheevd_("V", "U", &N, A.data(), &N, w.data(), work.data(), &lwork, rwork.data(), &lrwork, iwork.data(), &liwork,
+            &info, 1U, 1U);
+        if (!info) {
+            // Ascending -> descending; Z column c (column-major) -> V column, conjugated.
+            lam.resize(n);
+            V.resize(n * n);
+            for (size_t c = 0U; c < n; ++c) {
+                const size_t src = n - 1U - c;
+                lam[c] = w[src];
+                for (size_t r = 0U; r < n; ++r) {
+                    V[r * n + c] = std::conj(A[src * n + r]);
+                }
+            }
+            return;
+        }
+        throw std::runtime_error("QBridge::EighDesc: LAPACK zheevd failed!");
+    }
+#endif
     // Hermitian eigensolver, as LAPACK does it, without LAPACK:
     //   1. Householder reduction A = Q T Q^dagger (T Hermitian tridiagonal), Q accumulated;
     //   2. a diagonal phase D makes T's off-diagonal real and nonnegative;

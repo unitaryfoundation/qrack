@@ -22,6 +22,8 @@
 
 #include "qfactory.hpp"
 
+#include <array>
+#include <functional>
 #include <map>
 #include <random>
 #include <set>
@@ -79,6 +81,9 @@ protected:
     std::vector<QInterfacePtr> sims;
 
     bitLenInt center;
+    // Eager bridged gates between chain neighbours take the canonical-form fast path (FastTwoQubit)
+    // unless the environment variable QRACK_QBRIDGE_LEGACY_GATE is set (for A/B comparison).
+    bool useFastGate;
     std::set<bitLenInt> touched;
     // Patches whose current tensor lives on the host (bond growth from bridged gates, or exact-only
     // recompression inside a deferred block); their engines are released until written back.
@@ -105,6 +110,30 @@ protected:
     QInterfacePtr Eng(bitLenInt p);
     Tensor TakeTensor(bitLenInt p);
     void HostTwoQubit(bitLenInt a, bitLenInt b, const cmplx_d* G);
+    typedef std::vector<std::array<cmplx_d, 4U>> OpList;
+    /** Operator-Schmidt split G = sum_k A_k (x) B_k (A on qubit a, B on qubit b), K <= 4 nonzero terms. */
+    void OpSchmidt(const cmplx_d* G, OpList& A, OpList& B);
+    /**
+     * Eager bridged gate between chain neighbours u (left) and u + 1, applied and truncated in one
+     * step from the two patches' 2-chi-wide Gram matrices, without growing either tensor by the
+     * operator-Schmidt rank. opU acts on data bit bu of patch u, opV on data bit bv of patch u + 1.
+     */
+    void FastTwoQubit(bitLenInt u, size_t bu, const OpList& opU, size_t bv, const OpList& opV);
+    /**
+     * Hermitian Gram of a matrix streamed in chunks of n items (rows if tall, columns if not), each of
+     * width w: G = A^H A (tall) or A A^H (wide), w x w, double accumulation. gather(b, e, buf, ld)
+     * writes items [b, e) to buf: tall, item i at buf[(i - b) * ld + col]; wide, at buf[row * ld + (i - b)].
+     */
+    void ChunkedGram(size_t n, size_t w, bool tall, const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather,
+        std::vector<cmplx_d>& G);
+    /**
+     * Streamed product with a small matrix: tall, out (k x wOut) = in (k x wIn) . mat (wIn x wOut);
+     * wide, out (wOut x k) = mat (wOut x wIn) . in (wIn x k). gather as for ChunkedGram; scatter(b, e,
+     * out, ld) reads the chunk's results with the same layout convention.
+     */
+    void ChunkedProject(size_t n, size_t wIn, size_t wOut, bool tall,
+        const std::function<void(size_t, size_t, cmplx_d*, size_t)>& gather, const std::vector<cmplx_d>& mat,
+        const std::function<void(size_t, size_t, const cmplx_d*, size_t)>& scatter);
     void Controlled(bitLenInt c, bitLenInt t, const complex* mtrx, bool anti);
     void PairGate(bitLenInt a, bitLenInt b, std::function<void(QInterfacePtr, bitLenInt, bitLenInt)> fn);
 

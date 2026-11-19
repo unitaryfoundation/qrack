@@ -1,0 +1,40 @@
+option (ENABLE_BLAS "Use an external CBLAS (e.g. OpenBLAS or MKL), and LAPACK if available, for QBridge's bond linear algebra" ON)
+
+if (ENABLE_BLAS)
+    find_package (BLAS)
+    find_path (CBLAS_INCLUDE_DIR cblas.h
+        PATH_SUFFIXES openblas openblas-pthread openblas-openmp mkl
+        HINTS ENV CBLAS_INCLUDE_DIR ENV MKLROOT ENV OpenBLAS_HOME
+        )
+    if (BLAS_FOUND AND CBLAS_INCLUDE_DIR)
+        include_directories (${CBLAS_INCLUDE_DIR})
+        target_link_libraries (qrack PUBLIC ${BLAS_LIBRARIES})
+        target_compile_definitions (qrack PUBLIC QRACK_ENABLE_BLAS=1)
+        message ("CBLAS (for QBridge) is: ON (${BLAS_LIBRARIES}; header in ${CBLAS_INCLUDE_DIR})")
+
+        # LAPACK's zheevd for the bond-sized Hermitian eigensolver: in the BLAS library itself (OpenBLAS,
+        # MKL), or a separate LAPACK if one is found. Otherwise QBridge keeps its built-in eigensolver.
+        include (CheckFunctionExists)
+        set (CMAKE_REQUIRED_LIBRARIES ${BLAS_LIBRARIES})
+        check_function_exists (zheevd_ QRACK_BLAS_HAS_ZHEEVD)
+        unset (CMAKE_REQUIRED_LIBRARIES)
+        if (QRACK_BLAS_HAS_ZHEEVD)
+            target_compile_definitions (qrack PUBLIC QRACK_ENABLE_LAPACK=1)
+            message ("LAPACK (for QBridge) is: ON (zheevd from the BLAS library)")
+        else (QRACK_BLAS_HAS_ZHEEVD)
+            find_package (LAPACK)
+            if (LAPACK_FOUND)
+                target_link_libraries (qrack PUBLIC ${LAPACK_LIBRARIES})
+                target_compile_definitions (qrack PUBLIC QRACK_ENABLE_LAPACK=1)
+                message ("LAPACK (for QBridge) is: ON (${LAPACK_LIBRARIES})")
+            else (LAPACK_FOUND)
+                message ("LAPACK (for QBridge) is: OFF (built-in eigensolver)")
+            endif (LAPACK_FOUND)
+        endif (QRACK_BLAS_HAS_ZHEEVD)
+    else (BLAS_FOUND AND CBLAS_INCLUDE_DIR)
+        set (ENABLE_BLAS OFF)
+        message (WARNING "ENABLE_BLAS requested, but no BLAS library and cblas.h were found; QBridge falls back to its built-in loops.")
+    endif (BLAS_FOUND AND CBLAS_INCLUDE_DIR)
+else (ENABLE_BLAS)
+    message ("CBLAS (for QBridge) is: OFF")
+endif (ENABLE_BLAS)

@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.10)
-project (Qrack VERSION 10.15.0 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
+project (Qrack VERSION 10.15.1 DESCRIPTION "High Performance Quantum Bit Simulation" LANGUAGES CXX)
 
 # Installation commands
 include (GNUInstallDirs)
@@ -111,6 +111,7 @@ option (ENABLE_OPENCL "Use OpenCL optimizations" ON)
 option (ENABLE_SNUCL "Use SnuCL framework for clusters" OFF)
 include ("cmake/Alu.cmake")
 include ("cmake/Bcd.cmake")
+include ("cmake/Blas.cmake")
 include ("cmake/Boost.cmake")
 include ("cmake/Complex_x2.cmake")
 include ("cmake/CppStd.cmake")
