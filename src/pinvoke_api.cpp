@@ -4569,6 +4569,47 @@ MICROSOFT_QUANTUM_DECL void qbridge_measure_shots(
     }
 }
 
+MICROSOFT_QUANTUM_DECL void qbridge_measure_shots_words(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* q, _In_ uintq s, unsigned long long* m)
+{
+    QBRIDGE_LOCK_GUARD_VOID(bid)
+    std::vector<bitLenInt> qubits(n);
+    for (uintq i = 0U; i < n; ++i) {
+        qubits[i] = (bitLenInt)q[i];
+    }
+    try {
+        const std::vector<uint64_t> words = bridge->MeasureShotsWords(qubits, (unsigned)s);
+        std::copy(words.begin(), words.end(), m);
+    } catch (const std::exception& ex) {
+        qbridgeErrors[bid] = 1;
+        std::cout << ex.what() << std::endl;
+    }
+}
+
+MICROSOFT_QUANTUM_DECL double qbridge_prob(_In_ uintq bid, _In_ uintq q)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0.0)
+    double result = 0.0;
+    QBRIDGE_TRY(bid, result = (double)bridge->Prob((bitLenInt)q))
+    return result;
+}
+
+MICROSOFT_QUANTUM_DECL uintq qbridge_m(_In_ uintq bid, _In_ uintq q)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0U)
+    bool result = false;
+    QBRIDGE_TRY(bid, result = bridge->M((bitLenInt)q))
+    return result ? 1U : 0U;
+}
+
+MICROSOFT_QUANTUM_DECL uintq qbridge_force_m(_In_ uintq bid, _In_ uintq q, _In_ bool r)
+{
+    QBRIDGE_LOCK_GUARD_TYPED(bid, 0U)
+    bool result = false;
+    QBRIDGE_TRY(bid, result = bridge->ForceM((bitLenInt)q, r, true))
+    return result ? 1U : 0U;
+}
+
 MICROSOFT_QUANTUM_DECL double qbridge_pauli_expectation(
     _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(n) uintq* b)
 {

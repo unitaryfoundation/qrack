@@ -371,6 +371,11 @@ MICROSOFT_QUANTUM_DECL void qbridge_end_deferred(_In_ uintq bid);
 MICROSOFT_QUANTUM_DECL void qbridge_flush(_In_ uintq bid);
 MICROSOFT_QUANTUM_DECL void qbridge_measure_shots(
     _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* q, _In_ uintq s, _In_reads_(s) uintq* m);
+MICROSOFT_QUANTUM_DECL void qbridge_measure_shots_words(
+    _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* q, _In_ uintq s, unsigned long long* m);
+MICROSOFT_QUANTUM_DECL double qbridge_prob(_In_ uintq bid, _In_ uintq q);
+MICROSOFT_QUANTUM_DECL uintq qbridge_m(_In_ uintq bid, _In_ uintq q);
+MICROSOFT_QUANTUM_DECL uintq qbridge_force_m(_In_ uintq bid, _In_ uintq q, _In_ bool r);
 MICROSOFT_QUANTUM_DECL double qbridge_pauli_expectation(
     _In_ uintq bid, _In_ uintq n, _In_reads_(n) uintq* q, _In_reads_(n) uintq* b);
 MICROSOFT_QUANTUM_DECL void qbridge_out_ket(_In_ uintq bid, _In_ real1_s* ket);

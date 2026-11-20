@@ -191,6 +191,9 @@ QBridgePtr QBridge::Clone()
 {
     QBridgePtr c = std::make_shared<QBridge>(*this);
     c->devBlas = nullptr; // each clone opens its own queue and buffers on first use
+    // A copied sampler would repeat the parent's draws in every clone (identical "random" outcomes per shot):
+    // seed each clone from the parent's stream instead, deterministic for a given parent seed.
+    c->sampler.seed(sampler());
     for (size_t p = 0U; p < sims.size(); ++p) {
         c->sims[p] = sims[p] ? sims[p]->Clone() : nullptr;
     }
@@ -2013,7 +2016,7 @@ void QBridge::EndDeferred()
 
 // --- readout -----------------------------------------------------------------
 
-std::vector<bitCapInt> QBridge::MeasureShots(const std::vector<bitLenInt>& qubits, unsigned shots)
+std::vector<std::pair<std::vector<bool>, unsigned>> QBridge::SampleGroups(unsigned shots)
 {
     Compress(false);
     Sweep(0U, 0U, true); // centre at patch 0: patches 1.. right-isometric
@@ -2179,21 +2182,114 @@ std::vector<bitCapInt> QBridge::MeasureShots(const std::vector<bitLenInt>& qubit
         groups.swap(next);
     }
 
+    std::vector<std::pair<std::vector<bool>, unsigned>> out;
+    out.reserve(groups.size());
+    for (Group& g : groups) {
+        out.emplace_back(std::move(g.bits), g.count);
+    }
+    return out;
+}
+
+std::vector<bitCapInt> QBridge::MeasureShots(const std::vector<bitLenInt>& qubits, unsigned shots)
+{
+    for (const bitLenInt& q : qubits) {
+        if (q >= qubitCount) {
+            throw std::invalid_argument("QBridge::MeasureShots qubit index out of range!");
+        }
+    }
     std::vector<bitCapInt> out;
     out.reserve(shots);
-    for (const Group& g : groups) {
+    for (const auto& g : SampleGroups(shots)) {
         bitCapInt v = ZERO_BCI;
         for (size_t j = 0U; j < qubits.size(); ++j) {
-            if (g.bits[qubits[j]]) {
+            if (g.first[qubits[j]]) {
                 bi_or_ip(&v, pow2((bitLenInt)j));
             }
         }
-        for (unsigned c = 0U; c < g.count; ++c) {
+        for (unsigned c = 0U; c < g.second; ++c) {
             out.push_back(v);
         }
     }
     std::shuffle(out.begin(), out.end(), sampler);
     return out;
+}
+
+std::vector<uint64_t> QBridge::MeasureShotsWords(const std::vector<bitLenInt>& qubits, unsigned shots)
+{
+    for (const bitLenInt& q : qubits) {
+        if (q >= qubitCount) {
+            throw std::invalid_argument("QBridge::MeasureShotsWords qubit index out of range!");
+        }
+    }
+    const size_t words = (qubits.size() + 63U) >> 6U;
+    std::vector<std::vector<uint64_t>> perShot;
+    perShot.reserve(shots);
+    for (const auto& g : SampleGroups(shots)) {
+        std::vector<uint64_t> v(words, 0U);
+        for (size_t j = 0U; j < qubits.size(); ++j) {
+            if (g.first[qubits[j]]) {
+                v[j >> 6U] |= ((uint64_t)1U) << (j & 63U);
+            }
+        }
+        for (unsigned c = 0U; c < g.second; ++c) {
+            perShot.push_back(v);
+        }
+    }
+    std::shuffle(perShot.begin(), perShot.end(), sampler);
+    std::vector<uint64_t> out;
+    out.reserve(perShot.size() * words);
+    for (const auto& v : perShot) {
+        out.insert(out.end(), v.begin(), v.end());
+    }
+    return out;
+}
+
+// --- single-qubit measurement --------------------------------------------------
+
+bitLenInt QBridge::DataPos(bitLenInt p, bitLenInt i) const
+{
+    const std::vector<Tag>& lay = layout[p];
+    for (size_t x = 0U; x < lay.size(); ++x) {
+        if ((lay[x].kind == 'd') && (lay[x].idx == i)) {
+            return (bitLenInt)x;
+        }
+    }
+    throw std::runtime_error("QBridge internal error: missing data qubit tag!");
+}
+
+real1_f QBridge::Prob(bitLenInt q)
+{
+    bitLenInt p, i;
+    Locate(q, p, i);
+    if (isRing) {
+        // No canonical form around a ring: contract the whole ring for <Z>.
+        const real1_f z = ExpectationPauliAll({ q }, { PauliZ });
+        return std::min(ONE_R1_F, std::max(ZERO_R1_F, (ONE_R1_F - z) / 2));
+    }
+    // Open chain: with the centre moved (exactly) to patch p, every patch left of it is left-isometric and every
+    // patch right of it right-isometric, so both environments contract to the identity on the bonds and the
+    // marginal is the patch engine's own marginal over its data and bond qubits.
+    Compress(false);
+    Sweep(p, p, true, true);
+    return Eng(p)->Prob(DataPos(p, i));
+}
+
+bool QBridge::ForceM(bitLenInt q, bool result, bool doForce)
+{
+    bitLenInt p, i;
+    Locate(q, p, i);
+    const real1_f p1 = Prob(q); // open chain: also leaves the centre at p, so collapsing p keeps canonical form
+    if (!doForce) {
+        std::uniform_real_distribution<double> u(0.0, 1.0);
+        result = (u(sampler) < (double)p1);
+    }
+    const real1_f pr = result ? p1 : (ONE_R1_F - p1);
+    if (pr <= FP_NORM_EPSILON) {
+        throw std::invalid_argument("QBridge::ForceM: the forced result has zero probability!");
+    }
+    // A projector on one data qubit is local to patch p: collapse (and renormalize) that patch engine only.
+    Eng(p)->ForceM(DataPos(p, i), result, true, true);
+    return result;
 }
 
 void QBridge::GetQuantumState(complex* outputState)

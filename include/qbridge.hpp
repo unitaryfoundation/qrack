@@ -158,6 +158,10 @@ protected:
     void PairGate(bitLenInt a, bitLenInt b, std::function<void(QInterfacePtr, bitLenInt, bitLenInt)> fn);
 
     Tensor ReadTensor(bitLenInt p, QInterfacePtr eng = nullptr);
+    /** Shared sampler for MeasureShots*(): (bits of all qubits, count) per distinct sampled bitstring. */
+    std::vector<std::pair<std::vector<bool>, unsigned>> SampleGroups(unsigned shots);
+    /** Position of data qubit i within patch p's engine. */
+    bitLenInt DataPos(bitLenInt p, bitLenInt i) const;
     void TransferStep(std::vector<cmplx_d>& E, size_t W, const Tensor& A, const Tensor& B);
     void StoreTensor(bitLenInt p, const Tensor& t);
     std::vector<size_t> Select(const std::vector<double>& sv, bool exactOnly);
@@ -237,6 +241,20 @@ public:
     // --- readout ---
     /** Exact samples of the stored state (sequential conditional sampling, grouped by prefix). */
     std::vector<bitCapInt> MeasureShots(const std::vector<bitLenInt>& qubits, unsigned shots);
+    /**
+     * As MeasureShots(), for any number of qubits: shots x ceil(qubits.size() / 64) little-endian 64-bit words,
+     * bit j of shot s at word (s * words + j / 64), bit (j % 64). The stored state is not collapsed.
+     */
+    std::vector<uint64_t> MeasureShotsWords(const std::vector<bitLenInt>& qubits, unsigned shots);
+    /** Exact probability that qubit q measures |1>. Flushes buffered bonds; on an open chain, moves the centre to q's
+     * patch. */
+    real1_f Prob(bitLenInt q);
+    /**
+     * Mid-circuit measurement of qubit q in the Z basis, collapsing the stored state (one patch engine is projected).
+     * With doForce, post-select the given result (throws if it has zero probability). Returns the result.
+     */
+    bool ForceM(bitLenInt q, bool result, bool doForce = true);
+    bool M(bitLenInt q) { return ForceM(q, false, false); }
     /** Dense contracted state, little-endian; for testing (2^n memory). */
     void GetQuantumState(complex* outputState);
     /**

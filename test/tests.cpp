@@ -7591,6 +7591,84 @@ TEST_CASE("test_qbridge_measure", "[qbridge]")
     REQUIRE(seen.size() == 2U);
 }
 
+TEST_CASE("test_qbridge_mid_circuit_measure", "[qbridge]")
+{
+    // Exact (untruncated) bridges on open chains and a ring: Prob() must match the exact engine, and a mid-circuit
+    // ForceM()/M() followed by more gates must leave the same (renormalized) state as the exact engine.
+    const bitLenInt n = 8U;
+    const bitLenInt pc[3U]{ 2U, 3U, 3U };
+    for (int c = 0; c < 3; ++c) {
+        const bool wrap = (c == 2);
+        QBridge br({ QINTERFACE_CPU }, n, 8U, pc[c], wrap, false, 0U, 0U, nullptr, 17U + c);
+        QInterfacePtr ref = CreateQuantumInterface(QINTERFACE_CPU, n, ZERO_BCI);
+        qbridge_random_circuit(br, ref, n, 3, 41U + c);
+        for (bitLenInt q = 0U; q < n; ++q) {
+            REQUIRE(std::abs(br.Prob(q) - ref->Prob(q)) < (real1_f)1e-3f);
+        }
+        // Forced outcome on a qubit in the middle of the chain, then more gates on both.
+        const bitLenInt q1 = 3U;
+        const bool r1 = ref->Prob(q1) > HALF_R1;
+        br.ForceM(q1, r1);
+        ref->ForceM(q1, r1);
+        REQUIRE(qbridge_fidelity(br, ref, n) > (real1_f)0.999f);
+        qbridge_random_circuit(br, ref, n, 2, 53U + c);
+        // Sampled outcome on another qubit: the exact engine is forced to whatever the bridge drew.
+        const bitLenInt q2 = 6U;
+        const bool r2 = br.M(q2);
+        ref->ForceM(q2, r2);
+        REQUIRE(qbridge_fidelity(br, ref, n) > (real1_f)0.999f);
+        for (bitLenInt q = 0U; q < n; ++q) {
+            REQUIRE(std::abs(br.Prob(q) - ref->Prob(q)) < (real1_f)1e-3f);
+        }
+    }
+    // Clones must not repeat each other's random draws: |+> measured in 64 clones gives both outcomes.
+    QBridge plus({ QINTERFACE_CPU }, 4U, 2U, 2U, false, false, 0U, 0U, nullptr, 3U);
+    plus.H(2U);
+    std::set<bool> outcomes;
+    for (int t = 0; t < 64; ++t) {
+        outcomes.insert(plus.Clone()->M(2U));
+    }
+    REQUIRE(outcomes.size() == 2U);
+    // Post-selecting an impossible outcome is an error, and leaves the state untouched.
+    QBridge zero({ QINTERFACE_CPU }, 4U, 2U, 2U);
+    REQUIRE_THROWS(zero.ForceM(3U, true));
+    REQUIRE(zero.Prob(3U) < (real1_f)1e-6f);
+}
+
+TEST_CASE("test_qbridge_wide_shots", "[qbridge]")
+{
+    // A 72-qubit GHZ state over 4 patches: every shot is all zeros or all ones across all 72 bits (two words).
+    const bitLenInt n = 72U;
+    QBridge br({ QINTERFACE_CPU }, n, 2U, 4U, false, false, 0U, 0U, nullptr, 23U);
+    br.H(0U);
+    for (bitLenInt q = 0U; (q + 1U) < n; ++q) {
+        br.CNOT(q, q + 1U);
+    }
+    std::vector<bitLenInt> qs;
+    for (bitLenInt q = 0U; q < n; ++q) {
+        qs.push_back(q);
+    }
+    const unsigned shots = 200U;
+    const std::vector<uint64_t> w = br.MeasureShotsWords(qs, shots);
+    REQUIRE(w.size() == (size_t)shots * 2U);
+    const uint64_t hi = (((uint64_t)1U) << (n - 64U)) - 1U;
+    unsigned ones = 0U;
+    for (unsigned s = 0U; s < shots; ++s) {
+        const uint64_t a = w[2U * s], b = w[2U * s + 1U];
+        const bool allOne = (a == ~(uint64_t)0U) && (b == hi);
+        const bool allZero = (a == 0U) && (b == 0U);
+        REQUIRE((allOne || allZero));
+        ones += allOne ? 1U : 0U;
+    }
+    REQUIRE(ones > 50U);
+    REQUIRE(ones < 150U);
+    // Mid-circuit measurement on the last qubit collapses all 72.
+    const bool r = br.M(n - 1U);
+    for (const bitLenInt& q : { (bitLenInt)0U, (bitLenInt)35U, (bitLenInt)70U }) {
+        REQUIRE(std::abs(br.Prob(q) - (r ? ONE_R1_F : ZERO_R1_F)) < (real1_f)1e-4f);
+    }
+}
+
 TEST_CASE("test_qbridge_pauli_expectation", "[qbridge]")
 {
     // Exact (untruncated) bridges, open and ring: <P> must match the exact engine for random Pauli products.
