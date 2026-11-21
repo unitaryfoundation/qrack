@@ -538,7 +538,7 @@ public:
 
     // --- StateVector interface ----------------------------------------------
 
-#if QRACK_SV_USE_OVERLOAD
+#ifdef QRACK_SV_USE_OVERLOAD
     complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
 #if ENABLE_COMPLEX_X2
     complex2 read2(const bitCapInt& i1, const bitCapInt& i2)

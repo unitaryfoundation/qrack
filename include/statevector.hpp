@@ -42,7 +42,7 @@
 #endif
 
 #if (QBCAPPOW > 6) || ((QBCAPPOW > 5) && (SIZE_MAX == UINT32_MAX))
-#define QRACK_SV_USE_OVERLOAD
+#define QRACK_SV_USE_OVERLOAD 1
 #endif
 
 namespace Qrack {
@@ -75,7 +75,7 @@ public:
     /// Optimized "write" that is only guaranteed to write if either amplitude is nonzero. (Useful for the result of 2x2
     /// tensor slicing.)
     virtual void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2) { throw std::logic_error("Statevector::write2() has no default implementation!"); }
-#if QRACK_SV_USE_OVERLOAD
+#ifdef QRACK_SV_USE_OVERLOAD
     virtual complex read(const size_t& i) { throw std::logic_error("Statevector::read() has no default implementation!"); }
 #if ENABLE_COMPLEX_X2
     virtual complex2 read2(const size_t& i1, const size_t& i2) { throw std::logic_error("Statevector::read2() has no default implementation!"); }
@@ -158,7 +158,7 @@ public:
         amplitudes.get()[i2] = c2;
     };
 
-#if QRACK_SV_USE_OVERLOAD
+#ifdef QRACK_SV_USE_OVERLOAD
     complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
 #if ENABLE_COMPLEX_X2
     complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
@@ -340,7 +340,7 @@ public:
         return fidelity;
     }
 
-#if QRACK_SV_USE_OVERLOAD
+#ifdef QRACK_SV_USE_OVERLOAD
     complex read(const size_t& i) { return read((bitCapInt)i); }
 #if ENABLE_COMPLEX_X2
     complex2 read2(const size_t& i1, const size_t& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
