@@ -477,6 +477,13 @@ public:
         copy_in(copyIn);
     }
 
+    using StateVector::read;
+    using StateVector::write;
+#if ENABLE_COMPLEX_X2
+    using StateVector::read2;
+#endif
+    using StateVector::write2;
+
     size_t get_size() { return capacity; }
 
     // --- Serialization ------------------------------------------------------

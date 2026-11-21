@@ -146,6 +146,13 @@ public:
         // Intentionally left blank.
     }
 
+    using StateVector::read;
+    using StateVector::write;
+#if ENABLE_COMPLEX_X2
+    using StateVector::read2;
+#endif
+    using StateVector::write2;
+
     virtual ~StateVectorArray() { Free(); }
 
     complex* get_raw() { return amplitudes.get(); }
@@ -272,6 +279,13 @@ public:
         , amplitudes()
     {
     }
+
+    using StateVector::read;
+    using StateVector::write;
+#if ENABLE_COMPLEX_X2
+    using StateVector::read2;
+#endif
+    using StateVector::write2;
 
     size_t size() { return amplitudes.size(); }
 
