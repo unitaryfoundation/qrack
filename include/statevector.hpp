@@ -84,7 +84,7 @@ public:
     virtual void get_probs(real1* outArray) = 0;
     virtual bool is_sparse() = 0;
 
-#if QBCAPPOW != 6
+#if QBCAPPOW > 6
     virtual complex read(const size_t& i) = 0;
 #if ENABLE_COMPLEX_X2
     virtual complex2 read2(const size_t& i1, const size_t& i2) = 0;
@@ -228,7 +228,7 @@ public:
     complex read(const size_t& i) { return amplitudes.get()[i]; };
     void write(const size_t& i, const complex& c) { amplitudes.get()[i] = c; };
 
-#if QBCAPPOW != 6
+#if QBCAPPOW > 6
     complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
 #if ENABLE_COMPLEX_X2
     complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
@@ -640,7 +640,7 @@ public:
         return toRet[0U];
     }
 
-#if QBCAPPOW != 6
+#if QBCAPPOW > 6
     complex read(const size_t& i) { return read((bitCapInt)i); }
 #if ENABLE_COMPLEX_X2
     complex2 read2(const size_t& i1, const size_t& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
