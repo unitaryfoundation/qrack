@@ -41,7 +41,7 @@
 #endif
 #endif
 
-#if (QBCAPPOW > 6) || ((QBCAPPOW > 5) && (SIZE_MAX == UINT32_MAX))
+#if (QBCAPPOW > 6) || ((QBCAPPOW > 5) && (SIZE_MAX == 0xFFFFFFFF))
 #define QRACK_SV_USE_OVERLOAD 1
 #endif
 
