@@ -341,8 +341,10 @@ public:
     }
 
 #ifdef QRACK_SV_USE_OVERLOAD
+    using StateVector::read;
     complex read(const size_t& i) { return read((bitCapInt)i); }
 #if ENABLE_COMPLEX_X2
+    using StateVector::read2;
     complex2 read2(const size_t& i1, const size_t& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
     complex2 read2(const size_t& i1, const size_t& i2)
     {
@@ -352,7 +354,9 @@ public:
         return complex2(readUnlocked(i1), readUnlocked(i2));
     }
 #endif
+    using StateVector::write;
     void write(const size_t& i, const complex& c) { write((bitCapInt)i, c); }
+    using StateVector::write2;
     void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
     {
         write2((bitCapInt)i1, c1, (bitCapInt)i2, c2);
