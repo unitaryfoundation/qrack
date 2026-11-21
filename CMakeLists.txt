@@ -12,8 +12,6 @@ include ("cmake/Pthread.cmake")
 
 include_directories ("include" "include/common" "${CMAKE_BINARY_DIR}/include/common")
 
-set(CMAKE_WARN_DEPRECATED FALSE)
-
 option (ENABLE_MAKE_CLEAN_OVERRIDE "Override the 'make clean' recipe for Debian packaging" ON)
 option (ENABLE_EXAMPLES "Include usage examples" ON)
 option (ENABLE_TESTS "Include tests and benchmarks" ON)
