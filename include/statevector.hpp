@@ -67,7 +67,7 @@ public:
     {
         // Intentionally left blank.
     }
-#ifdef QRACK_SV_USE_OVERLOAD
+
     virtual complex read(const bitCapInt& i) { throw std::logic_error("Statevector::read() has no default implementation!"); }
 #if ENABLE_COMPLEX_X2
     virtual complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { throw std::logic_error("Statevector::read2() has no default implementation!"); }
@@ -76,13 +76,16 @@ public:
     /// Optimized "write" that is only guaranteed to write if either amplitude is nonzero. (Useful for the result of 2x2
     /// tensor slicing.)
     virtual void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2) { throw std::logic_error("Statevector::write2() has no default implementation!"); }
-#endif
+
+#ifdef QRACK_SV_USE_OVERLOAD
     virtual complex read(const size_t& i) { throw std::logic_error("Statevector::read() has no default implementation!"); }
 #if ENABLE_COMPLEX_X2
     virtual complex2 read2(const size_t& i1, const size_t& i2) { throw std::logic_error("Statevector::read2() has no default implementation!"); }
 #endif
     virtual void write(const size_t& i, const complex& c) { throw std::logic_error("Statevector::write() has no default implementation!"); }
     virtual void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2) { throw std::logic_error("Statevector::write2() has no default implementation!"); }
+#endif
+
     virtual void clear() = 0;
     virtual void copy_in(const complex* inArray) = 0;
     virtual void copy_out(complex* outArray) = 0;
@@ -341,22 +344,11 @@ public:
     }
 
 #ifdef QRACK_SV_USE_OVERLOAD
-    using StateVector::read;
     complex read(const size_t& i) { return read((bitCapInt)i); }
 #if ENABLE_COMPLEX_X2
-    using StateVector::read2;
     complex2 read2(const size_t& i1, const size_t& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
-    complex2 read2(const size_t& i1, const size_t& i2)
-    {
-        if (isReadLocked) {
-            return complex2(readLocked(i1), readLocked(i2));
-        }
-        return complex2(readUnlocked(i1), readUnlocked(i2));
-    }
 #endif
-    using StateVector::write;
     void write(const size_t& i, const complex& c) { write((bitCapInt)i, c); }
-    using StateVector::write2;
     void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
     {
         write2((bitCapInt)i1, c1, (bitCapInt)i2, c2);
