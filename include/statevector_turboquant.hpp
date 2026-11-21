@@ -538,6 +538,21 @@ public:
 
     // --- StateVector interface ----------------------------------------------
 
+#if QBCAPPOW > 7
+    complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
+#if ENABLE_COMPLEX_X2
+    complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
+    {
+        return read2((size_t)(uint64_t)i1, (size_t)(uint64_t)i2);
+    }
+#endif
+    void write(const bitCapInt& i, const complex& c) { write((size_t)(uint64_t)i, c); }
+    void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
+    {
+        write2((size_t)(uint64_t)i1, c1, (size_t)(uint64_t)i2, c2);
+    }
+#endif
+
     complex read(const size_t& i)
     {
         std::vector<complex> amps(BLOCK);
@@ -687,21 +702,6 @@ public:
     }
 
     bool is_sparse() { return false; }
-
-#if QBCAPPOW > 6
-    complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
-#if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
-    {
-        return read2((size_t)(uint64_t)i1, (size_t)(uint64_t)i2);
-    }
-#endif
-    void write(const bitCapInt& i, const complex& c) { write((size_t)(uint64_t)i, c); }
-    void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
-    {
-        write2((size_t)(uint64_t)i1, c1, (size_t)(uint64_t)i2, c2);
-    }
-#endif
 };
 
 typedef std::shared_ptr<StateVectorTurboQuant> StateVectorTurboQuantPtr;

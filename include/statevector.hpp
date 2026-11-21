@@ -63,15 +63,22 @@ public:
     {
         // Intentionally left blank.
     }
-
-    virtual complex read(const bitCapInt& i) = 0;
+    virtual complex read(const bitCapInt& i) { throw std::logic_error("Statevector::read() has no default implementation!"); }
 #if ENABLE_COMPLEX_X2
-    virtual complex2 read2(const bitCapInt& i1, const bitCapInt& i2) = 0;
+    virtual complex2 read2(const bitCapInt& i1, const bitCapInt& i2) { throw std::logic_error("Statevector::read2() has no default implementation!"); }
 #endif
-    virtual void write(const bitCapInt& i, const complex& c) = 0;
+    virtual void write(const bitCapInt& i, const complex& c) { throw std::logic_error("Statevector::write() has no default implementation!"); }
     /// Optimized "write" that is only guaranteed to write if either amplitude is nonzero. (Useful for the result of 2x2
     /// tensor slicing.)
-    virtual void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2) = 0;
+    virtual void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2) { throw std::logic_error("Statevector::write2() has no default implementation!"); }
+#if QBCAPPOW > 5
+    virtual complex read(const size_t& i) { throw std::logic_error("Statevector::read() has no default implementation!"); }
+#if ENABLE_COMPLEX_X2
+    virtual complex2 read2(const size_t& i1, const size_t& i2) { throw std::logic_error("Statevector::read2() has no default implementation!"); }
+#endif
+    virtual void write(const size_t& i, const complex& c) { throw std::logic_error("Statevector::write() has no default implementation!"); }
+    virtual void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2) { throw std::logic_error("Statevector::write2() has no default implementation!"); }
+#endif
     virtual void clear() = 0;
     virtual void copy_in(const complex* inArray) = 0;
     virtual void copy_out(complex* outArray) = 0;
@@ -83,17 +90,6 @@ public:
     virtual void shuffle(StateVectorPtr svp) = 0;
     virtual void get_probs(real1* outArray) = 0;
     virtual bool is_sparse() = 0;
-
-#if QBCAPPOW > 6
-    virtual complex read(const size_t& i) = 0;
-#if ENABLE_COMPLEX_X2
-    virtual complex2 read2(const size_t& i1, const size_t& i2) = 0;
-#endif
-    virtual void write(const size_t& i, const complex& c) = 0;
-    /// Optimized "write" that is only guaranteed to write if either amplitude is nonzero. (Useful for the result of 2x2
-    /// tensor slicing.)
-    virtual void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2) = 0;
-#endif
 };
 
 class StateVectorArray : public StateVector {
@@ -147,11 +143,31 @@ public:
 
     complex* get_raw() { return amplitudes.get(); }
 
+    complex read(const size_t& i) { return amplitudes.get()[i]; };
+    void write(const size_t& i, const complex& c) { amplitudes.get()[i] = c; };
+#if ENABLE_COMPLEX_X2
+    complex2 read2(const size_t& i1, const size_t& i2) { return complex2(amplitudes.get()[i1], amplitudes.get()[i2]); }
+#endif
     void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
     {
         amplitudes.get()[i1] = c1;
         amplitudes.get()[i2] = c2;
     };
+
+#if QBCAPPOW > 6
+    complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
+#if ENABLE_COMPLEX_X2
+    complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
+    {
+        return read2((size_t)(uint64_t)i1, (size_t)(uint64_t)i2);
+    }
+#endif
+    void write(const bitCapInt& i, const complex& c) { write((size_t)(uint64_t)i, c); }
+    void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
+    {
+        write2((size_t)(uint64_t)i1, c1, (size_t)(uint64_t)i2, c2);
+    }
+#endif
 
     void clear()
     {
@@ -224,28 +240,6 @@ public:
     }
 
     bool is_sparse() { return false; }
-
-    complex read(const size_t& i) { return amplitudes.get()[i]; };
-    void write(const size_t& i, const complex& c) { amplitudes.get()[i] = c; };
-
-#if QBCAPPOW > 6
-    complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
-#if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
-    {
-        return read2((size_t)(uint64_t)i1, (size_t)(uint64_t)i2);
-    }
-#endif
-    void write(const bitCapInt& i, const complex& c) { write((size_t)(uint64_t)i, c); }
-    void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
-    {
-        write2((size_t)(uint64_t)i1, c1, (size_t)(uint64_t)i2, c2);
-    }
-
-#if ENABLE_COMPLEX_X2
-    complex2 read2(const size_t& i1, const size_t& i2) { return complex2(amplitudes.get()[i1], amplitudes.get()[i2]); }
-#endif
-#endif
 };
 
 class StateVectorSparse : public StateVector {
@@ -342,6 +336,24 @@ public:
         return fidelity;
     }
 
+#if QBCAPPOW > 6
+    complex read(const size_t& i) { return read((bitCapInt)i); }
+#if ENABLE_COMPLEX_X2
+    complex2 read2(const size_t& i1, const size_t& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
+    complex2 read2(const size_t& i1, const size_t& i2)
+    {
+        if (isReadLocked) {
+            return complex2(readLocked(i1), readLocked(i2));
+        }
+        return complex2(readUnlocked(i1), readUnlocked(i2));
+    }
+#endif
+    void write(const size_t& i, const complex& c) { write((bitCapInt)i, c); }
+    void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
+    {
+        write2((bitCapInt)i1, c1, (bitCapInt)i2, c2);
+    }
+#endif
     complex read(const bitCapInt& i) { return isReadLocked ? readLocked(i) : readUnlocked(i); }
 
 #if ENABLE_COMPLEX_X2
@@ -639,18 +651,6 @@ public:
 
         return toRet[0U];
     }
-
-#if QBCAPPOW > 6
-    complex read(const size_t& i) { return read((bitCapInt)i); }
-#if ENABLE_COMPLEX_X2
-    complex2 read2(const size_t& i1, const size_t& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
-#endif
-    void write(const size_t& i, const complex& c) { write((bitCapInt)i, c); }
-    void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
-    {
-        write2((bitCapInt)i1, c1, (bitCapInt)i2, c2);
-    }
-#endif
 };
 
 } // namespace Qrack
