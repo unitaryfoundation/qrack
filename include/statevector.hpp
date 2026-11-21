@@ -64,29 +64,36 @@ public:
         // Intentionally left blank.
     }
 
-    virtual complex read(const size_t& i) = 0;
     virtual complex read(const bitCapInt& i) = 0;
 #if ENABLE_COMPLEX_X2
-    virtual complex2 read2(const size_t& i1, const size_t& i2) = 0;
     virtual complex2 read2(const bitCapInt& i1, const bitCapInt& i2) = 0;
 #endif
-    virtual void write(const size_t& i, const complex& c) = 0;
     virtual void write(const bitCapInt& i, const complex& c) = 0;
     /// Optimized "write" that is only guaranteed to write if either amplitude is nonzero. (Useful for the result of 2x2
     /// tensor slicing.)
-    virtual void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2) = 0;
     virtual void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2) = 0;
     virtual void clear() = 0;
     virtual void copy_in(const complex* inArray) = 0;
+    virtual void copy_out(complex* outArray) = 0;
+    virtual void copy_out(complex* copyIn, const size_t offset, const size_t length) = 0;
     virtual void copy_in(const complex* copyIn, const size_t offset, const size_t length) = 0;
     virtual void copy_in(
         StateVectorPtr copyInSv, const size_t srcOffset, const size_t dstOffset, const size_t length) = 0;
-    virtual void copy_out(complex* outArray) = 0;
-    virtual void copy_out(complex* copyIn, const size_t offset, const size_t length) = 0;
     virtual void copy(StateVectorPtr toCopy) = 0;
     virtual void shuffle(StateVectorPtr svp) = 0;
     virtual void get_probs(real1* outArray) = 0;
     virtual bool is_sparse() = 0;
+
+#if QBCAPPOW != 6
+    virtual complex read(const size_t& i) = 0;
+#if ENABLE_COMPLEX_X2
+    virtual complex2 read2(const size_t& i1, const size_t& i2) = 0;
+#endif
+    virtual void write(const size_t& i, const complex& c) = 0;
+    /// Optimized "write" that is only guaranteed to write if either amplitude is nonzero. (Useful for the result of 2x2
+    /// tensor slicing.)
+    virtual void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2) = 0;
+#endif
 };
 
 class StateVectorArray : public StateVector {
@@ -139,27 +146,6 @@ public:
     virtual ~StateVectorArray() { Free(); }
 
     complex* get_raw() { return amplitudes.get(); }
-
-    complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
-#if ENABLE_COMPLEX_X2
-    complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
-    {
-        return read2((size_t)(uint64_t)i1, (size_t)(uint64_t)i2);
-    }
-#endif
-    void write(const bitCapInt& i, const complex& c) { write((size_t)(uint64_t)i, c); }
-    void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
-    {
-        write2((size_t)(uint64_t)i1, c1, (size_t)(uint64_t)i2, c2);
-    }
-
-    complex read(const size_t& i) { return amplitudes.get()[i]; };
-
-#if ENABLE_COMPLEX_X2
-    complex2 read2(const size_t& i1, const size_t& i2) { return complex2(amplitudes.get()[i1], amplitudes.get()[i2]); }
-#endif
-
-    void write(const size_t& i, const complex& c) { amplitudes.get()[i] = c; };
 
     void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
     {
@@ -238,6 +224,28 @@ public:
     }
 
     bool is_sparse() { return false; }
+
+    complex read(const size_t& i) { return amplitudes.get()[i]; };
+    void write(const size_t& i, const complex& c) { amplitudes.get()[i] = c; };
+
+#if QBCAPPOW != 6
+    complex read(const bitCapInt& i) { return read((size_t)(uint64_t)i); }
+#if ENABLE_COMPLEX_X2
+    complex2 read2(const bitCapInt& i1, const bitCapInt& i2)
+    {
+        return read2((size_t)(uint64_t)i1, (size_t)(uint64_t)i2);
+    }
+#endif
+    void write(const bitCapInt& i, const complex& c) { write((size_t)(uint64_t)i, c); }
+    void write2(const bitCapInt& i1, const complex& c1, const bitCapInt& i2, const complex& c2)
+    {
+        write2((size_t)(uint64_t)i1, c1, (size_t)(uint64_t)i2, c2);
+    }
+
+#if ENABLE_COMPLEX_X2
+    complex2 read2(const size_t& i1, const size_t& i2) { return complex2(amplitudes.get()[i1], amplitudes.get()[i2]); }
+#endif
+#endif
 };
 
 class StateVectorSparse : public StateVector {
@@ -262,16 +270,6 @@ public:
         : StateVector(cap)
         , amplitudes()
     {
-    }
-
-    complex read(const size_t& i) { return read((bitCapInt)i); }
-#if ENABLE_COMPLEX_X2
-    complex2 read2(const size_t& i1, const size_t& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
-#endif
-    void write(const size_t& i, const complex& c) { write((bitCapInt)i, c); }
-    void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
-    {
-        write2((bitCapInt)i1, c1, (bitCapInt)i2, c2);
     }
 
     size_t size() { return amplitudes.size(); }
@@ -641,6 +639,18 @@ public:
 
         return toRet[0U];
     }
+
+#if QBCAPPOW != 6
+    complex read(const size_t& i) { return read((bitCapInt)i); }
+#if ENABLE_COMPLEX_X2
+    complex2 read2(const size_t& i1, const size_t& i2) { return read2((bitCapInt)i1, (bitCapInt)i2); }
+#endif
+    void write(const size_t& i, const complex& c) { write((bitCapInt)i, c); }
+    void write2(const size_t& i1, const complex& c1, const size_t& i2, const complex& c2)
+    {
+        write2((bitCapInt)i1, c1, (bitCapInt)i2, c2);
+    }
+#endif
 };
 
 } // namespace Qrack
